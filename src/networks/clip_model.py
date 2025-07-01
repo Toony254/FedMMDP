@@ -1,0 +1,233 @@
+import torch.nn as nn
+import clip
+import sys
+import torch.nn.functional as F
+import torch
+
+sys.path.append("../")
+sys.path.append("../../")
+from src.utils.tensor_utils import l2_normalize
+
+class ClientImageEncoder(nn.Module):
+    def __init__(self, mlp_local, **kwargs):
+        super(ClientImageEncoder, self).__init__()
+        self.is_train = bool(kwargs['is_train'])
+        clip_model, _= clip.load("RN50", device="cuda")
+        for param in clip_model.visual.parameters():
+            param.requires_grad = False
+        emb_dim = clip_model.visual.output_dim
+        self.visual_projector = nn.Sequential(
+            nn.Linear(emb_dim, emb_dim),
+            nn.LayerNorm(emb_dim),
+            nn.ReLU()
+        ).half()
+        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight = torch.load(projector_weight_path)
+        self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
+        class CombinedVisualModel(nn.Module):
+            def __init__(self, clip_visual, projector):
+                super(CombinedVisualModel, self).__init__()
+                self.clip_visual = clip_visual
+                self.projector = projector
+                
+            def forward(self, x):
+                x = self.clip_visual(x)
+                x = self.projector(x)
+                return x
+        
+        # 将组合后的模型赋给self.clip_visual
+        self.clip_visual = CombinedVisualModel(clip_model.visual, self.visual_projector)
+        
+        self.embed_dim = 1024
+        self.relu = nn.ReLU(inplace=False).half()
+        if kwargs['embed_dim'] != 1024:
+            self.linear = nn.Linear(1024,self.embed_dim).half()
+        self.class_fc_2 = nn.Linear(self.embed_dim, kwargs['num_class']).half()
+        self.mlp_local = mlp_local
+        if self.mlp_local:
+            self.head_proj = nn.Sequential(
+                nn.Linear(1024, 1024),
+                nn.BatchNorm1d(1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(1024, 1024)
+            )
+
+    def forward(self, images):
+        if images.shape[2] != 224 or images.shape[3] != 224:
+            images = F.interpolate(images, size=(224, 224), mode='bilinear', align_corners=False)
+        images = images.half() # [1024, 3, 256, 256]
+        x = self.clip_visual(images)
+        if self.is_train:
+            fc_weight_relu = self.relu(self.class_fc_2.weight)
+            self.class_fc_2.weight.data = fc_weight_relu
+
+            x1 = self.class_fc_2(x)
+            return x1, fc_weight_relu, x
+        return l2_normalize(x)
+
+class CLIPImageEncoder(nn.Module):
+    def __init__(self, config, mlp_local):
+        super(CLIPImageEncoder, self).__init__()
+        self.config = config
+        clip_model, _= clip.load("RN50", device="cuda")
+        for param in clip_model.visual.parameters():
+            param.requires_grad = False
+        emb_dim = clip_model.visual.output_dim
+        self.visual_projector = nn.Sequential(
+            nn.Linear(emb_dim, emb_dim),
+            nn.LayerNorm(emb_dim),
+            nn.ReLU()
+        ).half()
+        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight = torch.load(projector_weight_path)
+        self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
+        class CombinedVisualModel(nn.Module):
+            def __init__(self, clip_visual, projector):
+                super(CombinedVisualModel, self).__init__()
+                self.clip_visual = clip_visual
+                self.projector = projector
+                
+            def forward(self, x):
+                x = self.clip_visual(x)
+                x = self.projector(x)
+                return x
+        
+        self.clip_visual = CombinedVisualModel(clip_model.visual, self.visual_projector)
+        self.mlp_local = mlp_local
+        if self.mlp_local:
+            self.head_proj = nn.Sequential(
+                nn.Linear(1024, 1024),
+                nn.BatchNorm1d(1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(1024, 1024)
+            )
+
+    def forward(self, images):
+        images = images.half()
+        out = self.clip_visual(images)
+        if self.mlp_local:
+            out = self.head_proj(out)
+        out = l2_normalize(out)
+        output = {'embedding': out}
+        return output
+
+class ClientTextEncoder(nn.Module):
+    def __init__(self, embed_dim=1024, num_class=4, scale=128, mlp_local=False):
+        super(ClientTextEncoder, self).__init__()
+        clip_model, _ = clip.load("RN50", device="cuda")
+        for param in clip_model.transformer.parameters():
+            param.requires_grad = False
+        emb_dim = clip_model.text_projection.shape[1]
+        context_length = clip_model.positional_embedding.shape[0]
+        dtype = clip_model.dtype
+        self.text_projector = nn.Sequential(
+            nn.Linear(emb_dim, emb_dim),
+            nn.LayerNorm(emb_dim),
+            nn.ReLU()
+        ).half()
+        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight = torch.load(projector_weight_path)
+        self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
+        class CombinedTextModel(nn.Module):
+            def __init__(self, projector):
+                super(CombinedTextModel, self).__init__()
+                self.token_embedding = clip_model.token_embedding
+                self.transformer = clip_model.transformer
+                self.ln_final = clip_model.ln_final
+                self.text_projection = clip_model.text_projection
+                self.positional_embedding = clip_model.positional_embedding
+                self.projector = projector
+                
+            def forward(self, text):
+                x = self.token_embedding(text).type(dtype)
+
+                x = x + self.positional_embedding.type(dtype)
+                x = x.permute(1, 0, 2)  # NLD -> LND
+                x = self.transformer(x)
+                x = x.permute(1, 0, 2)  # LND -> NLD
+                x = self.ln_final(x).type(dtype)
+                
+                x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
+                
+                x = self.projector(x)
+                return x
+        
+        self.clip_text = CombinedTextModel(self.text_projector)
+        self.relu = nn.ReLU(inplace=False).half()
+        self.class_fc_2 = nn.Linear(embed_dim, num_class).half()
+        self.is_train = True
+        
+        self.mlp_local = mlp_local
+        if self.mlp_local:
+            self.head_proj = nn.Sequential(
+                nn.Linear(1024, 1024),
+                nn.BatchNorm1d(1024),
+                nn.ReLU(inplace=True),
+                nn.Linear(1024, 1024)
+            )
+    
+    def forward(self, inputs, lengths=None):
+        max_context_length = 77
+        if inputs.shape[1] > max_context_length:
+            inputs = inputs[:, :max_context_length]
+        
+        out = self.clip_text(inputs)
+        if self.is_train:
+            fc_weight_relu = self.relu(self.class_fc_2.weight)
+            self.class_fc_2.weight.data = fc_weight_relu
+            x = self.class_fc_2(out)
+            return x, fc_weight_relu, out
+        if self.mlp_local:
+            out = self.head_proj(out)
+            
+        out = l2_normalize(out)
+        return out
+    
+class CLIPTextEncoder(nn.Module):
+    def __init__(self, config, embed_dim=1024, num_class=4, scale=128, mlp_local=False):
+        super(CLIPTextEncoder, self).__init__()
+        self.config = config
+        clip_model, _ = clip.load("RN50", device="cuda")
+        for param in clip_model.transformer.parameters():
+            param.requires_grad = False
+        emb_dim = clip_model.text_projection.shape[1]
+        context_length = clip_model.positional_embedding.shape[0]
+        dtype = clip_model.dtype
+        self.text_projector = nn.Sequential(
+            nn.Linear(emb_dim, emb_dim),
+            nn.LayerNorm(emb_dim),
+            nn.ReLU()
+        ).half()
+        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight = torch.load(projector_weight_path)
+        self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
+        class CombinedTextModel(nn.Module):
+            def __init__(self, projector):
+                super(CombinedTextModel, self).__init__()
+                self.token_embedding = clip_model.token_embedding
+                self.transformer = clip_model.transformer
+                self.ln_final = clip_model.ln_final
+                self.text_projection = clip_model.text_projection
+                self.positional_embedding = clip_model.positional_embedding
+                self.projector = projector
+                
+            def forward(self, text):
+                x = self.token_embedding(text).type(dtype)
+
+                x = x + self.positional_embedding.type(dtype)
+                x = x.permute(1, 0, 2)  # NLD -> LND
+                x = self.transformer(x)
+                x = x.permute(1, 0, 2)  # LND -> NLD
+                x = self.ln_final(x).type(dtype)
+                
+                x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
+                
+                x = self.projector(x)
+                return x
+        
+        self.clip_text = CombinedTextModel(self.text_projector)
+    
+    def forward(self, inputs):
+        out = self.clip_text(inputs)
+        out = l2_normalize(out)
+        return out
