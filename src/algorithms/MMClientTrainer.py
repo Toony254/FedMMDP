@@ -161,6 +161,41 @@ class MMClientTrainer(EngineBase):
         del self.old_model
         import gc
         gc.collect()
+        
+    def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
+        self.model.train()
+        global_model.eval()
+        if prev_models is not None:
+            for m in prev_models:
+                m.eval()
+        for i in range(self.local_epochs):
+            for idx, data in enumerate(self.train_loader):
+                self.optimizer.zero_grad()
+                images = data["processed_img"].to(self.device)
+                captions = data["cap_tokens"].to(self.device)
+                output = self.model(images, captions)
+                fvec = output['logits'] if isinstance(output, dict) and 'logits' in output else output
+                labels = data["class_id"].to(self.device)
+                with torch.no_grad():
+                    output_global = global_model(images, captions)
+                    fvec_global = output_global['logits'] if isinstance(output_global, dict) and 'logits' in output_global else output_global
+                    fvec_prev = [m(images, captions)['logits'] if isinstance(m(images, captions), dict) else m(images, captions) for m in prev_models] if prev_models else []
+                # 分类损失
+                loss_cls = self.criterion(fvec, labels)
+                # MOON对比损失
+                cos = nn.CosineSimilarity(dim=-1)
+                posi = cos(fvec, fvec_global)
+                logits = posi.reshape(-1, 1)
+                if prev_models:
+                    for fvec_p in fvec_prev:
+                        nega = cos(fvec, fvec_p)
+                        logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
+                logits /= temperature
+                contrastive_labels = torch.zeros(images.size(0)).long().to(self.device)
+                loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)
+                loss = loss_cls + loss_con
+                loss.backward()
+                self.optimizer.step()
     def train_gcmd_epoch(self, prefix=''):
         # 1. 收集有标签样本特征
         img_features, img_labels = [], []

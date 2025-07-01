@@ -259,6 +259,46 @@ class ClientTrainer:
         del self.old_model
         import gc
         gc.collect()
+        
+    def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
+        self.model.train()
+        global_model.eval()
+        if prev_models is not None:
+            for m in prev_models:
+                m.eval()
+        for i in range(self.local_epochs):
+            for idx, data in enumerate(self.train_loader):
+                self.optimizer.zero_grad()
+                if self.dset_name == 'image':
+                    inputs = data["processed_img"].to(self.gpuid)
+                    labels = data["class_id"].to(self.gpuid)
+                    fvec, _, _ = self.model(inputs)
+                    with torch.no_grad():
+                        fvec_global, _, _ = global_model(inputs)
+                        fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
+                elif self.dset_name == 'text':
+                    inputs = data["cap_tokens"].to(self.gpuid)
+                    labels = data["class_id"].to(self.gpuid)
+                    fvec, _, _ = self.model(inputs)
+                    with torch.no_grad():
+                        fvec_global, _, _ = global_model(inputs)
+                        fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
+                # 分类损失
+                loss_cls = self.criterion(fvec, labels)
+                # MOON对比损失
+                cos = nn.CosineSimilarity(dim=-1)
+                posi = cos(fvec, fvec_global)
+                logits = posi.reshape(-1, 1)
+                if prev_models:
+                    for fvec_p in fvec_prev:
+                        nega = cos(fvec, fvec_p)
+                        logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
+                logits /= temperature
+                contrastive_labels = torch.zeros(inputs.size(0)).long().to(self.gpuid)
+                loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)
+                loss = loss_cls + loss_con
+                loss.backward()
+                self.optimizer.step()
 
     ##################################################
     # step 0: System check and predefine function
