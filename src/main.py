@@ -62,7 +62,7 @@ def args():
     parser.add_argument('--temperature', type=int, default=0.5, help='coefficient of temperature')
 
     parser.add_argument('--client_num_per_round', type=int, default=15)
-    parser.add_argument('--FL_algorithm', type=str, default='MOON',
+    parser.add_argument('--FL_algorithm', type=str, default='FedMD',
                         choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON'],
                         help='Federated Learning algorithm to use')
 

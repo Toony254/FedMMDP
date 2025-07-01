@@ -263,7 +263,7 @@ class MMFL(object):
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
         
         # 1. 对齐阶段：所有客户端用公共数据输出logits
-        alignment_loader = self.train_eval_dataloader  # 公共对齐数据
+        alignment_loader = self._dataloaders['train_subset' + f'_{self.args.pub_data_num}']  # 公共对齐数据
         all_logits = []
         for trainer in self.cur_trainers:
             logits = trainer.predict_logits(alignment_loader)

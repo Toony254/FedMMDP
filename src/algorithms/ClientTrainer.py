@@ -458,12 +458,12 @@ class ClientTrainer:
         self.model.eval()
         logits_list = []
         with torch.no_grad():
-            for data in dataloader:
+            for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
                 if self.dset_name == 'image':
-                    inputs = data["processed_img"].to(self.gpuid)
+                    inputs = images.to(self.gpuid)
                     output, _, _ = self.model(inputs)
                 elif self.dset_name == 'text':
-                    inputs = data["cap_tokens"].to(self.gpuid)
+                    inputs = captions.to(self.gpuid)
                     output, _, _ = self.model(inputs)
                 logits_list.append(output.cpu().numpy())
         return np.concatenate(logits_list, axis=0)
@@ -472,11 +472,11 @@ class ClientTrainer:
         """用聚合soft label对齐训练"""
         self.model.train()
         idx = 0
-        for data in dataloader:
+        for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
             if self.dset_name == 'image':
-                inputs = data["processed_img"].to(self.gpuid)
+                inputs = images.to(self.gpuid)
             elif self.dset_name == 'text':
-                inputs = data["cap_tokens"].to(self.gpuid)
+                inputs = captions.to(self.gpuid)
             batch_size = inputs.size(0)
             soft_label = torch.tensor(avg_logits[idx:idx+batch_size]).to(self.gpuid)
             idx += batch_size

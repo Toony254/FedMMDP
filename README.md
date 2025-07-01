@@ -54,6 +54,7 @@ python src/datasets/split_domain_dataset.py >wandb/preprocess_datasets.log 2>&1 
 ### Train FedMMDP with CLIP as server model
 
 ```sh
+python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg >wandb/output_avg.log 2>&1 &
 python src/main.py --name FedMMDP-moon --FL_algorithm MOON >wandb/output_moon.log 2>&1 &
 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx >wandb/output_prox.log 2>&1 &
 python src/main.py --name FedMMDP-md --FL_algorithm FedMD >wandb/output_md.log 2>&1 &

@@ -317,9 +317,9 @@ class MMClientTrainer(EngineBase):
         self.model.eval()
         logits_list = []
         with torch.no_grad():
-            for data in dataloader:
-                images = data["processed_img"].to(self.device)
-                captions = data["cap_tokens"].to(self.device)
+            for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
+                images = images.to(self.device)
+                captions = captions.to(self.device)
                 output = self.model(images, captions)
                 logits = output['logits'] if isinstance(output, dict) and 'logits' in output else output
                 logits_list.append(logits.cpu().numpy())
@@ -328,9 +328,9 @@ class MMClientTrainer(EngineBase):
     def distill_with_logits(self, dataloader, avg_logits):
         self.model.train()
         idx = 0
-        for data in dataloader:
-            images = data["processed_img"].to(self.device)
-            captions = data["cap_tokens"].to(self.device)
+        for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
+            images = images.to(self.device)
+            captions = captions.to(self.device)
             batch_size = images.size(0)
             soft_label = torch.tensor(avg_logits[idx:idx+batch_size]).to(self.device)
             idx += batch_size
