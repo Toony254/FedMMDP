@@ -314,34 +314,43 @@ class MMClientTrainer(EngineBase):
         loss_dict['step'] = cur_step(self.cur_epoch, idx, len(self.train_loader))
         
     def predict_logits(self, dataloader):
+        self.model.cuda()
         self.model.eval()
-        logits_list = []
+        img_logits_list = []
+        txt_logits_list = []
         with torch.no_grad():
             for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
                 images = images.to(self.device)
                 captions = captions.to(self.device)
                 output = self.model(images, captions)
-                logits = output['logits'] if isinstance(output, dict) and 'logits' in output else output
-                logits_list.append(logits.cpu().numpy())
-        return np.concatenate(logits_list, axis=0)
+                img_logits = output['image_features']
+                txt_logits = output['caption_features']
+                img_logits_list.append(img_logits.cpu().numpy())
+                txt_logits_list.append(txt_logits.cpu().numpy())
+        return np.concatenate(img_logits_list, axis=0), np.concatenate(txt_logits_list, axis=0)
 
-    def distill_with_logits(self, dataloader, avg_logits):
+    def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
+        self.model.cuda()
         self.model.train()
         idx = 0
         for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
             images = images.to(self.device)
             captions = captions.to(self.device)
             batch_size = images.size(0)
-            soft_label = torch.tensor(avg_logits[idx:idx+batch_size]).to(self.device)
+            img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.device)
+            txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.device)
             idx += batch_size
             self.optimizer.zero_grad()
             output = self.model(images, captions)
-            logits = output['logits'] if isinstance(output, dict) and 'logits' in output else output
-            loss = nn.MSELoss()(logits, soft_label)
+            image_logits = output['image_features']
+            text_logits = output['caption_features']
+            loss = nn.MSELoss()(image_logits, img_soft_label)
+            loss += nn.MSELoss()(text_logits, txt_soft_label)
             loss.backward()
             self.optimizer.step()
 
     def train_on_private_data(self):
+        self.model.cuda()
         self.model.train()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):

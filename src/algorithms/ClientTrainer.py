@@ -455,6 +455,7 @@ class ClientTrainer:
         
     def predict_logits(self, dataloader):
         """用公共对齐数据输出logits"""
+        self.model.cuda()
         self.model.eval()
         logits_list = []
         with torch.no_grad():
@@ -468,26 +469,36 @@ class ClientTrainer:
                 logits_list.append(output.cpu().numpy())
         return np.concatenate(logits_list, axis=0)
 
-    def distill_with_logits(self, dataloader, avg_logits):
+    def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
         """用聚合soft label对齐训练"""
+        self.model.cuda()
         self.model.train()
         idx = 0
         for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
             if self.dset_name == 'image':
                 inputs = images.to(self.gpuid)
+                batch_size = inputs.size(0)
+                img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.gpuid)
+                idx += batch_size
+                self.optimizer.zero_grad()
+                output, _, _ = self.model(inputs)
+                loss = nn.MSELoss()(output, img_soft_label)
+                loss.backward()
+                self.optimizer.step()
             elif self.dset_name == 'text':
                 inputs = captions.to(self.gpuid)
-            batch_size = inputs.size(0)
-            soft_label = torch.tensor(avg_logits[idx:idx+batch_size]).to(self.gpuid)
-            idx += batch_size
-            self.optimizer.zero_grad()
-            output, _, _ = self.model(inputs)
-            loss = nn.MSELoss()(output, soft_label)
-            loss.backward()
-            self.optimizer.step()
+                batch_size = inputs.size(0)
+                txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.gpuid)
+                idx += batch_size
+                self.optimizer.zero_grad()
+                output, _, _ = self.model(inputs)
+                loss = nn.MSELoss()(output, txt_soft_label)
+                loss.backward()
+                self.optimizer.step()
 
     def train_on_private_data(self):
         """用私有数据常规训练一轮"""
+        self.model.cuda()
         self.model.train()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):

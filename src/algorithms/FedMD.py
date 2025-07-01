@@ -264,15 +264,25 @@ class MMFL(object):
         
         # 1. 对齐阶段：所有客户端用公共数据输出logits
         alignment_loader = self._dataloaders['train_subset' + f'_{self.args.pub_data_num}']  # 公共对齐数据
-        all_logits = []
+        img_logits = []
+        txt_logits = []
         for trainer in self.cur_trainers:
-            logits = trainer.predict_logits(alignment_loader)
-            all_logits.append(logits)
+            if trainer.dset_name == 'image':
+                logits = trainer.predict_logits(alignment_loader)
+                img_logits.append(logits)
+            elif trainer.dset_name == 'text':
+                logits = trainer.predict_logits(alignment_loader)
+                txt_logits.append(logits)
+            elif trainer.dset_name == 'mm':
+                img, txt = trainer.generate_logits(alignment_loader)
+                img_logits.append(img)
+                txt_logits.append(txt)
         # 2. 聚合logits，得到soft label
-        avg_logits = np.mean(np.stack(all_logits), axis=0)
+        avg_img_logits = np.mean(np.stack(img_logits), axis=0)
+        avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
         # 3. 每个客户端用soft label做蒸馏训练
         for trainer in self.cur_trainers:
-            trainer.distill_with_logits(alignment_loader, avg_logits)
+            trainer.distill_with_logits(alignment_loader, avg_img_logits, avg_txt_logits)
         # 4. 每个客户端用私有数据继续本地训练
         for trainer in self.cur_trainers:
             trainer.train_on_private_data()
