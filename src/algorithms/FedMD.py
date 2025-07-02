@@ -276,7 +276,7 @@ class MMFL(object):
                 print(logits.shape)
                 txt_logits.append(logits)
             elif trainer.dset_name == 'mm':
-                img, txt = trainer.generate_logits(alignment_loader)
+                img, txt = trainer.predict_logits(alignment_loader)
                 print(img.shape, txt.shape)
                 img_logits.append(img)
                 txt_logits.append(txt)
