@@ -221,8 +221,10 @@ class ClientTrainer:
                 # === Proximal term ===
                 prox_loss = 0.0
                 for name, param in self.model.named_parameters():
-                    prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
+                    if name in global_params:
+                        prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
                 total_loss = loss + 0.5 * mu * prox_loss
+                print(f'Client {self.client_id} - Epoch {self.local_epoch}, Step {idx}, Loss: {total_loss.item():.4f}, Prox Loss: {prox_loss.item():.4f}')
                 total_loss.backward()
                 self.optimizer.step()
                 if is_test:
@@ -271,17 +273,21 @@ class ClientTrainer:
                 self.optimizer.zero_grad()
                 if self.dset_name == 'image':
                     inputs = data["processed_img"].to(self.gpuid)
-                    labels = data["class_id"].to(self.gpuid)
+                    labels = data["class_id"]
+                    if isinstance(labels, list):
+                        labels = torch.tensor(labels,dtype=torch.long)
                     fvec, _, _ = self.model(inputs)
                     with torch.no_grad():
-                        fvec_global, _, _ = global_model(inputs)
+                        fvec_global = global_model.img_enc(inputs)["embedding"]
                         fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
                 elif self.dset_name == 'text':
                     inputs = data["cap_tokens"].to(self.gpuid)
-                    labels = data["class_id"].to(self.gpuid)
+                    labels = data["class_id"]
+                    if isinstance(labels, list):
+                        labels = torch.tensor(labels,dtype=torch.long)
                     fvec, _, _ = self.model(inputs)
                     with torch.no_grad():
-                        fvec_global, _, _ = global_model(inputs)
+                        fvec_global = global_model.txt_enc(inputs)
                         fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
                 # 分类损失
                 loss_cls = self.criterion(fvec, labels)
