@@ -147,8 +147,6 @@ class MMClientTrainer(EngineBase):
                 self.logger.log(f"Epoch {self.local_epoch}")
             if self.args.FL_algorithm == 'FedAvg':
                 self.train_epoch(prefix='FedAvg_')
-            elif self.args.FL_algorithm == 'MOON':
-                self.train_epoch(prefix='MOON_')
             elif self.args.FL_algorithm == 'MASA':
                 self.train_gcmd_epoch(prefix='MASA_')
 
@@ -204,14 +202,16 @@ class MMClientTrainer(EngineBase):
             if idx > 10: break
             images = data["processed_img"].to(self.device)
             captions = data["cap_tokens"].to(self.device)
-            labels = data["class_id"].to(self.device)
+            labels = data["class_id"]
+            if isinstance(labels, list):
+                labels = torch.tensor(labels, dtype=torch.long)
             # 提取特征
-            img_feat = self.model.img_enc(images).detach().cpu().numpy()
+            img_feat = self.model.img_enc(images)["embedding"].detach().cpu().numpy()
             txt_feat = self.model.txt_enc(captions).detach().cpu().numpy()
             img_features.append(img_feat)
             txt_features.append(txt_feat)
-            img_labels.append(labels.cpu().numpy())
-            txt_labels.append(labels.cpu().numpy())
+            img_labels.append(labels.numpy())
+            txt_labels.append(labels.numpy())
         img_features = np.concatenate(img_features, axis=0)
         txt_features = np.concatenate(txt_features, axis=0)
         img_labels = np.concatenate(img_labels, axis=0)

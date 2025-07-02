@@ -326,8 +326,6 @@ class MMFL(object):
 
         if not is_test:
             self.logger.log(f"Round {round_n + 1}!")
-            self.engine.train(
-                tr_loader=self._dataloaders['train_subset' + f'_{self.args.pub_data_num}'])  # global train
             if len(self.total_local_trainers) != 0:
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
 

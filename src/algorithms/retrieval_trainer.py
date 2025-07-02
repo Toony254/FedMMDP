@@ -186,7 +186,7 @@ class TrainerEngine(EngineBase):
         torch.cuda.empty_cache()
         if self.logger is not None:
             self.logger.log("Global Training!")
-        for idx, (images, captions, _, _, a_, b_, index) in tqdm(enumerate(tr_loader), total=len(tr_loader)):
+        for idx, (images, captions, _, _, a_, b_, index) in enumerate(tr_loader):
             images = images.to(self.device)  # [bs, 3, 224, 224]
             captions = captions.to(self.device)  # [bs, seq_len]
 
