@@ -161,6 +161,7 @@ class MMClientTrainer(EngineBase):
         gc.collect()
         
     def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
+        self.model.cuda()
         self.model.train()
         global_model.eval()
         if prev_models is not None:
@@ -172,30 +173,40 @@ class MMClientTrainer(EngineBase):
                 images = data["processed_img"].to(self.device)
                 captions = data["cap_tokens"].to(self.device)
                 output = self.model(images, captions)
-                fvec = output['logits'] if isinstance(output, dict) and 'logits' in output else output
-                labels = data["class_id"].to(self.device)
+                img_fvec = output['image_features']
+                txt_fvec = output['caption_features']
                 with torch.no_grad():
                     output_global = global_model(images, captions)
-                    fvec_global = output_global['logits'] if isinstance(output_global, dict) and 'logits' in output_global else output_global
-                    fvec_prev = [m(images, captions)['logits'] if isinstance(m(images, captions), dict) else m(images, captions) for m in prev_models] if prev_models else []
-                # 分类损失
-                loss_cls = self.criterion(fvec, labels)
+                    img_fvec_global = output_global['image_features']
+                    txt_fvec_global = output_global['caption_features']
+                    img_fvec_prev = [m(images, captions)['image_features'] for m in prev_models] if prev_models else []
+                    txt_fvec_prev = [m(images, captions)['caption_features'] for m in prev_models] if prev_models else []
+                # 多模态损失
+                loss_cls, _ = self.criterion(**output)
                 # MOON对比损失
                 cos = nn.CosineSimilarity(dim=-1)
-                posi = cos(fvec, fvec_global)
-                logits = posi.reshape(-1, 1)
+                posi_img = cos(img_fvec, img_fvec_global)
+                posi_txt = cos(txt_fvec, txt_fvec_global)
+                img_logits = posi_img.reshape(-1, 1)
+                txt_logits = posi_txt.reshape(-1, 1)
                 if prev_models:
-                    for fvec_p in fvec_prev:
-                        nega = cos(fvec, fvec_p)
-                        logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
-                logits /= temperature
+                    for img_fvec_p in img_fvec_prev:
+                        nega = cos(img_fvec, img_fvec_p)
+                        img_logits = torch.cat((img_logits, nega.reshape(-1, 1)), dim=1)
+                    for txt_fvec_p in txt_fvec_prev:
+                        nega = cos(txt_fvec, txt_fvec_p)
+                        txt_logits = torch.cat((txt_logits, nega.reshape(-1, 1)), dim=1)
+                img_logits /= temperature
+                txt_logits /= temperature
                 contrastive_labels = torch.zeros(images.size(0)).long().to(self.device)
-                loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)
-                loss = loss_cls + loss_con
+                loss_con_img = mu * nn.CrossEntropyLoss()(img_logits, contrastive_labels)
+                loss_con_txt = mu * nn.CrossEntropyLoss()(txt_logits, contrastive_labels)
+                loss = loss_cls + loss_con_img + loss_con_txt
                 loss.backward()
                 self.optimizer.step()
     def train_gcmd_epoch(self, prefix=''):
         # 1. 收集有标签样本特征
+        self.model.eval()
         img_features, img_labels = [], []
         txt_features, txt_labels = [], []
         for idx, data in enumerate(self.train_loader):
@@ -249,31 +260,30 @@ class MMClientTrainer(EngineBase):
 
         # 3. 采样无标签数据，计算SCM
         def compute_scm(features):
-            return np.dot(features, features.T)
-
+            return torch.matmul(features, features.T)
+        
+        self.model.train()
         for idx, data in enumerate(self.train_loader):
             if idx <= 10: continue
             images = data["processed_img"].to(self.device)
             captions = data["cap_tokens"].to(self.device)
             # 提取特征
-            img_feat = self.model.img_enc(images).detach().cpu().numpy()
-            txt_feat = self.model.txt_enc(captions).detach().cpu().numpy()
+            img_feat = self.model.img_enc(images)["embedding"]
+            txt_feat = self.model.txt_enc(captions)
             scm_img = compute_scm(img_feat)
             scm_txt = compute_scm(txt_feat)
 
             # 4. 损失计算
             loss = 0
             if superior == 'img':
-                # img: 只重建损失
-                rec_loss_img = F.mse_loss(torch.tensor(img_feat), torch.tensor(img_feat))
-                # txt: 重建+蒸馏
-                rec_loss_txt = F.mse_loss(torch.tensor(txt_feat), torch.tensor(txt_feat))
-                distill_loss = F.mse_loss(torch.tensor(scm_img), torch.tensor(scm_txt))
+                rec_loss_img = F.mse_loss(img_feat, img_feat)
+                rec_loss_txt = F.mse_loss(txt_feat, txt_feat)
+                distill_loss = F.mse_loss(scm_img, scm_txt)
                 loss = rec_loss_img + rec_loss_txt + distill_loss
             else:
-                rec_loss_txt = F.mse_loss(torch.tensor(txt_feat), torch.tensor(txt_feat))
-                rec_loss_img = F.mse_loss(torch.tensor(img_feat), torch.tensor(img_feat))
-                distill_loss = F.mse_loss(torch.tensor(scm_txt), torch.tensor(scm_img))
+                rec_loss_txt = F.mse_loss(txt_feat, txt_feat)
+                rec_loss_img = F.mse_loss(img_feat, img_feat)
+                distill_loss = F.mse_loss(scm_txt, scm_img)
                 loss = rec_loss_txt + rec_loss_img + distill_loss
 
             self.optimizer.zero_grad()
