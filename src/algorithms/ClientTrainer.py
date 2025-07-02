@@ -219,12 +219,14 @@ class ClientTrainer:
                     fvec, class_weight, local_features = self.model(inputs_bt)
                 loss = self.criterion(fvec, labels_var)
                 # === Proximal term ===
+                common_keys = set(dict(self.model.named_parameters()).keys()) & set(global_params.keys())
+                print(common_keys)
                 prox_loss = 0.0
-                for name, param in self.model.named_parameters():
-                    if name in global_params:
-                        prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
+                for name in common_keys:
+                    param = dict(self.model.named_parameters())[name]
+                    prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
                 total_loss = loss + 0.5 * mu * prox_loss
-                print(f'Client {self.client_id} - Epoch {self.local_epoch}, Step {idx}, Loss: {total_loss.item():.4f}, Prox Loss: {prox_loss.item():.4f}')
+                print(f'Client {self.client_id} - Epoch {self.local_epoch}, Step {idx}, Loss: {total_loss:.4f}, Prox Loss: {prox_loss:.4f}')
                 total_loss.backward()
                 self.optimizer.step()
                 if is_test:
@@ -264,10 +266,13 @@ class ClientTrainer:
         
     def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
         self.model.train()
+        self.model.cuda()
         global_model.eval()
+        global_model.cuda()
         if prev_models is not None:
             for m in prev_models:
                 m.eval()
+                m.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
@@ -276,6 +281,7 @@ class ClientTrainer:
                     labels = data["class_id"]
                     if isinstance(labels, list):
                         labels = torch.tensor(labels,dtype=torch.long)
+                    labels = labels.to(self.gpuid)
                     fvec, _, _ = self.model(inputs)
                     with torch.no_grad():
                         fvec_global = global_model.img_enc(inputs)["embedding"]
@@ -285,6 +291,7 @@ class ClientTrainer:
                     labels = data["class_id"]
                     if isinstance(labels, list):
                         labels = torch.tensor(labels,dtype=torch.long)
+                    labels = labels.to(self.gpuid)
                     fvec, _, _ = self.model(inputs)
                     with torch.no_grad():
                         fvec_global = global_model.txt_enc(inputs)

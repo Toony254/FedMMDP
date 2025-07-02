@@ -112,6 +112,7 @@ class MMClientTrainer(EngineBase):
                 for name, param in self.model.named_parameters():
                     prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
                 total_loss = loss + 0.5 * mu * prox_loss
+                print(f"Client {self.client} - Epoch {self.local_epoch}, Step {idx}, Loss: {loss:.4f}, Prox Loss: {prox_loss:.4f}")
                 self.optimizer.zero_grad()
                 if self.config.train.get('use_fp16'):
                     with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
@@ -164,9 +165,11 @@ class MMClientTrainer(EngineBase):
         self.model.cuda()
         self.model.train()
         global_model.eval()
+        global_model.cuda()
         if prev_models is not None:
             for m in prev_models:
                 m.eval()
+                m.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
@@ -230,15 +233,16 @@ class MMClientTrainer(EngineBase):
 
         # 2. 计算互信息分数MIS
         def compute_mis(features, labels):
-            kmeans = KMeans(n_clusters=len(np.unique(labels)))
+            unique_labels, labels_mapped = np.unique(labels, return_inverse=True)
+            kmeans = KMeans(n_clusters=len(unique_labels))
             cluster_labels = kmeans.fit_predict(features)
             # 互信息分数
             from scipy.stats import entropy
-            C = len(np.unique(labels))
+            C = len(unique_labels)
             joint_pmf = np.zeros((C, C))
-            for y_true, y_pred in zip(labels, cluster_labels):
+            for y_true, y_pred in zip(labels_mapped, cluster_labels):
                 joint_pmf[y_true, y_pred] += 1
-            joint_pmf /= len(labels)
+            joint_pmf /= len(labels_mapped)
             marginal_pmf_true = np.sum(joint_pmf, axis=1)
             marginal_pmf_pred = np.sum(joint_pmf, axis=0)
             mi = 0.0
