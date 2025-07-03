@@ -269,15 +269,15 @@ class MMFL(object):
         for trainer in self.cur_trainers:
             if trainer.dset_name == 'image':
                 logits = trainer.predict_logits(alignment_loader)
-                print(logits.shape)
+                # print(logits.shape)
                 img_logits.append(logits)
             elif trainer.dset_name == 'text':
                 logits = trainer.predict_logits(alignment_loader)
-                print(logits.shape)
+                # print(logits.shape)
                 txt_logits.append(logits)
             elif trainer.dset_name == 'mm':
                 img, txt = trainer.predict_logits(alignment_loader)
-                print(img.shape, txt.shape)
+                # print(img.shape, txt.shape)
                 img_logits.append(img)
                 txt_logits.append(txt)
         # 2. 聚合logits，得到soft label

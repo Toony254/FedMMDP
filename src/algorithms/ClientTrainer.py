@@ -190,7 +190,10 @@ class ClientTrainer:
         self.lr_scheduler(self.cur_epoch)
 
         mu = getattr(self.args, 'mu', 0.01)
-        global_params = {k: v.clone().detach() for k, v in self.global_model.state_dict().items()}
+        if self.dset_name == 'image':
+            global_params = {k: v.clone().detach() for k, v in self.global_model.img_enc.state_dict().items()}
+        if self.dset_name == 'text':
+            global_params = {k: v.clone().detach() for k, v in self.global_model.txt_enc.state_dict().items()}
 
         for i in range(self.local_epochs):
             self.local_epoch += 1
@@ -199,7 +202,6 @@ class ClientTrainer:
                 if idx > 10:
                     break
                 self.optimizer.zero_grad()
-                center_labels_var = torch.autograd.Variable(self.class_label.to(torch.long)).to(self.gpuid)
                 if self.dset_name == 'image':
                     inputs_bt = data["processed_img"]
                     labels_bt = data["class_id"]
@@ -207,7 +209,7 @@ class ClientTrainer:
                         labels_bt = torch.tensor(labels_bt, dtype=torch.long)
                     inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
                     labels_var = torch.autograd.Variable(labels_bt).to(self.gpuid)
-                    fvec, class_weight, local_features = self.model(inputs_var)
+                    fvec, _, _ = self.model(inputs_var)
                 elif self.dset_name == 'text':
                     inputs_bt = data["cap_tokens"]
                     labels_bt = data["class_id"]
@@ -216,11 +218,10 @@ class ClientTrainer:
                     inputs_bt, labels_bt = map(lambda t: torch.cat(t) if type(t) != torch.Tensor else t,
                                                (inputs_bt, labels_bt))
                     inputs_bt, labels_var = map(lambda t: t.to(self.gpuid).contiguous(), (inputs_bt, labels_bt))
-                    fvec, class_weight, local_features = self.model(inputs_bt)
+                    fvec, _, _ = self.model(inputs_bt)
                 loss = self.criterion(fvec, labels_var)
                 # === Proximal term ===
                 common_keys = set(dict(self.model.named_parameters()).keys()) & set(global_params.keys())
-                print(common_keys)
                 prox_loss = 0.0
                 for name in common_keys:
                     param = dict(self.model.named_parameters())[name]
@@ -283,6 +284,7 @@ class ClientTrainer:
                         labels = torch.tensor(labels,dtype=torch.long)
                     labels = labels.to(self.gpuid)
                     fvec, _, _ = self.model(inputs)
+                    local_logits = self.model.clip_visual(inputs)
                     with torch.no_grad():
                         fvec_global = global_model.img_enc(inputs)["embedding"]
                         fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
@@ -293,6 +295,7 @@ class ClientTrainer:
                         labels = torch.tensor(labels,dtype=torch.long)
                     labels = labels.to(self.gpuid)
                     fvec, _, _ = self.model(inputs)
+                    local_logits = self.model.clip_text(inputs)
                     with torch.no_grad():
                         fvec_global = global_model.txt_enc(inputs)
                         fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
@@ -300,7 +303,7 @@ class ClientTrainer:
                 loss_cls = self.criterion(fvec, labels)
                 # MOON对比损失
                 cos = nn.CosineSimilarity(dim=-1)
-                posi = cos(fvec, fvec_global)
+                posi = cos(local_logits, fvec_global)
                 logits = posi.reshape(-1, 1)
                 if prev_models:
                     for fvec_p in fvec_prev:
@@ -475,10 +478,10 @@ class ClientTrainer:
             for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
                 if self.dset_name == 'image':
                     inputs = images.to(self.gpuid)
-                    output, _, _ = self.model(inputs)
+                    output, _, _ = self.model.clip_visual(inputs)
                 elif self.dset_name == 'text':
                     inputs = captions.to(self.gpuid)
-                    output, _, _ = self.model(inputs)
+                    output, _, _ = self.model.clip_text(inputs)
                 logits_list.append(output.cpu().numpy())
         return np.concatenate(logits_list, axis=0)
 
@@ -494,7 +497,7 @@ class ClientTrainer:
                 img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
-                output, _, _ = self.model(inputs)
+                output, _, _ = self.model.clip_visual(inputs)
                 loss = nn.MSELoss()(output, img_soft_label)
                 loss.backward()
                 self.optimizer.step()
@@ -504,7 +507,7 @@ class ClientTrainer:
                 txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
-                output, _, _ = self.model(inputs)
+                output, _, _ = self.model.clip_text(inputs)
                 loss = nn.MSELoss()(output, txt_soft_label)
                 loss.backward()
                 self.optimizer.step()

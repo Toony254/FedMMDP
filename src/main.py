@@ -62,14 +62,14 @@ def args():
     parser.add_argument('--temperature', type=int, default=0.5, help='coefficient of temperature')
 
     parser.add_argument('--client_num_per_round', type=int, default=15)
-    parser.add_argument('--FL_algorithm', type=str, default='FedMD',
+    parser.add_argument('--FL_algorithm', type=str, default='FedProx',
                         choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON'],
                         help='Federated Learning algorithm to use')
 
     # === dataloader ===
     parser.add_argument('--dataset', type=str, default='imagenet_cap')
     parser.add_argument('--data_root', type=str, default='data/processed_datasets/')
-    parser.add_argument('--batch_size', type=int, default=256, metavar='N',
+    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
     parser.add_argument('--alpha', type=float, default=0.1)
 
