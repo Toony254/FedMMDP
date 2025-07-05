@@ -276,6 +276,8 @@ class ClientTrainer:
                 m.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
+                if idx > 10:
+                    break
                 self.optimizer.zero_grad()
                 if self.dset_name == 'image':
                     inputs = data["processed_img"].to(self.gpuid)
@@ -478,10 +480,10 @@ class ClientTrainer:
             for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
                 if self.dset_name == 'image':
                     inputs = images.to(self.gpuid)
-                    output, _, _ = self.model.clip_visual(inputs)
+                    output = self.model.clip_visual(inputs)
                 elif self.dset_name == 'text':
                     inputs = captions.to(self.gpuid)
-                    output, _, _ = self.model.clip_text(inputs)
+                    output = self.model.clip_text(inputs)
                 logits_list.append(output.cpu().numpy())
         return np.concatenate(logits_list, axis=0)
 
@@ -497,7 +499,7 @@ class ClientTrainer:
                 img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
-                output, _, _ = self.model.clip_visual(inputs)
+                output = self.model.clip_visual(inputs)
                 loss = nn.MSELoss()(output, img_soft_label)
                 loss.backward()
                 self.optimizer.step()
@@ -507,7 +509,7 @@ class ClientTrainer:
                 txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
-                output, _, _ = self.model.clip_text(inputs)
+                output = self.model.clip_text(inputs)
                 loss = nn.MSELoss()(output, txt_soft_label)
                 loss.backward()
                 self.optimizer.step()
@@ -518,6 +520,8 @@ class ClientTrainer:
         self.model.train()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
+                if idx > 10:
+                    break
                 self.optimizer.zero_grad()
                 if self.dset_name == 'image':
                     inputs = data["processed_img"].to(self.gpuid)

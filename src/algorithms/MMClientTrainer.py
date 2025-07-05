@@ -172,6 +172,8 @@ class MMClientTrainer(EngineBase):
                 m.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
+                if idx > 10:
+                    break
                 self.optimizer.zero_grad()
                 images = data["processed_img"].to(self.device)
                 captions = data["cap_tokens"].to(self.device)
@@ -368,13 +370,15 @@ class MMClientTrainer(EngineBase):
         self.model.train()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
+                if idx > 10:
+                    break
                 self.optimizer.zero_grad()
                 images = data["processed_img"].to(self.device)
                 captions = data["cap_tokens"].to(self.device)
-                labels = data["class_id"].to(self.device)
                 output = self.model(images, captions)
-                logits = output['logits'] if isinstance(output, dict) and 'logits' in output else output
-                loss = self.criterion(logits, labels)
+                image_features = output['image_features']
+                text_features = output['caption_features']
+                loss = self.criterion(image_features, text_features)
                 loss.backward()
                 self.optimizer.step()
         

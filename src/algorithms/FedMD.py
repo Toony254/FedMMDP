@@ -56,6 +56,7 @@ class MMFL(object):
         self.engine = None
         self.best_score = 0
         self.cur_epoch = 0
+        self.best_metadata = None
 
         # img & txt local dataloaders
         self.img_train_loaders, self.txt_train_loaders = None, None
@@ -314,8 +315,17 @@ class MMFL(object):
                 return param_group['lr']
         
         # test in own domain
+        import csv
+        
+        if not hasattr(self, 'mm_results'):
+            self.mm_results = []
+        if not hasattr(self, 'rsum_history'):
+            self.rsum_history = []
+            
+        mm_rows = []
         
         print("Testing...")
+        rsum = 0
         for domain_idx in range(self.args.num_domains):
             print(f"Server tests in domain {domain_idx}:")
             test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
@@ -326,25 +336,61 @@ class MMFL(object):
             self.engine.report_scores(step=round_n + 1,
                                     scores=test_scores,
                                     metadata=metadata)
-            rsum = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
+            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
                 test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
-            self.wandb.log({f"Multimodal rsum_r1": rsum}, step=self.cur_epoch)
+            rsum += rsum_i
+            mm_rows.append([
+                round_n, domain_idx, rsum_i,
+                test_scores['test']['n_fold']['i2t']['recall_1'],
+                test_scores['test']['n_fold']['t2i']['recall_1'],
+                test_scores['test']['i2t']['recall_1'],
+                test_scores['test']['t2i']['recall_1'],
+                test_scores['test']['n_fold']['i2t']['recall_5'],
+                test_scores['test']['n_fold']['t2i']['recall_5'],
+                test_scores['test']['i2t']['recall_5'],
+                test_scores['test']['t2i']['recall_5'],
+            ])
+            self.wandb.log({f"Multimodal rsum_r1": rsum_i}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+        
+        self.rsum_history.append(rsum)
+        if self.best_score < rsum:
+            best_score = rsum
+            metadata['best_score'] = best_score
+            metadata['best_epoch'] = round_n + 1
+            self.best_metadata, self.best_score = metadata, best_score
+            print(f"Best score updated: {best_score} at epoch {round_n + 1}")
+            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
 
-            if self.best_score > rsum:
-                best_score = rsum
-                metadata['best_score'] = best_score
-                metadata['best_epoch'] = round_n + 1
-                self.best_metadata, self.best_score = metadata, best_score
-                print(f"Best score updated: {best_score} at epoch {round_n + 1}")
-                # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
-
-            if round_n == self.args.comm_rounds - 1:
-                print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
-                # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
-            
+        if round_n == self.args.comm_rounds - 1:
+            print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
+            plt.xlabel('Round')
+            plt.ylabel('rsum')
+            plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(f'rsum_FedMD.png')
+            plt.close()
+            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
+        
+        mm_csv = f'mm_FedMD.csv'
+        if mm_rows:
+            write_header = not os.path.exists(mm_csv)
+            with open(mm_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow([
+                        'round', 'domain_idx', 'rsum_i',
+                        'n_fold_i2t_r1', 'n_fold_t2i_r1', 'i2t_r1', 't2i_r1',
+                        'n_fold_i2t_r5', 'n_fold_t2i_r5', 'i2t_r5', 't2i_r5'
+                    ])
+                writer.writerows(mm_rows)
+                
         self.engine.lr_scheduler.step()
         gc.collect()

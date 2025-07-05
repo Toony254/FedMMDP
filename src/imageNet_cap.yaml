@@ -1,6 +1,6 @@
 dataloader:
-  batch_size: 64
-  eval_batch_size: 64
+  batch_size: 128
+  eval_batch_size: 128
   num_workers: 16
   alpha: 0.1
   partition: "hetero"

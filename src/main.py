@@ -1,5 +1,4 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='1'
 import algorithms
 
 import argparse
@@ -42,7 +41,7 @@ def args():
     parser.add_argument('--exp_dir', type=str, default='./experiments/',
                         help='Locations to save different experimental runs.')
     parser.add_argument('--local_epochs', type=int, default=5)
-    parser.add_argument('--comm_rounds', type=int, default=10)
+    parser.add_argument('--comm_rounds', type=int, default=20)
 
     parser.add_argument('--model', type=str, default='clip', help='Target model name (default: clip)')
     parser.add_argument('--pretrained', type=int, default=0)
@@ -62,15 +61,15 @@ def args():
     parser.add_argument('--temperature', type=int, default=0.5, help='coefficient of temperature')
 
     parser.add_argument('--client_num_per_round', type=int, default=15)
-    parser.add_argument('--FL_algorithm', type=str, default='FedProx',
+    parser.add_argument('--FL_algorithm', type=str, default='MASA',
                         choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON'],
                         help='Federated Learning algorithm to use')
 
     # === dataloader ===
     parser.add_argument('--dataset', type=str, default='imagenet_cap')
     parser.add_argument('--data_root', type=str, default='data/processed_datasets/')
-    parser.add_argument('--batch_size', type=int, default=64, metavar='N',
-                        help='input batch size for training (default: 64)')
+    parser.add_argument('--batch_size', type=int, default=256, metavar='N',
+                        help='input batch size for training (default: 256)')
     parser.add_argument('--alpha', type=float, default=0.1)
 
     # === optimization ===

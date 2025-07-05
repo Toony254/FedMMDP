@@ -24,7 +24,6 @@ from src.datasets.transform import collate_fn
 from src.datasets.load_FL_datasets import get_FL_trainloader, get_class_size
 from src.algorithms.ClientTrainer import ClientTrainer
 from src.algorithms.MMClientTrainer import MMClientTrainer
-from src.algorithms.ssm_algorithm import split_model_parameters, select_relay_nodes
 
 from src.algorithms.eval_coco import COCOEvaluator
 from src.algorithms.retrieval_trainer import TrainerEngine
@@ -123,25 +122,41 @@ def get_cluster_label(client):
         return client.selected_cluster
     return getattr(client, 'cluster_label', client.client_idx % client.args.num_clusters)
 
+def split_model_parameters(params, num_relays):
+    # params: numpy array
+    # 返回num_relays个 shape一致的分量，满足 sum(components) == params
+    shape = params.shape
+    components = []
+    for _ in range(num_relays - 1):
+        comp = np.random.randn(*shape).astype(params.dtype)
+        components.append(comp)
+    last = params - sum(components)
+    components.append(last)
+    # 确保所有分量 shape 一致
+    assert all(isinstance(c, np.ndarray) and c.shape == shape for c in components)
+    return components
 def get_modalities(client):
     # 返回客户端拥有的模态列表
-    if hasattr(client, 'dset_name') and client.dset_name == 'mm':
+    if client.dset_name == 'mm':
         return ['img', 'txt']
-    return [client.dset_name]
+    elif client.dset_name == 'image':
+        return ['img']
+    else:
+        return ['txt']
 
 def get_model_parameters(client, modality):
     # 获取指定模态的参数向量
-    if modality == 'img':
+    if hasattr(client.model, 'img_enc') and modality == 'img':
         return get_flat_params_from_state_dict(client.model.img_enc.state_dict())
-    elif modality == 'txt':
+    elif hasattr(client.model, 'txt_enc') and modality == 'txt':
         return get_flat_params_from_state_dict(client.model.txt_enc.state_dict())
     else:
         return get_flat_params_from_state_dict(client.model.state_dict())
 
 def set_model_parameters(client, modality, flat_params):
-    if modality == 'img':
+    if hasattr(client.model, 'img_enc') and modality == 'img':
         set_state_dict_from_flat(client.model.img_enc, flat_params)
-    elif modality == 'txt':
+    elif hasattr(client.model, 'txt_enc') and modality == 'txt':
         set_state_dict_from_flat(client.model.txt_enc, flat_params)
     else:
         set_state_dict_from_flat(client.model, flat_params)
@@ -160,6 +175,7 @@ class MMFL(object):
         self.engine = None
         self.best_score = 0
         self.cur_epoch = 0
+        self.best_metadata = None
 
         # img & txt local dataloaders
         self.img_train_loaders, self.txt_train_loaders = None, None
@@ -289,36 +305,165 @@ class MMFL(object):
             self.total_local_trainers[i].client_idx = i
             
     def aggregate_with_ssm_ascc(self, trainers):
-        # 1. SSM分割与匿名分发
+        import torch.nn.functional as F
+
         num_relays = self.args.num_relays
         num_clusters = self.args.num_clusters
-        max_components = self.args.max_ssm_components
         relay_nodes = [DummyRelayNode() for _ in range(num_relays)]
+
+        # 1. SSM分割与匿名分发
         for client in trainers:
             cluster_label = get_cluster_label(client)
             for modality in get_modalities(client):
                 params = get_model_parameters(client, modality)
-                num_components = np.random.randint(1, max_components + 1)
-                components = split_model_parameters(params, num_components)
-                selected_relays = select_relay_nodes(num_relays, num_components)
-                for comp, relay_id in zip(components, selected_relays):
+                components = split_model_parameters(params, num_relays)
+                relay_ids = random.sample(range(num_relays), num_relays)
+                for comp, relay_id in zip(components, relay_ids):
                     relay_nodes[relay_id].receive(cluster_label, comp)
+
         # 2. 中继节点聚合并上传服务器
         server = DummyServer(num_clusters)
         for relay_id, relay in enumerate(relay_nodes):
             agg = relay.aggregate()
             for cluster_label, agg_result in agg.items():
                 server.receive_intermediate_result(relay_id, cluster_label, agg_result)
+
         # 3. 服务器端最终聚合
         final_models = server.aggregate_final_models(num_clusters)
-        # 4. ASCC分发：每个客户端选择最优聚类模型
         cluster_models = [final_models[c] for c in sorted(final_models.keys())]
+
+        # 4. ASCC分层注意力个性化与本地微调
+        def split_layers(flat_params, layer_shapes):
+            splits = np.split(flat_params, np.cumsum([np.prod(s) for s in layer_shapes])[:-1])
+            return [s.reshape(shape) for s, shape in zip(splits, layer_shapes)]
+
         for client in trainers:
-            best_idx = ascc_select_cluster(client, cluster_models)
-            client.selected_cluster = best_idx
-            # 只分发对应模态参数
             for modality in get_modalities(client):
-                set_model_parameters(client, modality, cluster_models[best_idx])
+                # 1. 获取分层结构
+                if hasattr(client.model, 'img_enc') and modality == 'img':
+                    ref_module = client.model.img_enc
+                elif hasattr(client.model, 'txt_enc') and modality == 'txt':
+                    ref_module = client.model.txt_enc
+                elif hasattr(client.model, 'img_enc') and hasattr(client.model, 'txt_enc'):
+                    # PCME多模态
+                    ref_module = client.model
+                ref_state = ref_module.state_dict()
+                layer_shapes = [v.shape for v in ref_state.values()]
+                L_m = len(layer_shapes)
+
+                # 2. 冻结所有集群编码器参数（实际训练时应设置 requires_grad=False）
+
+                # 3. 初始化分层注意力参数
+                A = [torch.zeros(num_clusters, requires_grad=True, device=self.device) for _ in range(L_m)]
+                optimizer = torch.optim.Adam(A, lr=getattr(self.args, "ascc_lr", 0.05))
+
+                # 4. 查询数据采样
+                if not hasattr(client, "train_loader"):
+                    continue
+                data_loader = client.train_loader
+                beta = getattr(self.args, "ascc_query_ratio", 0.2)
+                query_samples = []
+                for batch in data_loader:
+                    if modality == 'img':
+                        x = batch[0]
+                        y = batch[1]
+                    elif modality == 'txt':
+                        x = batch[1]
+                        y = batch[0]
+                    else:
+                        x, y = batch[0], batch[1]
+                    n = int(len(x) * beta)
+                    if n == 0: n = 1
+                    idx = torch.randperm(len(x))[:n]
+                    query_samples.append((x[idx], y[idx]))
+                    if len(query_samples) > 5:
+                        break
+
+                # 5. 分层注意力训练
+                for _ in range(getattr(self.args, "ascc_attn_epoch", 3)):
+                    total_loss = 0
+                    for x, y in query_samples:
+                        q = x.to(self.device)
+                        y = y.to(self.device)
+                        # 分层前向
+                        for l in range(L_m):
+                            attn = F.softmax(A[l], dim=0)
+                            layer_outputs = []
+                            for k in range(num_clusters):
+                                # 获取第k个聚类模型的第l层参数
+                                cluster_layer_params = split_layers(cluster_models[k], layer_shapes)[l]
+                                # 构造临时模型，仅替换当前层参数
+                                tmp_module = copy.deepcopy(ref_module)
+                                tmp_state = tmp_module.state_dict()
+                                keys = list(tmp_state.keys())
+                                tmp_state[keys[l]] = torch.tensor(cluster_layer_params, dtype=tmp_state[keys[l]].dtype)
+                                tmp_module.load_state_dict(tmp_state)
+                                tmp_module.eval()
+                                with torch.no_grad():
+                                    if modality == 'img':
+                                        out = tmp_module(q)
+                                    elif modality == 'txt':
+                                        out = tmp_module(q)
+                                    else:
+                                        out = tmp_module(q)
+                                layer_outputs.append(out)
+                            # 加权聚合
+                            q = sum(attn[k] * layer_outputs[k] for k in range(num_clusters))
+                        # 最终输出送入分类器
+                        if hasattr(client.model, "classifier"):
+                            logits = client.model.classifier(q)
+                        else:
+                            logits = q
+                        loss = F.cross_entropy(logits, y)
+                        total_loss += loss
+                    optimizer.zero_grad()
+                    total_loss.backward()
+                    optimizer.step()
+
+                # 6. 分层聚合生成个性化编码器
+                personalized_layers = []
+                for l in range(L_m):
+                    attn = F.softmax(A[l].detach(), dim=0).cpu().numpy()
+                    agg_layer = sum(attn[k] * split_layers(cluster_models[k], layer_shapes)[l] for k in range(num_clusters))
+                    personalized_layers.append(agg_layer)
+                personalized_flat = np.concatenate([l.reshape(-1) for l in personalized_layers], axis=0)
+                set_model_parameters(client, modality, personalized_flat)
+
+                # 7. 选择最优聚类
+                attn_sum = np.array([sum(F.softmax(A[l], dim=0)[k].item() for l in range(L_m)) for k in range(num_clusters)])
+                best_idx = int(np.argmax(attn_sum))
+                client.selected_cluster = best_idx
+
+                # 8. 本地微调
+                model = ref_module
+                model.train()
+                if hasattr(client.model, "classifier"):
+                    classifier = client.model.classifier
+                    classifier.train()
+                    params = list(model.parameters()) + list(classifier.parameters())
+                else:
+                    params = list(model.parameters())
+                optimizer_finetune = torch.optim.Adam(params, lr=getattr(self.args, "ascc_ft_lr", 0.001))
+                for _ in range(getattr(self.args, "ascc_ft_epoch", 1)):
+                    for batch in data_loader:
+                        if modality == 'img':
+                            x = batch[0].to(self.device)
+                            y = batch[1].to(self.device)
+                        elif modality == 'txt':
+                            x = batch[1].to(self.device)
+                            y = batch[0].to(self.device)
+                        else:
+                            x, y = batch[0].to(self.device), batch[1].to(self.device)
+                        optimizer_finetune.zero_grad()
+                        out = model(x)
+                        if hasattr(client.model, "classifier"):
+                            logits = classifier(out)
+                        else:
+                            logits = out
+                        loss = F.cross_entropy(logits, y)
+                        loss.backward()
+                        optimizer_finetune.step()
+                        break  # 只做一小步
             
     def train(self, round_n):
         self.cur_epoch = round_n
@@ -333,17 +478,26 @@ class MMFL(object):
         for idx, trainer in enumerate(self.cur_trainers):
             self.logger.log(f"Training Client {trainer.client_idx}!")
             trainer.cur_epoch = round_n
-            trainer.run()
+            # trainer.run()
             
-        self.aggregate_with_ssm_ascc(self, self.cur_trainers)
+        self.aggregate_with_ssm_ascc(self.cur_trainers)
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
                 return param_group['lr']
         
         # test in own domain
+        import csv
+        
+        if not hasattr(self, 'mm_results'):
+            self.mm_results = []
+        if not hasattr(self, 'rsum_history'):
+            self.rsum_history = []
+            
+        mm_rows = []
         
         print("Testing...")
+        rsum = 0
         for domain_idx in range(self.args.num_domains):
             print(f"Server tests in domain {domain_idx}:")
             test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
@@ -354,25 +508,61 @@ class MMFL(object):
             self.engine.report_scores(step=round_n + 1,
                                     scores=test_scores,
                                     metadata=metadata)
-            rsum = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
+            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
                 test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
-            self.wandb.log({f"Multimodal rsum_r1": rsum}, step=self.cur_epoch)
+            rsum += rsum_i
+            mm_rows.append([
+                round_n, domain_idx, rsum_i,
+                test_scores['test']['n_fold']['i2t']['recall_1'],
+                test_scores['test']['n_fold']['t2i']['recall_1'],
+                test_scores['test']['i2t']['recall_1'],
+                test_scores['test']['t2i']['recall_1'],
+                test_scores['test']['n_fold']['i2t']['recall_5'],
+                test_scores['test']['n_fold']['t2i']['recall_5'],
+                test_scores['test']['i2t']['recall_5'],
+                test_scores['test']['t2i']['recall_5'],
+            ])
+            self.wandb.log({f"Multimodal rsum_r1": rsum_i}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
             self.wandb.log({f"Multimodal t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+        
+        self.rsum_history.append(rsum)
+        if self.best_score < rsum:
+            best_score = rsum
+            metadata['best_score'] = best_score
+            metadata['best_epoch'] = round_n + 1
+            self.best_metadata, self.best_score = metadata, best_score
+            print(f"Best score updated: {best_score} at epoch {round_n + 1}")
+            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
 
-            if self.best_score > rsum:
-                best_score = rsum
-                metadata['best_score'] = best_score
-                metadata['best_epoch'] = round_n + 1
-                self.best_metadata, self.best_score = metadata, best_score
-                print(f"Best score updated: {best_score} at epoch {round_n + 1}")
-                # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
-
-            if round_n == self.args.comm_rounds - 1:
-                print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
-                # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
+        if round_n == self.args.comm_rounds - 1:
+            print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
+            import matplotlib.pyplot as plt
+            plt.figure()
+            plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
+            plt.xlabel('Round')
+            plt.ylabel('rsum')
+            plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
+            plt.grid(True)
+            plt.tight_layout()
+            plt.savefig(f'rsum_MASA.png')
+            plt.close()
+            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
+        
+        mm_csv = f'mm_MASA.csv'
+        if mm_rows:
+            write_header = not os.path.exists(mm_csv)
+            with open(mm_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow([
+                        'round', 'domain_idx', 'rsum_i',
+                        'n_fold_i2t_r1', 'n_fold_t2i_r1', 'i2t_r1', 't2i_r1',
+                        'n_fold_i2t_r5', 'n_fold_t2i_r5', 'i2t_r5', 't2i_r5'
+                    ])
+                writer.writerows(mm_rows)
             
         self.engine.lr_scheduler.step()
         gc.collect()
