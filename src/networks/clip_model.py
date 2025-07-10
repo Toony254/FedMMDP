@@ -17,11 +17,14 @@ class ClientImageEncoder(nn.Module):
             param.requires_grad = False
         emb_dim = clip_model.visual.output_dim
         self.visual_projector = nn.Sequential(
+            nn.Linear(emb_dim, 2*emb_dim),
+            nn.ReLU(),
+            nn.Linear(2*emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
             nn.ReLU()
         ).half()
-        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
         projector_weight = torch.load(projector_weight_path)
         self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
         class CombinedVisualModel(nn.Module):
@@ -38,29 +41,30 @@ class ClientImageEncoder(nn.Module):
         # 将组合后的模型赋给self.clip_visual
         self.clip_visual = CombinedVisualModel(clip_model.visual, self.visual_projector)
         
-        self.embed_dim = 1024
+        self.embed_dim = emb_dim
         self.relu = nn.ReLU(inplace=False).half()
-        if kwargs['embed_dim'] != 1024:
+        if kwargs['embed_dim'] != emb_dim:
             self.linear = nn.Linear(1024,self.embed_dim).half()
         self.class_fc_2 = nn.Linear(self.embed_dim, kwargs['num_class']).half()
         self.mlp_local = mlp_local
         if self.mlp_local:
             self.head_proj = nn.Sequential(
-                nn.Linear(1024, 1024),
-                nn.BatchNorm1d(1024),
+                nn.Linear(self.embed_dim, self.embed_dim),
+                nn.BatchNorm1d(self.embed_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(1024, 1024)
-            )
+                nn.Linear(self.embed_dim, self.embed_dim)
+            ).half()
 
     def forward(self, images):
         if images.shape[2] != 224 or images.shape[3] != 224:
             images = F.interpolate(images, size=(224, 224), mode='bilinear', align_corners=False)
-        images = images.half() # [1024, 3, 256, 256]
+        images = images.half()
         x = self.clip_visual(images)
         if self.is_train:
             fc_weight_relu = self.relu(self.class_fc_2.weight)
             self.class_fc_2.weight.data = fc_weight_relu
-
+            if self.mlp_local:
+                x = self.head_proj(x)
             x1 = self.class_fc_2(x)
             return x1, fc_weight_relu, x
         return l2_normalize(x)
@@ -74,11 +78,14 @@ class CLIPImageEncoder(nn.Module):
             param.requires_grad = False
         emb_dim = clip_model.visual.output_dim
         self.visual_projector = nn.Sequential(
+            nn.Linear(emb_dim, 2*emb_dim),
+            nn.ReLU(),
+            nn.Linear(2*emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
             nn.ReLU()
         ).half()
-        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
         projector_weight = torch.load(projector_weight_path)
         self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
         class CombinedVisualModel(nn.Module):
@@ -96,11 +103,11 @@ class CLIPImageEncoder(nn.Module):
         self.mlp_local = mlp_local
         if self.mlp_local:
             self.head_proj = nn.Sequential(
-                nn.Linear(1024, 1024),
-                nn.BatchNorm1d(1024),
+                nn.Linear(emb_dim, emb_dim),
+                nn.BatchNorm1d(emb_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(1024, 1024)
-            )
+                nn.Linear(emb_dim, emb_dim)
+            ).half()
 
     def forward(self, images):
         images = images.half()
@@ -118,14 +125,16 @@ class ClientTextEncoder(nn.Module):
         for param in clip_model.transformer.parameters():
             param.requires_grad = False
         emb_dim = clip_model.text_projection.shape[1]
-        context_length = clip_model.positional_embedding.shape[0]
         dtype = clip_model.dtype
         self.text_projector = nn.Sequential(
+            nn.Linear(emb_dim, 2*emb_dim),
+            nn.ReLU(),
+            nn.Linear(2*emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
             nn.ReLU()
         ).half()
-        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
         projector_weight = torch.load(projector_weight_path)
         self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
         class CombinedTextModel(nn.Module):
@@ -156,16 +165,15 @@ class ClientTextEncoder(nn.Module):
         self.relu = nn.ReLU(inplace=False).half()
         self.class_fc_2 = nn.Linear(embed_dim, num_class).half()
         self.is_train = True
-        
         self.mlp_local = mlp_local
         if self.mlp_local:
             self.head_proj = nn.Sequential(
-                nn.Linear(1024, 1024),
-                nn.BatchNorm1d(1024),
+                nn.Linear(emb_dim, emb_dim),
+                nn.BatchNorm1d(emb_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(1024, 1024)
+                nn.Linear(emb_dim, emb_dim)
             )
-    
+
     def forward(self, inputs, lengths=None):
         max_context_length = 77
         if inputs.shape[1] > max_context_length:
@@ -179,10 +187,9 @@ class ClientTextEncoder(nn.Module):
             return x, fc_weight_relu, out
         if self.mlp_local:
             out = self.head_proj(out)
-            
         out = l2_normalize(out)
         return out
-    
+
 class CLIPTextEncoder(nn.Module):
     def __init__(self, config, embed_dim=1024, num_class=4, scale=128, mlp_local=False):
         super(CLIPTextEncoder, self).__init__()
@@ -191,14 +198,16 @@ class CLIPTextEncoder(nn.Module):
         for param in clip_model.transformer.parameters():
             param.requires_grad = False
         emb_dim = clip_model.text_projection.shape[1]
-        context_length = clip_model.positional_embedding.shape[0]
         dtype = clip_model.dtype
         self.text_projector = nn.Sequential(
+            nn.Linear(emb_dim, 2*emb_dim),
+            nn.ReLU(),
+            nn.Linear(2*emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
             nn.ReLU()
         ).half()
-        projector_weight_path = "saved/projector_weights/norm.pth"
+        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
         projector_weight = torch.load(projector_weight_path)
         self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
         class CombinedTextModel(nn.Module):
@@ -210,7 +219,7 @@ class CLIPTextEncoder(nn.Module):
                 self.text_projection = clip_model.text_projection
                 self.positional_embedding = clip_model.positional_embedding
                 self.projector = projector
-                
+
             def forward(self, text):
                 x = self.token_embedding(text).type(dtype)
 

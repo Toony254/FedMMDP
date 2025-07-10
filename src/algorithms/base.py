@@ -62,7 +62,7 @@ class EngineBase(object):
         self.config = config
         self.wandb = wandb
         self.class_size = class_size
-        self.selected_cluster = None
+        self.selected_cluster = client % 5
         self.global_model = None
 
         self.device = device

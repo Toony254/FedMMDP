@@ -209,6 +209,26 @@ class TrainerEngine(EngineBase):
                                                    self.config.train.grad_clip)
             self.optimizer.step()
 
+    def train_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
+        self.model.cuda()
+        self.model.train()
+        idx = 0
+        for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
+            images = images.to(self.device)
+            captions = captions.to(self.device)
+            batch_size = images.size(0)
+            img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.device)
+            txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.device)
+            idx += batch_size
+            self.optimizer.zero_grad()
+            output = self.model(images, captions)
+            image_logits = output['image_features']
+            text_logits = output['caption_features']
+            loss = nn.MSELoss()(image_logits, img_soft_label)
+            loss += nn.MSELoss()(text_logits, txt_soft_label)
+            print(f"Distill with logits, Step {i}, Loss: {loss.item():.4f}")
+            loss.backward()
+            self.optimizer.step()
     def report_scores(self, step, scores, metadata, prefix=''):
         report_dict = {data_key: flatten_dict(_scores, sep='_')
                        for data_key, _scores in scores.items()}

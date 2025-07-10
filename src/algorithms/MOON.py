@@ -282,6 +282,25 @@ class MMFL(object):
         # aggregate local models
         server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
         self.engine.model = server_model
+        for trainer in self.cur_trainers:
+            if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
+                trainer.model.load_state_dict(server_model.state_dict())
+            elif hasattr(trainer.model, "clip_visual"):
+                for name, param in server_model.img_enc.state_dict().items():
+                    if name in trainer.model.state_dict():
+                        trainer.model.state_dict()[name].copy_(param)
+                if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
+                    for name, param in server_model.img_enc.visual_projector.state_dict().items():
+                        if name in trainer.model.visual_projector.state_dict():
+                            trainer.model.visual_projector.state_dict()[name].copy_(param)
+            elif hasattr(trainer.model, "clip_text"):
+                for name, param in server_model.txt_enc.state_dict().items():
+                    if name in trainer.model.state_dict():
+                        trainer.model.state_dict()[name].copy_(param)
+                if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
+                    for name, param in server_model.txt_enc.text_projector.state_dict().items():
+                        if name in trainer.model.text_projector.state_dict():
+                            trainer.model.text_projector.state_dict()[name].copy_(param)
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
@@ -340,16 +359,6 @@ class MMFL(object):
 
         if round_n == self.args.comm_rounds - 1:
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
-            import matplotlib.pyplot as plt
-            plt.figure()
-            plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
-            plt.xlabel('Round')
-            plt.ylabel('rsum')
-            plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
-            plt.grid(True)
-            plt.tight_layout()
-            plt.savefig(f'rsum_MOON.png')
-            plt.close()
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
         mm_csv = f'mm_MOON.csv'
@@ -364,6 +373,15 @@ class MMFL(object):
                         'n_fold_i2t_r5', 'n_fold_t2i_r5', 'i2t_r5', 't2i_r5'
                     ])
                 writer.writerows(mm_rows)
-        
-        self.engine.lr_scheduler.step()
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
+        plt.xlabel('Round')
+        plt.ylabel('rsum')
+        plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f'rsum_MOON.png')
+        plt.close()
+        print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

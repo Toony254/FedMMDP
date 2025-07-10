@@ -40,7 +40,7 @@ def args():
     parser.add_argument('--name', type=str, default='FedMMDP', help='The name for different experimental runs.')
     parser.add_argument('--exp_dir', type=str, default='./experiments/',
                         help='Locations to save different experimental runs.')
-    parser.add_argument('--local_epochs', type=int, default=5)
+    parser.add_argument('--local_epochs', type=int, default=1)
     parser.add_argument('--comm_rounds', type=int, default=20)
 
     parser.add_argument('--model', type=str, default='clip', help='Target model name (default: clip)')
@@ -62,7 +62,7 @@ def args():
 
     parser.add_argument('--client_num_per_round', type=int, default=15)
     parser.add_argument('--FL_algorithm', type=str, default='MASA',
-                        choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON'],
+                        choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON', 'FedDF'],
                         help='Federated Learning algorithm to use')
 
     # === dataloader ===
@@ -103,7 +103,7 @@ def args():
 
     parser.add_argument('--data_local', action='store_true', default=False,
                         help='change data directory to ~/data_local')
-    parser.add_argument('--pub_data_num', type=int, default=50000, help='communication')
+    parser.add_argument('--pub_data_num', type=int, default=1000, help='communication')
 
     parser.add_argument('--feature_dim', type=int, default=1024)
 
@@ -125,6 +125,8 @@ if __name__ == "__main__":
         from algorithms.FedMD import MMFL
     elif args.FL_algorithm == 'MOON':
         from algorithms.MOON import MMFL
+    elif args.FL_algorithm == 'FedDF':
+        from algorithms.FedDF import MMFL
     
     Algo = MMFL(args, wandb)
 

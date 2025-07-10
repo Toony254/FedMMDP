@@ -20,7 +20,7 @@ from src.datasets.coco import CocoCaptionsCap
 def prepare_coco_dataloaders(dataloader_config,
                              dataset_root,
                              vocab_path='./vocabs/coco_vocab.pkl',
-                             num_workers=0, tsne=False, client=-1):
+                             num_workers=0, tsne=False, client=-1, subset_num=50000):
     """Prepare MS-COCO Caption train / val / test dataloaders
     Args:
         dataloader_config (dict): configuration file which should contain "batch_size"
@@ -66,7 +66,7 @@ def prepare_coco_dataloaders(dataloader_config,
             client=client
         )
     else:
-        dataloaders['train_subset_50000'] = _get_coco_loader(
+        dataloaders['train_subset' + f'_{subset_num}'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
             num_workers=num_workers, batch_size=batch_size,
             train=True,
@@ -74,10 +74,11 @@ def prepare_coco_dataloaders(dataloader_config,
             extra_ids=train_extra_ids,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
-            subset=True
+            subset=True,
+            subset_num=subset_num
         )
 
-        dataloaders['train_subset_eval_50000'] = _get_coco_loader(
+        dataloaders['train_subset_eval' + f'_{subset_num}'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
             num_workers=num_workers, batch_size=batch_size * 2,
             train=False,
@@ -85,7 +86,8 @@ def prepare_coco_dataloaders(dataloader_config,
             extra_ids=train_extra_ids,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
-            subset=True
+            subset=True,
+            subset_num=subset_num
         )
 
     dataloaders['val'] = _get_coco_loader(
@@ -149,15 +151,14 @@ def _get_coco_loader(image_root,
         if not os.path.exists('coco_subset_idx_file'):
             full_idx = [i for i in range(566435)]
             random.shuffle(full_idx)
-            idx = full_idx[0: 50000]
+            idx = full_idx[0: subset_num]
             idx.sort()
             if not os.path.exists('coco_subset_idx_file'):
                 with open('coco_subset_idx_file', 'wb') as f:
                     pickle.dump(idx, f)
 
-        if subset_num == 50000:
-            with open('coco_subset_idx_file', 'rb') as f:
-                idx = pickle.load(f)
+        with open('coco_subset_idx_file', 'rb') as f:
+            idx = pickle.load(f)
 
         coco_dataset = torch.utils.data.Subset(coco_dataset, idx)
 

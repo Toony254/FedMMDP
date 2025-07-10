@@ -92,7 +92,7 @@ class MMFL(object):
     def load_dataset(self, args):
         dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
         vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path)
+        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path, subset_num=self.args.pub_data_num)
 
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
@@ -185,74 +185,6 @@ class MMFL(object):
 
         for i in range(len(self.total_local_trainers)):
             self.total_local_trainers[i].client_idx = i
-    
-    
-    def aggregate_models(self, local_image_models, local_text_models, local_mm_models):
-        server_model = self.engine.model
-        
-        image_encoder_params = OrderedDict()
-        
-        all_image_encoders = []
-        for model in local_image_models:
-            all_image_encoders.append({
-                'visual_projector': model.visual_projector.state_dict(),
-                'clip_visual': model.clip_visual.state_dict()
-            })
-        
-        for model in local_mm_models:
-            all_image_encoders.append({
-                'visual_projector': model.img_enc.visual_projector.state_dict(),
-                'clip_visual': model.img_enc.clip_visual.state_dict()
-            })
-        
-        for key in all_image_encoders[0]['visual_projector'].keys():
-            param_name = f'visual_projector.{key}'
-            params = [enc['visual_projector'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
-
-        for key in all_image_encoders[0]['clip_visual'].keys():
-            param_name = f'clip_visual.{key}'
-            params = [enc['clip_visual'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
-        
-        server_model.img_enc.load_state_dict(image_encoder_params)
-        
-        text_encoder_params = OrderedDict()
-        
-        all_text_encoders = []
-        for model in local_text_models:
-            all_text_encoders.append({
-                'text_projector': model.text_projector.state_dict(),
-                'clip_text': model.clip_text.state_dict()
-            })
-        
-        for model in local_mm_models:
-            all_text_encoders.append({
-                'text_projector': model.txt_enc.text_projector.state_dict(),
-                'clip_text': model.txt_enc.clip_text.state_dict()
-            })
-        
-        for key in all_text_encoders[0]['text_projector'].keys():
-            param_name = f'text_projector.{key}'
-            params = [enc['text_projector'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
-
-        for key in all_text_encoders[0]['clip_text'].keys():
-            param_name = f'clip_text.{key}'
-            params = [enc['clip_text'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
-        
-        server_model.txt_enc.load_state_dict(text_encoder_params)
-        
-        return server_model
 
     def train(self, round_n):
         self.cur_epoch = round_n
@@ -263,8 +195,8 @@ class MMFL(object):
             if len(self.total_local_trainers) != 0:
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
         
-        # 1. 对齐阶段：所有客户端用公共数据输出logits
-        alignment_loader = self._dataloaders['train_subset' + f'_{self.args.pub_data_num}']  # 公共对齐数据
+
+        alignment_loader = self._dataloaders['train_subset' + f'_{self.args.pub_data_num}']
         img_logits = []
         txt_logits = []
         for trainer in self.cur_trainers:
@@ -281,34 +213,15 @@ class MMFL(object):
                 # print(img.shape, txt.shape)
                 img_logits.append(img)
                 txt_logits.append(txt)
-        # 2. 聚合logits，得到soft label
+
         avg_img_logits = np.mean(np.stack(img_logits), axis=0)
         avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
-        # 3. 每个客户端用soft label做蒸馏训练
+
         for trainer in self.cur_trainers:
             trainer.distill_with_logits(alignment_loader, avg_img_logits, avg_txt_logits)
-        # 4. 每个客户端用私有数据继续本地训练
+
         for trainer in self.cur_trainers:
-            trainer.train_on_private_data()
-            
-        # local training
-        local_image_model = []
-        local_text_model = []
-        local_mm_model = []
-        for idx, trainer in enumerate(self.cur_trainers):
-            self.logger.log(f"Training Client {trainer.client_idx}!")
-            trainer.cur_epoch = round_n
             trainer.run()
-            if trainer.dset_name == 'image':
-                local_image_model.append(trainer.model)
-            elif trainer.dset_name == 'text':
-                local_text_model.append(trainer.model)
-            elif trainer.dset_name == 'mm':
-                local_mm_model.append(trainer.model)
-        
-        # aggregate local models
-        server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
-        self.engine.model = server_model
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
@@ -316,45 +229,72 @@ class MMFL(object):
         
         # test in own domain
         import csv
-        
+
+        if not hasattr(self, 'img_txt_results'):
+            self.img_txt_results = []
         if not hasattr(self, 'mm_results'):
             self.mm_results = []
         if not hasattr(self, 'rsum_history'):
             self.rsum_history = []
-            
+
+        img_txt_rows = []
         mm_rows = []
         
         print("Testing...")
         rsum = 0
-        for domain_idx in range(self.args.num_domains):
-            print(f"Server tests in domain {domain_idx}:")
-            test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
-            metadata = self.engine.metadata.copy()
-            metadata['cur_epoch'] = round_n + 1
-            metadata['lr'] = get_lr(self.engine.optimizer)
-            
-            self.engine.report_scores(step=round_n + 1,
-                                    scores=test_scores,
-                                    metadata=metadata)
-            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
-                test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
-            rsum += rsum_i
-            mm_rows.append([
-                round_n, domain_idx, rsum_i,
-                test_scores['test']['n_fold']['i2t']['recall_1'],
-                test_scores['test']['n_fold']['t2i']['recall_1'],
-                test_scores['test']['i2t']['recall_1'],
-                test_scores['test']['t2i']['recall_1'],
-                test_scores['test']['n_fold']['i2t']['recall_5'],
-                test_scores['test']['n_fold']['t2i']['recall_5'],
-                test_scores['test']['i2t']['recall_5'],
-                test_scores['test']['t2i']['recall_5'],
-            ])
-            self.wandb.log({f"Multimodal rsum_r1": rsum_i}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+        for idx, trainer in enumerate(self.total_local_trainers):
+            if trainer.dset_name == "image":
+                domain_idx = idx
+                trainer.test_loader = self.val_dataloader[idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
+                trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    trainer.losses.avg,
+                    trainer.test_top1.avg,
+                    trainer.test_top5.avg
+                ])
+            elif trainer.dset_name == "text":
+                domain_idx = idx - 5
+                trainer.test_loader = self.val_dataloader[domain_idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    trainer.losses.avg,
+                    trainer.test_top1.avg,
+                    trainer.test_top5.avg
+                ])
+            else:
+                for domain_idx in range(self.args.num_domains):
+                    print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                    test_scores = trainer.evaluate({'test': self.val_dataloader[domain_idx]})
+                    metadata = trainer.metadata.copy()
+                    metadata['cur_epoch'] = round_n + 1
+                    metadata['lr'] = get_lr(trainer.optimizer)
+                    trainer.report_scores(step=round_n + 1,
+                                            scores=test_scores,
+                                            metadata=metadata)
+                    rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
+                        test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
+                    if domain_idx == idx - 10:
+                        rsum += rsum_i
+                    mm_rows.append([
+                        round_n, trainer.client_idx, domain_idx, rsum_i,
+                        test_scores['test']['n_fold']['i2t']['recall_1'],
+                        test_scores['test']['n_fold']['t2i']['recall_1'],
+                        test_scores['test']['i2t']['recall_1'],
+                        test_scores['test']['t2i']['recall_1'],
+                        test_scores['test']['n_fold']['i2t']['recall_5'],
+                        test_scores['test']['n_fold']['t2i']['recall_5'],
+                        test_scores['test']['i2t']['recall_5'],
+                        test_scores['test']['t2i']['recall_5'],
+                    ])
+                    self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
         
         self.rsum_history.append(rsum)
         if self.best_score < rsum:
@@ -363,34 +303,43 @@ class MMFL(object):
             metadata['best_epoch'] = round_n + 1
             self.best_metadata, self.best_score = metadata, best_score
             print(f"Best score updated: {best_score} at epoch {round_n + 1}")
-            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
+            # torch.save({'net': trainer.model.state_dict()}, self.args.name + '-best_model.pt')
 
         if round_n == self.args.comm_rounds - 1:
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
-            import matplotlib.pyplot as plt
-            plt.figure()
-            plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
-            plt.xlabel('Round')
-            plt.ylabel('rsum')
-            plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
-            plt.grid(True)
-            plt.tight_layout()
-            plt.savefig(f'rsum_FedMD.png')
-            plt.close()
-            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
+        #     torch.save({'net': trainer.model.state_dict()}, self.args.name + '-last_model.pt')
         
+        img_txt_csv = f'img_txt_FedMD.csv'
         mm_csv = f'mm_FedMD.csv'
+
+        if img_txt_rows:
+            write_header = not os.path.exists(img_txt_csv)
+            with open(img_txt_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
+                writer.writerows(img_txt_rows)
+
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
                 writer = csv.writer(f)
                 if write_header:
                     writer.writerow([
-                        'round', 'domain_idx', 'rsum_i',
+                        'round', 'client_id', 'domain_idx', 'rsum_i',
                         'n_fold_i2t_r1', 'n_fold_t2i_r1', 'i2t_r1', 't2i_r1',
                         'n_fold_i2t_r5', 'n_fold_t2i_r5', 'i2t_r5', 't2i_r5'
                     ])
                 writer.writerows(mm_rows)
-                
-        self.engine.lr_scheduler.step()
+        import matplotlib.pyplot as plt
+        plt.figure()
+        plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
+        plt.xlabel('Round')
+        plt.ylabel('rsum')
+        plt.title(f'rsum Curve (FedMD)')
+        plt.grid(True)
+        plt.tight_layout()
+        plt.savefig(f'rsum_FedMD.png')
+        plt.close()
+        print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

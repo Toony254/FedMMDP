@@ -355,32 +355,24 @@ class MMClientTrainer(EngineBase):
             batch_size = images.size(0)
             img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.device)
             txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.device)
+            if torch.isnan(img_soft_label).any() or torch.isnan(txt_soft_label).any():
+                print("Found nan in soft labels!")
             idx += batch_size
             self.optimizer.zero_grad()
             output = self.model(images, captions)
-            image_logits = output['image_features']
-            text_logits = output['caption_features']
+            image_logits = output['image_features'].float()
+            text_logits = output['caption_features'].float()
             loss = nn.MSELoss()(image_logits, img_soft_label)
             loss += nn.MSELoss()(text_logits, txt_soft_label)
+            if torch.isnan(loss):
+                print("Found nan in loss!")
+                continue
+            print(f"Multimodal Client {self.client} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}")
             loss.backward()
+            if self.config.train.grad_clip > 0:
+                nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(),
+                                                   self.config.train.grad_clip)
             self.optimizer.step()
-
-    def train_on_private_data(self):
-        self.model.cuda()
-        self.model.train()
-        for i in range(self.local_epochs):
-            for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
-                self.optimizer.zero_grad()
-                images = data["processed_img"].to(self.device)
-                captions = data["cap_tokens"].to(self.device)
-                output = self.model(images, captions)
-                image_features = output['image_features']
-                text_features = output['caption_features']
-                loss = self.criterion(image_features, text_features)
-                loss.backward()
-                self.optimizer.step()
         
     def generate_logits(self, dataloader):
         self.model.cuda()

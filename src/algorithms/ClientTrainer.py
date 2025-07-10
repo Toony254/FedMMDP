@@ -141,7 +141,7 @@ class ClientTrainer:
         self.dset_name = dataset
         self.local_feature = None
         self.classSize = class_size
-        self.selected_cluster = None
+        self.selected_cluster = client_id % 5
         self.global_model = None
 
         self.gpuid = gpuid if torch.cuda.is_available() else 'cpu'
@@ -501,6 +501,7 @@ class ClientTrainer:
                 self.optimizer.zero_grad()
                 output = self.model.clip_visual(inputs)
                 loss = nn.MSELoss()(output, img_soft_label)
+                print(f'Image Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()
                 self.optimizer.step()
             elif self.dset_name == 'text':
@@ -511,27 +512,7 @@ class ClientTrainer:
                 self.optimizer.zero_grad()
                 output = self.model.clip_text(inputs)
                 loss = nn.MSELoss()(output, txt_soft_label)
-                loss.backward()
-                self.optimizer.step()
-
-    def train_on_private_data(self):
-        """用私有数据常规训练一轮"""
-        self.model.cuda()
-        self.model.train()
-        for i in range(self.local_epochs):
-            for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
-                self.optimizer.zero_grad()
-                if self.dset_name == 'image':
-                    inputs = data["processed_img"].to(self.gpuid)
-                    labels = data["class_id"].to(self.gpuid)
-                    output, _, _ = self.model(inputs)
-                elif self.dset_name == 'text':
-                    inputs = data["cap_tokens"].to(self.gpuid)
-                    labels = data["class_id"].to(self.gpuid)
-                    output, _, _ = self.model(inputs)
-                loss = self.criterion(output, labels)
+                print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()
                 self.optimizer.step()
         

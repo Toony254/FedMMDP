@@ -92,7 +92,7 @@ class MMFL(object):
     def load_dataset(self, args):
         dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
         vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path)
+        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path, subset_num=self.args.pub_data_num)
 
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
@@ -185,74 +185,6 @@ class MMFL(object):
 
         for i in range(len(self.total_local_trainers)):
             self.total_local_trainers[i].client_idx = i
-    
-    
-    def aggregate_models(self, local_image_models, local_text_models, local_mm_models):
-        server_model = self.engine.model
-        
-        image_encoder_params = OrderedDict()
-        
-        all_image_encoders = []
-        for model in local_image_models:
-            all_image_encoders.append({
-                'visual_projector': model.visual_projector.state_dict(),
-                'clip_visual': model.clip_visual.state_dict()
-            })
-        
-        for model in local_mm_models:
-            all_image_encoders.append({
-                'visual_projector': model.img_enc.visual_projector.state_dict(),
-                'clip_visual': model.img_enc.clip_visual.state_dict()
-            })
-        
-        for key in all_image_encoders[0]['visual_projector'].keys():
-            param_name = f'visual_projector.{key}'
-            params = [enc['visual_projector'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
-
-        for key in all_image_encoders[0]['clip_visual'].keys():
-            param_name = f'clip_visual.{key}'
-            params = [enc['clip_visual'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
-        
-        server_model.img_enc.load_state_dict(image_encoder_params)
-        
-        text_encoder_params = OrderedDict()
-        
-        all_text_encoders = []
-        for model in local_text_models:
-            all_text_encoders.append({
-                'text_projector': model.text_projector.state_dict(),
-                'clip_text': model.clip_text.state_dict()
-            })
-        
-        for model in local_mm_models:
-            all_text_encoders.append({
-                'text_projector': model.txt_enc.text_projector.state_dict(),
-                'clip_text': model.txt_enc.clip_text.state_dict()
-            })
-        
-        for key in all_text_encoders[0]['text_projector'].keys():
-            param_name = f'text_projector.{key}'
-            params = [enc['text_projector'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
-
-        for key in all_text_encoders[0]['clip_text'].keys():
-            param_name = f'clip_text.{key}'
-            params = [enc['clip_text'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
-        
-        server_model.txt_enc.load_state_dict(text_encoder_params)
-        
-        return server_model
 
     def train(self, round_n):
         self.cur_epoch = round_n
@@ -262,44 +194,36 @@ class MMFL(object):
             self.logger.log(f"Round {round_n + 1}!")
             if len(self.total_local_trainers) != 0:
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
-
-        # local training
-        local_image_model = []
-        local_text_model = []
-        local_mm_model = []
-        for idx, trainer in enumerate(self.cur_trainers):
-            self.logger.log(f"Training Client {trainer.client_idx}!")
-            trainer.cur_epoch = round_n
-            trainer.run()
-            if trainer.dset_name == 'image':
-                local_image_model.append(trainer.model)
-            elif trainer.dset_name == 'text':
-                local_text_model.append(trainer.model)
-            elif trainer.dset_name == 'mm':
-                local_mm_model.append(trainer.model)
         
-        # aggregate local models
-        server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
-        self.engine.model = server_model
         for trainer in self.cur_trainers:
-            if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
-                trainer.model.load_state_dict(server_model.state_dict())
-            elif hasattr(trainer.model, "clip_visual"):
-                for name, param in server_model.img_enc.state_dict().items():
-                    if name in trainer.model.state_dict():
-                        trainer.model.state_dict()[name].copy_(param)
-                if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
-                    for name, param in server_model.img_enc.visual_projector.state_dict().items():
-                        if name in trainer.model.visual_projector.state_dict():
-                            trainer.model.visual_projector.state_dict()[name].copy_(param)
-            elif hasattr(trainer.model, "clip_text"):
-                for name, param in server_model.txt_enc.state_dict().items():
-                    if name in trainer.model.state_dict():
-                        trainer.model.state_dict()[name].copy_(param)
-                if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
-                    for name, param in server_model.txt_enc.text_projector.state_dict().items():
-                        if name in trainer.model.text_projector.state_dict():
-                            trainer.model.text_projector.state_dict()[name].copy_(param)
+            trainer.run()
+
+        alignment_loader = self._dataloaders['train_subset' + f'_{self.args.pub_data_num}']
+        img_logits = []
+        txt_logits = []
+        for trainer in self.cur_trainers:
+            if trainer.dset_name == 'image':
+                logits = trainer.predict_logits(alignment_loader)
+                # print(logits.shape)
+                img_logits.append(logits)
+            elif trainer.dset_name == 'text':
+                logits = trainer.predict_logits(alignment_loader)
+                # print(logits.shape)
+                txt_logits.append(logits)
+            elif trainer.dset_name == 'mm':
+                img, txt = trainer.predict_logits(alignment_loader)
+                # print(img.shape, txt.shape)
+                img_logits.append(img)
+                txt_logits.append(txt)
+
+        avg_img_logits = np.mean(np.stack(img_logits), axis=0)
+        avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
+        
+        self.engine.train_with_logits(
+            alignment_loader,
+            avg_img_logits,
+            avg_txt_logits
+        )
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
@@ -360,7 +284,7 @@ class MMFL(object):
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
-        mm_csv = f'mm_FedAvg.csv'
+        mm_csv = f'mm_FedDF.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -380,7 +304,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'rsum_FedAvg.png')
+        plt.savefig(f'rsum_FedDF.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()
