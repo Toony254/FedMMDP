@@ -5,7 +5,6 @@ import os
 import sys
 from sklearn.metrics.pairwise import cosine_similarity
 from datasets import load_from_disk
-from collections import OrderedDict
 
 import operator
 import torch.nn as nn
@@ -13,7 +12,6 @@ import numpy as np
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import torch
-from tqdm import tqdm
 
 
 sys.path.append("./")
@@ -23,8 +21,8 @@ sys.path.append("../../../")
 
 from src.datasets.transform import collate_fn
 from src.datasets.load_FL_datasets import get_FL_trainloader, get_class_size
-from src.algorithms.ClientTrainer import ClientTrainer
-from src.algorithms.MMClientTrainer import MMClientTrainer
+from src.algorithms.creamClientTrainer import ClientTrainer
+from src.algorithms.creamMMClientTrainer import MMClientTrainer
 
 from src.algorithms.eval_coco import COCOEvaluator
 from src.algorithms.retrieval_trainer import TrainerEngine
@@ -125,7 +123,6 @@ class MMFL(object):
                                                             num_workers=4,
                                                             collate_fn=collate_fn
                                                             )
-
     def create_model(self, args):
         self.logger.log('start creating model and partition datasets')
         self.device = torch.device("cuda:%d" % args.device)
@@ -192,44 +189,72 @@ class MMFL(object):
 
         if not is_test:
             self.logger.log(f"Round {round_n + 1}!")
+            self.engine.train(
+                tr_loader=self._dataloaders['train_subset' + f'_{self.args.pub_data_num}'])  # global train
             if len(self.total_local_trainers) != 0:
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
-        
-        for trainer in self.cur_trainers:
-            trainer.run()
+        # global representations
+        if self.args.agg_method == "con_w" or self.args.contrast_local_intra or self.args.contrast_local_inter:
+            img_feature, txt_feature = [], []
+            distill_index = []
+            for idx, (images, captions, _, _, _, _, index) in enumerate(self.dataloaders_global['train_subset_eval' + f'_{self.args.pub_data_num}']):
+                with torch.no_grad():
+                    images = images.to(self.engine.device)  # [bs, 3, 224, 224]
+                    captions = captions.to(self.engine.device)  # [bs, seq_len]
 
-        alignment_loader = self.train_eval_dataloader
-        img_logits = []
-        txt_logits = []
-        for trainer in self.cur_trainers:
-            if trainer.dset_name == 'image':
-                logits = trainer.predict_logits(alignment_loader)
-                # print(logits.shape)
-                img_logits.append(logits)
-            elif trainer.dset_name == 'text':
-                logits = trainer.predict_logits(alignment_loader)
-                # print(logits.shape)
-                txt_logits.append(logits)
-            elif trainer.dset_name == 'mm':
-                img, txt = trainer.predict_logits(alignment_loader)
-                # print(img.shape, txt.shape)
-                img_logits.append(img)
-                txt_logits.append(txt)
+                    output = self.engine.model(images, captions)
+                    out_img = output['image_features']
+                    out_txt = output['caption_features']
 
-        avg_img_logits = np.mean(np.stack(img_logits), axis=0)
-        avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
+                    out_img = out_img.cpu().detach()
+                    out_txt = out_txt.cpu().detach()
+
+                    img_feature.append(out_img)
+                    txt_feature.append(out_txt)
+                    distill_index.extend(index)
+
+            self.global_img_feature = torch.concat(img_feature, dim=0)
+            self.global_txt_feature = torch.concat(txt_feature, dim=0)
+            print(self.global_txt_feature.shape, self.global_img_feature.shape)
+            self.distill_index = distill_index
+            del img_feature, txt_feature
+            gc.collect()
         
-        self.engine.train_with_logits(
-            alignment_loader,
-            avg_img_logits,
-            avg_txt_logits
-        )
+        # local training
+        img_vec, img_num = [], []
+        txt_vec, txt_num = [], []
+        for idx, trainer in enumerate(self.cur_trainers):
+            self.logger.log(f"Training Client {trainer.client_idx}!")
+            trainer.cur_epoch = round_n
+            trainer.run(self.global_img_feature, self.global_txt_feature, self.distill_index,
+                        self._dataloaders['train_subset' + f'_{self.args.pub_data_num}'])
+            self.logger.log("Generate Local Representations")
+            _vec, i = trainer.generate_logits(
+                self.dataloaders_global[
+                    'train_subset_eval' + f'_{self.args.pub_data_num}'])  # {'img': img_vec, 'txt': txt_vec}
+            # if not is_test:
+            if self.distill_index is None:
+                self.distill_index = i
+            elif self.distill_index is not None:
+                assert i == self.distill_index
+            if _vec['img'] is not None:
+                img_vec.append(_vec['img'])
+                img_num.append(len(trainer.train_loader.dataset))
+                print(f'img_vec {_vec["img"].shape}')
+            if _vec['txt'] is not None:
+                txt_vec.append(_vec['txt'])
+                txt_num.append(len(trainer.train_loader.dataset))
+                print(f'txt_vec {_vec["txt"].shape}')
+                
+                
+        if not self.args.disable_distill:
+            self.distill(round_n, img_vec, txt_vec, img_num, txt_num, self.distill_index)
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
                 return param_group['lr']
         
-        # test in own domain
+        # test in domain
         import csv
         
         if not hasattr(self, 'mm_results'):
@@ -285,7 +310,7 @@ class MMFL(object):
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
         os.makedirs('results', exist_ok=True)
-        mm_csv = f'results/mm_FedDF.csv'
+        mm_csv = f'results/mm_cream.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -305,7 +330,97 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_FedDF.png')
+        plt.savefig(f'results/rsum_cream.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
+        self.engine.lr_scheduler.step()
+        del img_vec, txt_vec
         gc.collect()
+    
+    def distill(self, round_n, img_vec, txt_vec, img_num, txt_num, distill_index):
+
+        self.engine.model.train()
+
+        if self.config.model.use_img_client or self.config.model.use_txt_client or self.config.model.use_mm_client:
+            client_loss_cri = nn.MSELoss()
+        def aggregation(i_vec=img_vec, t_vec=txt_vec, i_num=img_num, t_num=txt_num):
+            if self.args.agg_method == "con_w":
+                contrastive_w = []
+                for vec in i_vec:  # vec: [50000, n_feature], global_txt_feature: [50000, n_feature]
+                    logits = torch.matmul(vec, self.global_txt_feature.T)  # [50000, 50000]
+                    exp_logits = torch.exp(logits)
+                    log_prob = logits - torch.log(torch.sum(exp_logits, dim=1, keepdim=True))
+                    contrastive_w.append(torch.diagonal(log_prob).reshape(1, -1))
+                contrastive_w = torch.softmax(torch.cat(contrastive_w, dim=0), dim=0)
+                for i in range(len(i_vec)):
+                    i_vec[i] = (i_vec[i] * contrastive_w[i].reshape(-1, 1)).unsqueeze(0)
+                i_vec = torch.sum(torch.cat(i_vec, dim=0), dim=0)  # aggregated image vectors
+
+                contrastive_w = []
+                for vec in t_vec:  # vec: [50000, n_feature], global_txt_feature: [50000, n_feature]
+                    logits = torch.matmul(vec, self.global_img_feature.T)  # [50000, 50000]
+                    exp_logits = torch.exp(logits)
+                    log_prob = logits - torch.log(torch.sum(exp_logits, dim=1, keepdim=True))
+                    contrastive_w.append(torch.diagonal(log_prob).reshape(1, -1))
+                contrastive_w = torch.softmax(torch.cat(contrastive_w, dim=0), dim=0)
+                for i in range(len(t_vec)):
+                    t_vec[i] = (t_vec[i] * contrastive_w[i].reshape(-1, 1)).unsqueeze(0)
+                t_vec = torch.sum(torch.cat(t_vec, dim=0), dim=0)  # aggregated text vectors
+            else:
+                raise NotImplementedError
+
+            return i_vec, t_vec
+
+        # aggregation
+        img_vec, txt_vec = aggregation()
+
+        self.img_vec = img_vec
+        self.txt_vec = txt_vec
+
+        distill_dict = {b: a for a, b in enumerate(distill_index)}  # index in coco to index to list 'distill_index'
+        # distill
+        self.logger.log("start distilling")
+        for idx, (images, captions, _, _, _, _, index) in enumerate(self.dataloaders_global['train_subset' + f'_{self.args.pub_data_num}']):
+            images = images.to(self.engine.device)  # [bs, 3, 224, 224]
+            captions = captions.to(self.engine.device)  # [bs, seq_len]
+
+            output = self.engine.model(images, captions)
+            loss = 0
+
+            def code_sim(output, target, config):
+                output = output.sum(axis=1) if len(output.shape) == 3 else output
+                target = target.type_as(output)
+
+                return client_loss_cri(output, target.type_as(output))
+
+            if self.args.num_img_clients > 0:
+                out_img = output['image_features']
+                d_idx = operator.itemgetter(*index)(distill_dict)  # idx of the current batch
+                target_img = self.img_vec[d_idx, :].type_as(out_img)
+                loss += self.args.kd_weight * code_sim(out_img, target_img, self.config)
+            if self.args.num_txt_clients > 0:
+                out_txt = output['caption_features']
+                d_idx = operator.itemgetter(*index)(distill_dict)  # idx of the current batch
+                target_txt = self.txt_vec[d_idx, :].type_as(out_txt)
+                loss += self.args.kd_weight * code_sim(out_txt, target_txt, self.config)
+            if self.args.num_mm_clients > 0:
+                out_img = output['image_features']
+                d_idx = operator.itemgetter(*index)(distill_dict)  # idx of the current batch
+                target_img = self.img_vec[d_idx, :].type_as(out_img)
+                out_txt = output['caption_features']
+                target_txt = self.txt_vec[d_idx, :].type_as(out_txt)
+                loss += self.args.kd_weight * code_sim(out_img, target_img, self.config)
+                loss += self.args.kd_weight * code_sim(out_txt, target_txt, self.config)
+
+            self.engine.optimizer.zero_grad()
+
+            if self.config.train.get('use_fp16'):
+                with amp.scale_loss(loss, self.engine.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
+
+            if self.config.train.grad_clip > 0:
+                nn.utils.clip_grad.clip_grad_norm_(self.engine.model.parameters(),
+                                                   self.config.train.grad_clip)
+            self.engine.optimizer.step()

@@ -16,30 +16,8 @@ class ClientImageEncoder(nn.Module):
         for param in clip_model.visual.parameters():
             param.requires_grad = False
         emb_dim = clip_model.visual.output_dim
-        self.visual_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
-            nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
-            nn.Linear(emb_dim, emb_dim),
-            nn.LayerNorm(emb_dim),
-            nn.ReLU()
-        ).half()
-        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
-        projector_weight = torch.load(projector_weight_path)
-        self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
-        class CombinedVisualModel(nn.Module):
-            def __init__(self, clip_visual, projector):
-                super(CombinedVisualModel, self).__init__()
-                self.clip_visual = clip_visual
-                self.projector = projector
-                
-            def forward(self, x):
-                x = self.clip_visual(x)
-                x = self.projector(x)
-                return x
         
-        # 将组合后的模型赋给self.clip_visual
-        self.clip_visual = CombinedVisualModel(clip_model.visual, self.visual_projector)
+        self.clip_visual = clip_model.visual
         
         self.embed_dim = emb_dim
         self.relu = nn.ReLU(inplace=False).half()
@@ -77,29 +55,8 @@ class CLIPImageEncoder(nn.Module):
         for param in clip_model.visual.parameters():
             param.requires_grad = False
         emb_dim = clip_model.visual.output_dim
-        self.visual_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
-            nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
-            nn.Linear(emb_dim, emb_dim),
-            nn.LayerNorm(emb_dim),
-            nn.ReLU()
-        ).half()
-        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
-        projector_weight = torch.load(projector_weight_path)
-        self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
-        class CombinedVisualModel(nn.Module):
-            def __init__(self, clip_visual, projector):
-                super(CombinedVisualModel, self).__init__()
-                self.clip_visual = clip_visual
-                self.projector = projector
-                
-            def forward(self, x):
-                x = self.clip_visual(x)
-                x = self.projector(x)
-                return x
         
-        self.clip_visual = CombinedVisualModel(clip_model.visual, self.visual_projector)
+        self.clip_visual = clip_model.visual
         self.mlp_local = mlp_local
         if self.mlp_local:
             self.head_proj = nn.Sequential(
@@ -126,26 +83,15 @@ class ClientTextEncoder(nn.Module):
             param.requires_grad = False
         emb_dim = clip_model.text_projection.shape[1]
         dtype = clip_model.dtype
-        self.text_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
-            nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
-            nn.Linear(emb_dim, emb_dim),
-            nn.LayerNorm(emb_dim),
-            nn.ReLU()
-        ).half()
-        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
-        projector_weight = torch.load(projector_weight_path)
-        self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
+        
         class CombinedTextModel(nn.Module):
-            def __init__(self, projector):
+            def __init__(self):
                 super(CombinedTextModel, self).__init__()
                 self.token_embedding = clip_model.token_embedding
                 self.transformer = clip_model.transformer
                 self.ln_final = clip_model.ln_final
                 self.text_projection = clip_model.text_projection
                 self.positional_embedding = clip_model.positional_embedding
-                self.projector = projector
                 
             def forward(self, text):
                 x = self.token_embedding(text).type(dtype)
@@ -158,10 +104,9 @@ class ClientTextEncoder(nn.Module):
                 
                 x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
                 
-                x = self.projector(x)
                 return x
         
-        self.clip_text = CombinedTextModel(self.text_projector)
+        self.clip_text = CombinedTextModel()
         self.relu = nn.ReLU(inplace=False).half()
         self.class_fc_2 = nn.Linear(embed_dim, num_class).half()
         self.is_train = True
@@ -199,26 +144,15 @@ class CLIPTextEncoder(nn.Module):
             param.requires_grad = False
         emb_dim = clip_model.text_projection.shape[1]
         dtype = clip_model.dtype
-        self.text_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
-            nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
-            nn.Linear(emb_dim, emb_dim),
-            nn.LayerNorm(emb_dim),
-            nn.ReLU()
-        ).half()
-        projector_weight_path = "saved/projector_weights/mlp+norm1024.pth"
-        projector_weight = torch.load(projector_weight_path)
-        self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
+        
         class CombinedTextModel(nn.Module):
-            def __init__(self, projector):
+            def __init__(self):
                 super(CombinedTextModel, self).__init__()
                 self.token_embedding = clip_model.token_embedding
                 self.transformer = clip_model.transformer
                 self.ln_final = clip_model.ln_final
                 self.text_projection = clip_model.text_projection
                 self.positional_embedding = clip_model.positional_embedding
-                self.projector = projector
 
             def forward(self, text):
                 x = self.token_embedding(text).type(dtype)
@@ -230,11 +164,9 @@ class CLIPTextEncoder(nn.Module):
                 x = self.ln_final(x).type(dtype)
                 
                 x = x[torch.arange(x.shape[0]), text.argmax(dim=-1)] @ self.text_projection
-                
-                x = self.projector(x)
                 return x
         
-        self.clip_text = CombinedTextModel(self.text_projector)
+        self.clip_text = CombinedTextModel()
     
     def forward(self, inputs):
         out = self.clip_text(inputs)

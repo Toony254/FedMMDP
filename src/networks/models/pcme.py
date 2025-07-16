@@ -6,26 +6,35 @@ sys.path.append("./")
 sys.path.append("../")
 sys.path.append("../../")
 from src.networks.clip_model import CLIPImageEncoder, CLIPTextEncoder
-
-
+from src.networks.models.caption_encoder import EncoderText
+from src.networks.models.image_encoder import EncoderImage
+    
 class PCME(nn.Module):
     """Probabilistic CrossModal Embedding (PCME) module"""
     def __init__(self, config, mlp_local):
         super(PCME, self).__init__()
 
         self.config = config
+        self.embed_dim = config.embed_dim
         if config.get('n_samples_inference', 0):
             self.n_embeddings = config.n_samples_inference
         else:
             self.n_embeddings = 1
 
-        self.img_enc = CLIPImageEncoder(config, mlp_local=mlp_local)
-        self.txt_enc = CLIPTextEncoder(config, mlp_local=mlp_local)
+        if config.name == 'clip':
+            self.img_enc = CLIPImageEncoder(config, mlp_local=mlp_local)
+            self.txt_enc = CLIPTextEncoder(config, mlp_local=mlp_local)
+        elif config.name == 'resnet':
+            self.img_enc = EncoderImage(config, mlp_local=mlp_local)
+            self.txt_enc = EncoderText(config, mlp_local=mlp_local)
 
     def forward(self, images, captions):
         image_output = self.img_enc(images)
-        caption_output = self.txt_enc(captions)
-        caption_output = {'embedding': caption_output}
+        if self.config.name == 'clip':
+            caption_output = self.txt_enc(captions)
+            caption_output = {'embedding': caption_output}
+        if self.config.name == 'resnet':
+            caption_output = self.txt_enc(captions, 77)
 
         return {
             'image_features': image_output['embedding'],
@@ -44,4 +53,7 @@ class PCME(nn.Module):
         return self.img_enc(images)
 
     def text_forward(self, captions):
-        return self.txt_enc(captions)
+        if self.config.name == 'clip':
+            return self.txt_enc(captions)
+        elif self.config.name == 'resnet':
+            return self.txt_enc(captions, 77)

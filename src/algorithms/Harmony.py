@@ -5,7 +5,6 @@ import os
 import sys
 from sklearn.metrics.pairwise import cosine_similarity
 from datasets import load_from_disk
-from collections import OrderedDict
 
 import operator
 import torch.nn as nn
@@ -14,7 +13,9 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import torch
 from tqdm import tqdm
-
+import copy
+from collections import OrderedDict
+from sklearn.cluster import KMeans
 
 sys.path.append("./")
 sys.path.append("../")
@@ -40,7 +41,6 @@ except ImportError:
 
 
 is_test = False
-
 
 class MMFL(object):
     def __init__(self, args, wandb=None):
@@ -74,6 +74,9 @@ class MMFL(object):
         self.global_img_feature = None
         self.global_txt_feature = None
         self.distill_index = None
+        # 新增：保存多模态初始encoder参数
+        self.mm_init_img_enc_state = []
+        self.mm_init_txt_enc_state = []
 
 
     def set_config(self, img='image', txt='text'):
@@ -90,25 +93,17 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim  # set global model dim
     
     def load_dataset(self, args):
-        dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
-        vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path, subset_num=self.args.pub_data_num)
-
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
 
         self.config.optimizer.learning_rate = self.args.server_lr
-
-        self._dataloaders = self.dataloaders_global.copy()
+        
         self.evaluator = MMEvaluator(eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
                                        class_size=self.class_size)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
-
-        self.train_eval_dataloader = self._dataloaders.pop(
-            'train_subset_eval' + f'_{self.args.pub_data_num}') if self._dataloaders is not None else None
 
         self.engine.model_to_device()
         torch.backends.cudnn.enabled = True
@@ -125,7 +120,6 @@ class MMFL(object):
                                                             num_workers=4,
                                                             collate_fn=collate_fn
                                                             )
-
     def create_model(self, args):
         self.logger.log('start creating model and partition datasets')
         self.device = torch.device("cuda:%d" % args.device)
@@ -194,36 +188,118 @@ class MMFL(object):
             self.logger.log(f"Round {round_n + 1}!")
             if len(self.total_local_trainers) != 0:
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
-        
-        for trainer in self.cur_trainers:
+
+        # local training
+        for idx, trainer in enumerate(self.cur_trainers):
+            self.logger.log(f"Training Client {trainer.client_idx}!")
+            trainer.cur_epoch = round_n
             trainer.run()
 
-        alignment_loader = self.train_eval_dataloader
-        img_logits = []
-        txt_logits = []
-        for trainer in self.cur_trainers:
-            if trainer.dset_name == 'image':
-                logits = trainer.predict_logits(alignment_loader)
-                # print(logits.shape)
-                img_logits.append(logits)
-            elif trainer.dset_name == 'text':
-                logits = trainer.predict_logits(alignment_loader)
-                # print(logits.shape)
-                txt_logits.append(logits)
-            elif trainer.dset_name == 'mm':
-                img, txt = trainer.predict_logits(alignment_loader)
-                # print(img.shape, txt.shape)
-                img_logits.append(img)
-                txt_logits.append(txt)
-
-        avg_img_logits = np.mean(np.stack(img_logits), axis=0)
-        avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
+        # ----------------------
+        # Harmony服务器端聚合与下发
+        # ----------------------
+        # 1. 聚合image encoder（参考FedAvg的aggregate_models）
+        # 收集所有image encoder参数
+        all_image_encoders = []
+        for trainer in self.img_local_trainers:
+            all_image_encoders.append({
+                'clip_visual': trainer.model.clip_visual.state_dict()
+            })
+        for trainer in self.mm_local_trainers:
+            all_image_encoders.append({
+                'clip_visual': trainer.model.img_enc.clip_visual.state_dict()
+            })
         
-        self.engine.train_with_logits(
-            alignment_loader,
-            avg_img_logits,
-            avg_txt_logits
-        )
+        # 聚合image encoder参数
+        image_encoder_params = OrderedDict()
+        if all_image_encoders:
+            for key in all_image_encoders[0]['clip_visual'].keys():
+                param_name = f'clip_visual.{key}'
+                params = [enc['clip_visual'][key] for enc in all_image_encoders]
+                orig_dtype = params[0].dtype
+                avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+                image_encoder_params[param_name] = avg_param.to(orig_dtype)
+        
+        # 2. 聚合text encoder
+        all_text_encoders = []
+        for trainer in self.txt_local_trainers:
+            all_text_encoders.append({
+                'clip_text': trainer.model.clip_text.state_dict()
+            })
+        for trainer in self.mm_local_trainers:
+            all_text_encoders.append({
+                'clip_text': trainer.model.txt_enc.clip_text.state_dict()
+            })
+        
+        # 聚合text encoder参数
+        text_encoder_params = OrderedDict()
+        if all_text_encoders:
+            for key in all_text_encoders[0]['clip_text'].keys():
+                param_name = f'clip_text.{key}'
+                params = [enc['clip_text'][key] for enc in all_text_encoders]
+                orig_dtype = params[0].dtype
+                avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+                text_encoder_params[param_name] = avg_param.to(orig_dtype)
+
+        # 3. 下发聚合encoder（参考FedAvg的下发方式）
+        for trainer in self.img_local_trainers:
+            for name, param in image_encoder_params.items():
+                if name.startswith('clip_visual.'):
+                    key = name.replace('clip_visual.', '')
+                    if key in trainer.model.clip_visual.state_dict():
+                        trainer.model.clip_visual.state_dict()[key].copy_(param)
+        
+        for trainer in self.txt_local_trainers:
+            for name, param in text_encoder_params.items():
+                if name.startswith('clip_text.'):
+                    key = name.replace('clip_text.', '')
+                    if key in trainer.model.clip_text.state_dict():
+                        trainer.model.clip_text.state_dict()[key].copy_(param)
+        
+        for trainer in self.mm_local_trainers:
+            # 下发image encoder
+            for name, param in image_encoder_params.items():
+                if name.startswith('clip_visual.'):
+                    key = name.replace('clip_visual.', '')
+                    if key in trainer.model.img_enc.clip_visual.state_dict():
+                        trainer.model.img_enc.clip_visual.state_dict()[key].copy_(param)
+            # 下发text encoder
+            for name, param in text_encoder_params.items():
+                if name.startswith('clip_text.'):
+                    key = name.replace('clip_text.', '')
+                    if key in trainer.model.txt_enc.clip_text.state_dict():
+                        trainer.model.txt_enc.clip_text.state_dict()[key].copy_(param)
+
+        # ----------------------
+        # 多模态节点融合阶段服务器端操作
+        # ----------------------
+        # 1. mm_local_trainers本地融合训练
+        # 2. 计算encoder偏置
+        # 首轮保存初始参数
+        if round_n == 0:
+            self.mm_init_img_enc_state = []
+            self.mm_init_txt_enc_state = []
+            for trainer in self.mm_local_trainers:
+                self.mm_init_img_enc_state.append(copy.deepcopy(trainer.model.img_enc.state_dict()))
+                self.mm_init_txt_enc_state.append(copy.deepcopy(trainer.model.txt_enc.state_dict()))
+        encoder_biases = []
+        for i, trainer in enumerate(self.mm_local_trainers):
+            # 当前参数
+            cur_img = trainer.model.img_enc.state_dict()
+            cur_txt = trainer.model.txt_enc.state_dict()
+            # 初始参数
+            init_img = self.mm_init_img_enc_state[i]
+            init_txt = self.mm_init_txt_enc_state[i]
+            # 计算L2范数
+            img_bias = torch.sqrt(sum([(cur_img[k] - init_img[k]).float().pow(2).sum() for k in cur_img.keys()])).item()
+            txt_bias = torch.sqrt(sum([(cur_txt[k] - init_txt[k]).float().pow(2).sum() for k in cur_txt.keys()])).item()
+            encoder_biases.append([img_bias, txt_bias])
+
+        # 3. 聚类（KMeans）
+        n_clusters = min(len(self.mm_local_trainers), getattr(self.args, 'fusion_clusters', 2))
+        if len(encoder_biases) > 1:
+            kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(encoder_biases)
+            labels = kmeans.labels_
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
@@ -231,45 +307,72 @@ class MMFL(object):
         
         # test in own domain
         import csv
-        
+
+        if not hasattr(self, 'img_txt_results'):
+            self.img_txt_results = []
         if not hasattr(self, 'mm_results'):
             self.mm_results = []
         if not hasattr(self, 'rsum_history'):
             self.rsum_history = []
-            
+
+        img_txt_rows = []
         mm_rows = []
         
         print("Testing...")
         rsum = 0
-        for domain_idx in range(self.args.num_domains):
-            print(f"Server tests in domain {domain_idx}:")
-            test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
-            metadata = self.engine.metadata.copy()
-            metadata['cur_epoch'] = round_n + 1
-            metadata['lr'] = get_lr(self.engine.optimizer)
-            
-            self.engine.report_scores(step=round_n + 1,
-                                    scores=test_scores,
-                                    metadata=metadata)
-            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
-                test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
-            rsum += rsum_i
-            mm_rows.append([
-                round_n, domain_idx, rsum_i,
-                test_scores['test']['n_fold']['i2t']['recall_1'],
-                test_scores['test']['n_fold']['t2i']['recall_1'],
-                test_scores['test']['i2t']['recall_1'],
-                test_scores['test']['t2i']['recall_1'],
-                test_scores['test']['n_fold']['i2t']['recall_5'],
-                test_scores['test']['n_fold']['t2i']['recall_5'],
-                test_scores['test']['i2t']['recall_5'],
-                test_scores['test']['t2i']['recall_5'],
-            ])
-            self.wandb.log({f"Multimodal rsum_r1": rsum_i}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
-            self.wandb.log({f"Multimodal t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+        for idx, trainer in enumerate(self.total_local_trainers):
+            if trainer.dset_name == "image":
+                domain_idx = idx
+                trainer.test_loader = self.val_dataloader[idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
+                trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    trainer.losses.avg,
+                    trainer.test_top1.avg,
+                    trainer.test_top5.avg
+                ])
+            elif trainer.dset_name == "text":
+                domain_idx = idx - 5
+                trainer.test_loader = self.val_dataloader[domain_idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    trainer.losses.avg,
+                    trainer.test_top1.avg,
+                    trainer.test_top5.avg
+                ])
+            else:
+                for domain_idx in range(self.args.num_domains):
+                    print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                    test_scores = trainer.evaluate({'test': self.val_dataloader[domain_idx]})
+                    metadata = trainer.metadata.copy()
+                    metadata['cur_epoch'] = round_n + 1
+                    metadata['lr'] = get_lr(trainer.optimizer)
+                    trainer.report_scores(step=round_n + 1,
+                                            scores=test_scores,
+                                            metadata=metadata)
+                    rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
+                        test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
+                    if domain_idx == idx - 10:
+                        rsum += rsum_i
+                    mm_rows.append([
+                        round_n, trainer.client_idx, domain_idx, rsum_i,
+                        test_scores['test']['n_fold']['i2t']['recall_1'],
+                        test_scores['test']['n_fold']['t2i']['recall_1'],
+                        test_scores['test']['i2t']['recall_1'],
+                        test_scores['test']['t2i']['recall_1'],
+                        test_scores['test']['n_fold']['i2t']['recall_5'],
+                        test_scores['test']['n_fold']['t2i']['recall_5'],
+                        test_scores['test']['i2t']['recall_5'],
+                        test_scores['test']['t2i']['recall_5'],
+                    ])
+                    self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
         
         self.rsum_history.append(rsum)
         if self.best_score < rsum:
@@ -278,21 +381,31 @@ class MMFL(object):
             metadata['best_epoch'] = round_n + 1
             self.best_metadata, self.best_score = metadata, best_score
             print(f"Best score updated: {best_score} at epoch {round_n + 1}")
-            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
+            # torch.save({'net': trainer.model.state_dict()}, self.args.name + '-best_model.pt')
 
         if round_n == self.args.comm_rounds - 1:
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
-            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
+        #     torch.save({'net': trainer.model.state_dict()}, self.args.name + '-last_model.pt')
         
         os.makedirs('results', exist_ok=True)
-        mm_csv = f'results/mm_FedDF.csv'
+        img_txt_csv = f'results/img_txt_Harmony.csv'
+        mm_csv = f'results/mm_Harmony.csv'
+
+        if img_txt_rows:
+            write_header = not os.path.exists(img_txt_csv)
+            with open(img_txt_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
+                writer.writerows(img_txt_rows)
+
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
                 writer = csv.writer(f)
                 if write_header:
                     writer.writerow([
-                        'round', 'domain_idx', 'rsum_i',
+                        'round', 'client_id', 'domain_idx', 'rsum_i',
                         'n_fold_i2t_r1', 'n_fold_t2i_r1', 'i2t_r1', 't2i_r1',
                         'n_fold_i2t_r5', 'n_fold_t2i_r5', 'i2t_r5', 't2i_r5'
                     ])
@@ -302,10 +415,10 @@ class MMFL(object):
         plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
         plt.xlabel('Round')
         plt.ylabel('rsum')
-        plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
+        plt.title(f'rsum Curve (Harmony)')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_FedDF.png')
+        plt.savefig(f'results/rsum_Harmony.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

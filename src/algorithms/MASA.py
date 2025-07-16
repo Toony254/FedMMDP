@@ -49,16 +49,27 @@ class DummyRelayNode:
         self.results[cluster_label].append(component)
     def aggregate(self):
         agg_results = {}
+        from collections import Counter
+        key_counts = Counter(self.results.keys())
         for cluster_label, dict_list in self.results.items():
-            # 只聚合所有分量都包含的key
-            common_keys = set(dict_list[0].keys())
-            for d in dict_list[1:]:
-                common_keys &= set(d.keys())
-            agg_dict = {}
-            for k in common_keys:
-                arrs = [d[k] for d in dict_list if k in d]
-                agg_dict[k] = np.sum(arrs, axis=0)
-            agg_results[cluster_label] = agg_dict
+            if key_counts[cluster_label] == 1:
+                agg_results[cluster_label] = {**dict_list[0], **dict_list[1]}
+            else:
+                if cluster_label not in agg_results:
+                    agg_results[cluster_label] = dict_list
+                else:
+                    agg_results[cluster_label] = agg_results[cluster_label] + dict_list
+        for cluster_label, dict_list in agg_results.items():
+            if key_counts[cluster_label] != 1:
+                keys = set()
+                for d in dict_list:
+                    keys.update(d.keys())
+                avg_dict = {}
+                for k in keys:
+                    values = [d[k] for d in dict_list]
+                    avg = np.mean(values, axis=0)
+                    avg_dict[k] = avg
+                agg_results[cluster_label] = avg_dict
         return agg_results
 
 class DummyServer:
@@ -171,6 +182,10 @@ def get_model_parameters(client, modality):
         return client.model.img_enc.state_dict()
     elif hasattr(client.model, 'txt_enc') and modality == 'txt':
         return client.model.txt_enc.state_dict()
+    elif modality == 'img':
+        return client.model.clip_visual.state_dict()
+    elif modality == 'txt':
+        return client.model.clip_text.state_dict()
     else:
         return client.model.state_dict()
 
@@ -180,6 +195,10 @@ def set_model_parameters(client, modality, param_dict):
         model = client.model.img_enc
     elif hasattr(client.model, 'txt_enc') and modality == 'txt':
         model = client.model.txt_enc
+    elif modality == 'img':
+        model = client.model.clip_visual
+    elif modality == 'txt':
+        model = client.model.clip_text
     else:
         model = client.model
     state_dict = model.state_dict()
@@ -237,25 +256,17 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim  # set global model dim
     
     def load_dataset(self, args):
-        dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
-        vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path)
-
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
 
         self.config.optimizer.learning_rate = self.args.server_lr
-
-        self._dataloaders = self.dataloaders_global.copy()
+        
         self.evaluator = MMEvaluator(eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
                                        class_size=self.class_size)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
-
-        self.train_eval_dataloader = self._dataloaders.pop(
-            'train_subset_eval' + f'_{self.args.pub_data_num}') if self._dataloaders is not None else None
 
         self.engine.model_to_device()
         torch.backends.cudnn.enabled = True
@@ -368,17 +379,17 @@ class MMFL(object):
                     ref_module = client.model.img_enc
                 elif hasattr(client.model, 'txt_enc') and modality == 'txt':
                     ref_module = client.model.txt_enc
-                elif hasattr(client.model, 'img_enc') and hasattr(client.model, 'txt_enc'):
+                elif modality == 'img':
+                    ref_module = client.model.clip_visual
+                elif modality == 'txt':
+                    ref_module = client.model.clip_text
+                else:
                     ref_module = client.model
                 ref_state = ref_module.state_dict()
-                # 只保留所有聚类模型都包含的key
                 all_keys = list(ref_state.keys())
-                valid_keys = []
-                for k in all_keys:
-                    if all(k in cluster_models[kk] for kk in range(num_clusters)):
-                        valid_keys.append(k)
+                valid_keys = [k for k in all_keys if any(k in cluster_models[kk] for kk in range(num_clusters))]
                 if not valid_keys:
-                    continue  # 没有可用层则跳过
+                    continue
                 layer_shapes = [ref_state[k].shape for k in valid_keys]
                 L_m = len(layer_shapes)
 
@@ -451,7 +462,7 @@ class MMFL(object):
                         q = layer_outputs[-1]
                         client.model.to(self.device)
                         if client.dset_name == 'image' or client.dset_name == 'text':
-                            logits, _, _ = client.model.class_fc_2(q)
+                            logits = client.model.class_fc_2(q)
                             loss = F.cross_entropy(logits, y)
                         else:
                             logits = q
@@ -489,24 +500,24 @@ class MMFL(object):
                             x = batch["processed_img"].to(self.device)
                             y = batch["class_id"]
                             if isinstance(y, list):
-                                y = torch.tensor(y, dtype=torch.long)
+                                y = torch.tensor(y, dtype=torch.long).to(self.device)
                         elif client.dset_name == 'text':
                             x = batch["cap_tokens"].to(self.device)
                             y = batch["class_id"]
                             if isinstance(y, list):
-                                y = torch.tensor(y, dtype=torch.long)
+                                y = torch.tensor(y, dtype=torch.long).to(self.device)
                         else:
                             x, y = batch["processed_img"].to(self.device), batch["cap_tokens"].to(self.device)
                         optimizer_finetune.zero_grad()
                         out = model(x)
                         if hasattr(client.model, "class_fc_2"):
-                            logits = model.class_fc_2(out)
+                            logits = client.model.class_fc_2(out).to(self.device)
                         elif modality == 'img':
-                            logits = out['embedding']
-                            y = client.model.txt_enc(y)
+                            logits = out['embedding'].to(self.device)
+                            y = client.model.txt_enc(y).to(self.device)
                         elif modality == 'txt':
-                            logits = out
-                            y = client.model.img_enc(y)['embedding']
+                            logits = out.to(self.device)
+                            y = client.model.img_enc(y)['embedding'].to(self.device)
                         loss = F.cross_entropy(logits, y)
                         loss.backward()
                         optimizer_finetune.step()
@@ -615,8 +626,9 @@ class MMFL(object):
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
         #     torch.save({'net': trainer.model.state_dict()}, self.args.name + '-last_model.pt')
         
-        img_txt_csv = f'img_txt_MASA.csv'
-        mm_csv = f'mm_MASA.csv'
+        os.makedirs('results', exist_ok=True)
+        img_txt_csv = f'results/img_txt_MASA.csv'
+        mm_csv = f'results/mm_MASA.csv'
 
         if img_txt_rows:
             write_header = not os.path.exists(img_txt_csv)
@@ -645,7 +657,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (MASA)')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'rsum_MASA.png')
+        plt.savefig(f'results/rsum_MASA.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

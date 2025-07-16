@@ -1,7 +1,7 @@
 dataloader:
-  batch_size: 128
-  eval_batch_size: 128
-  num_workers: 16
+  batch_size: 64
+  eval_batch_size: 64
+  num_workers: 0
   alpha: 0.1
   partition: "hetero"
 
@@ -9,8 +9,7 @@ model:
   name: clip
   embed_dim: 1024
   clip_model: "RN50"
-  wemb_type: glove
-  word_dim: 300
+  word_dim: 512
   cache_dir: /data/mmdata/log/MMCLIP/
   n_samples_inference: 1
   eval_method: matmul

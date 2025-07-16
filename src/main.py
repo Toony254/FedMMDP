@@ -62,7 +62,7 @@ def args():
 
     parser.add_argument('--client_num_per_round', type=int, default=15)
     parser.add_argument('--FL_algorithm', type=str, default='MASA',
-                        choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON', 'FedDF'],
+                        choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON', 'FedDF', 'Harmony', 'Cream'],
                         help='Federated Learning algorithm to use')
 
     # === dataloader ===
@@ -103,7 +103,7 @@ def args():
 
     parser.add_argument('--data_local', action='store_true', default=False,
                         help='change data directory to ~/data_local')
-    parser.add_argument('--pub_data_num', type=int, default=1000, help='communication')
+    parser.add_argument('--pub_data_num', type=int, default=5000, help='communication')
 
     parser.add_argument('--feature_dim', type=int, default=1024)
 
@@ -127,6 +127,10 @@ if __name__ == "__main__":
         from algorithms.MOON import MMFL
     elif args.FL_algorithm == 'FedDF':
         from algorithms.FedDF import MMFL
+    elif args.FL_algorithm == 'Harmony':
+        from algorithms.Harmony import MMFL
+    elif args.FL_algorithm == 'Cream':
+        from algorithms.Cream import MMFL
     
     Algo = MMFL(args, wandb)
 

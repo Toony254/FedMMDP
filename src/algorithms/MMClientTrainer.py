@@ -353,8 +353,8 @@ class MMClientTrainer(EngineBase):
             images = images.to(self.device)
             captions = captions.to(self.device)
             batch_size = images.size(0)
-            img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.device)
-            txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.device)
+            img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size], dtype=torch.float32).to(self.device)
+            txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size], dtype=torch.float32).to(self.device)
             if torch.isnan(img_soft_label).any() or torch.isnan(txt_soft_label).any():
                 print("Found nan in soft labels!")
             idx += batch_size

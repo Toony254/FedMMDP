@@ -19,7 +19,6 @@ from src.utils.Utils import to_one_hot
 
 torch.backends.cudnn.enabled = True
 
-from tqdm import tqdm
 
 import numpy as np
 import os
@@ -145,8 +144,6 @@ class ClientTrainer:
         self.dset_name = dataset
         self.local_feature = None
         self.classSize = class_size
-        self.selected_cluster = client_id % 5
-        self.global_model = None
 
         self.gpuid = gpuid if torch.cuda.is_available() else 'cpu'
 
@@ -185,75 +182,7 @@ class ClientTrainer:
         self.local_epochs = args.local_epochs
         self.local_epoch = 0
 
-    def run_with_prox(self):
-        self.model.to(self.gpuid)
-        self.old_model = copy.deepcopy(self.model)
-        self.old_model.eval()
-        self.old_model.cuda()
-
-        self.lr_scheduler(self.cur_epoch)
-
-        mu = getattr(self.args, 'mu', 0.01)
-        if self.dset_name == 'image':
-            global_params = {k: v.clone().detach() for k, v in self.global_model.img_enc.state_dict().items()}
-        if self.dset_name == 'text':
-            global_params = {k: v.clone().detach() for k, v in self.global_model.txt_enc.state_dict().items()}
-
-        for i in range(self.local_epochs):
-            self.local_epoch += 1
-            self.model.train()
-            for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
-                self.optimizer.zero_grad()
-                if self.dset_name == 'image':
-                    inputs_bt = data["processed_img"]
-                    labels_bt = data["class_id"]
-                    if isinstance(labels_bt, list):
-                        labels_bt = torch.tensor(labels_bt, dtype=torch.long)
-                    inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
-                    labels_var = torch.autograd.Variable(labels_bt).to(self.gpuid)
-                    if self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs_var)
-                    elif self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs_var)
-                elif self.dset_name == 'text':
-                    inputs_bt = data["cap_tokens"]
-                    labels_bt = data["class_id"]
-                    if isinstance(labels_bt, list):
-                        labels_bt = torch.tensor(labels_bt, dtype=torch.long)
-                    inputs_bt, labels_bt = map(lambda t: torch.cat(t) if type(t) != torch.Tensor else t,
-                                               (inputs_bt, labels_bt))
-                    inputs_bt, labels_var = map(lambda t: t.to(self.gpuid).contiguous(), (inputs_bt, labels_bt))
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    if self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs_bt)
-                    elif self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs_bt, lengths)
-                loss = self.criterion(fvec, labels_var)
-                # === Proximal term ===
-                common_keys = set(dict(self.model.named_parameters()).keys()) & set(global_params.keys())
-                prox_loss = 0.0
-                for name in common_keys:
-                    param = dict(self.model.named_parameters())[name]
-                    prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
-                total_loss = loss + 0.5 * mu * prox_loss
-                print(f'Client {self.client_id} - Epoch {self.local_epoch}, Step {idx}, Loss: {total_loss:.4f}, Prox Loss: {prox_loss:.4f}')
-                total_loss.backward()
-                self.optimizer.step()
-                if is_test:
-                    break
-
-        self.test()
-        if self.args.save_client:
-            torch.save(self.model.state_dict(), f'./saved_clients/{self.dset_name}/Client{self.client_id}-model_{self.local_epoch}.pth')
-        self.model.cpu()
-        self.old_model.cpu()
-        del self.old_model
-        import gc
-        gc.collect()
-    def run(self):
+    def run(self, global_img_feature, global_txt_feature, distill_index, global_train_loader):
         self.model.to(self.gpuid)
         self.old_model = copy.deepcopy(self.model)
         self.old_model.eval()
@@ -263,7 +192,7 @@ class ClientTrainer:
 
         for i in range(self.local_epochs):
             self.local_epoch += 1
-            self.tra()
+            self.tra(global_img_feature, global_txt_feature, distill_index, global_train_loader)
 
         self.test()
 
@@ -276,77 +205,6 @@ class ClientTrainer:
         del self.old_model
         import gc
         gc.collect()
-        
-    def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
-        self.model.train()
-        self.model.cuda()
-        global_model.eval()
-        global_model.cuda()
-        if prev_models is not None:
-            for m in prev_models:
-                m.eval()
-                m.cuda()
-        for i in range(self.local_epochs):
-            for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
-                self.optimizer.zero_grad()
-                if self.dset_name == 'image':
-                    inputs = data["processed_img"].to(self.gpuid)
-                    labels = data["class_id"]
-                    if isinstance(labels, list):
-                        labels = torch.tensor(labels,dtype=torch.long)
-                    labels = labels.to(self.gpuid)
-                    if self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs)
-                        local_logits = self.model.clip_visual(inputs)
-                    elif self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs)
-                        self.model.phase = "extract_conv_feature"
-                        self.model.is_train = False
-                        local_logits = self.model(inputs)
-                        self.model.phase = "None"
-                        self.model.is_train = True
-                    with torch.no_grad():
-                        fvec_global = global_model.img_enc(inputs)["embedding"]
-                        fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
-                elif self.dset_name == 'text':
-                    inputs = data["cap_tokens"].to(self.gpuid)
-                    labels = data["class_id"]
-                    if isinstance(labels, list):
-                        labels = torch.tensor(labels,dtype=torch.long)
-                    labels = labels.to(self.gpuid)
-                    batch_size = inputs.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    if self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs)
-                        local_logits = self.model.clip_text(inputs)
-                    elif self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs, lengths)
-                        self.model.phase = "extract_conv_feature"
-                        self.model.is_train = False
-                        local_logits = self.model(inputs, lengths).squeeze()
-                        self.model.phase = "None"
-                        self.model.is_train = True
-                    with torch.no_grad():
-                        fvec_global = global_model.txt_enc(inputs)
-                        fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
-                # 分类损失
-                loss_cls = self.criterion(fvec, labels)
-                # MOON对比损失
-                cos = nn.CosineSimilarity(dim=-1)
-                posi = cos(local_logits, fvec_global)
-                logits = posi.reshape(-1, 1)
-                if prev_models:
-                    for fvec_p in fvec_prev:
-                        nega = cos(fvec, fvec_p)
-                        logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
-                logits /= temperature
-                contrastive_labels = torch.zeros(inputs.size(0)).long().to(self.gpuid)
-                loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)
-                loss = loss_cls + loss_con
-                loss.backward()
-                self.optimizer.step()
 
     ##################################################
     # step 0: System check and predefine function
@@ -412,7 +270,7 @@ class ClientTrainer:
     ##################################################
     # step 3: Learning
     ##################################################
-    def tra(self):
+    def tra(self, global_img_feature, global_txt_feature, distill_index, global_train_loader):
         def printnreset(name):
             self.logger.log('Epoch: [{0}] {1}\t'
                             'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
@@ -440,12 +298,12 @@ class ClientTrainer:
                         labels_bt = torch.tensor(labels_bt,dtype=torch.long)
                     inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
                     labels_var = torch.autograd.Variable(labels_bt).to(self.gpuid)
-
+                    
                     if self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs_var)
+                        fvec, _, class_weight, _ = self.model(inputs_var)
                         
                     elif self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs_var)
+                        fvec, class_weight, _ = self.model(inputs_var)
 
                 elif self.dset_name == 'text':
                     inputs_bt = data["cap_tokens"]
@@ -460,14 +318,15 @@ class ClientTrainer:
                     if self.args.model == 'resnet':
                         batch_size = inputs_bt.shape[0]
                         lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                        fvec, _, _, _ = self.model(inputs_bt, lengths)
+                        fvec, _, class_weight, _ = self.model(inputs_bt, lengths)
                         
                     elif self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs_bt)
+                        fvec, class_weight, _ = self.model(inputs_bt)
 
                 # intra_class_distance
                 loss = self.criterion(fvec, labels_var)
-                total_loss = loss
+                center_loss = self.criterion(torch.mm(class_weight, torch.t(class_weight)), center_labels_var)
+                total_loss = 0.5 * center_loss + loss
                 # print("Prediction_label: ", fvec.data)
                 # print("Ground_truth: ", labels_bt)
                 prec1, prec5 = accuracy(fvec.data, labels_bt, topk=(1, 5))
@@ -482,6 +341,167 @@ class ClientTrainer:
                 break
 
         printnreset(self.dset_name)
+        
+        if self.args.contrast_local_intra and self.args.contrast_local_inter:
+            global_img_feature, global_txt_feature = global_img_feature.cuda(), global_txt_feature.cuda()
+            distill_dict = {b: a for a, b in enumerate(distill_index)}  # index in coco to index to list 'distill_index'
+            self.old_model.phase = "extract_conv_feature"
+            self.old_model.is_train = False
+            self.model.phase = "extract_conv_feature"
+            self.model.is_train = False
+            self.logger.log("Start Intra & Inter Contrasting!")
+            for idx, (images, captions, captions_word, _, _, _, index) in enumerate(global_train_loader):
+                self.optimizer.zero_grad()
+                d_idx = operator.itemgetter(*index)(distill_dict)  # batchidx
+                if self.dset_name == 'image':
+                    images = images.to(self.gpuid)
+                    im_feature = self.model(images)
+                    target_feature = global_img_feature[d_idx, :].type_as(im_feature)
+                    # neg
+                    with torch.no_grad():
+                        old_im_feature = self.old_model(images)
+
+                    logits_inter = torch.div(torch.matmul(im_feature, global_txt_feature.T), 0.5)
+                elif self.dset_name == 'text':
+                    captions = captions.to(self.gpuid)
+                    batch_size = inputs_bt.shape[0]
+                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
+                    if self.args.model == 'clip':
+                        im_feature = self.model(captions).squeeze()
+                    elif self.args.model == 'resnet':
+                        im_feature = self.model(captions, lengths).squeeze()
+                    target_feature = global_txt_feature[d_idx, :].type_as(im_feature)
+                    # neg
+                    with torch.no_grad():
+                        if self.args.model == 'clip':
+                            old_im_feature = self.old_model(captions).squeeze()
+                        elif self.args.model == 'resnet':
+                            old_im_feature = self.old_model(captions, lengths).squeeze()
+
+                    logits_inter = torch.div(torch.matmul(im_feature, global_img_feature.T), 0.5)
+
+                labels_inter = torch.tensor(d_idx).cuda()
+                loss_inter = self.criterion(logits_inter, labels_inter)
+
+                # pos
+                pos = torch.sum(im_feature * target_feature, dim=-1)
+                pos = pos.reshape(-1, 1)
+                # neg
+                # neg = cos(im_feature, old_im_feature)
+                neg = torch.sum(im_feature * old_im_feature, dim=-1)
+                logits = torch.cat((pos, neg.reshape(-1, 1)), dim=1)
+
+                logits /= 0.5  # temperature
+                labels = torch.zeros(images.size(0)).cuda().long()
+
+                loss_moon = self.criterion(logits, labels)
+
+                if not self.args.loss_scale:
+                    loss = (loss_moon + loss_inter) * self.args.interintra_weight
+                else:
+                    loss = (loss_moon + loss_inter / (loss_inter / loss_moon).detach()) * self.args.interintra_weight
+                loss.backward()
+                self.optimizer.step()
+
+                if is_test:
+                    break
+
+            self.old_model.phase = "None"
+            self.old_model.is_train = True
+            self.model.phase = "None"
+            self.model.is_train = True
+
+        elif self.args.contrast_local_intra:
+            global_img_feature, global_txt_feature = global_img_feature.cuda(), global_txt_feature.cuda()
+            distill_dict = {b: a for a, b in enumerate(distill_index)}  # index in coco to index to list 'distill_index'
+            self.old_model.phase = "extract_conv_feature"
+            self.old_model.is_train = False
+            self.model.phase = "extract_conv_feature"
+            self.model.is_train = False
+            self.logger.log("Start Intra-modal Contrasting!")
+            for idx, (images, captions, captions_word, _, _, _, index) in enumerate(global_train_loader):
+                self.optimizer.zero_grad()
+                d_idx = operator.itemgetter(*index)(distill_dict)  # batchidx
+                if self.dset_name == 'image':
+                    images = images.to(self.gpuid)
+                    im_feature = self.model(images)
+                    target_feature = global_img_feature[d_idx, :].type_as(im_feature)
+                    # neg
+                    with torch.no_grad():
+                        old_im_feature = self.old_model(images)
+                elif self.dset_name == 'text':
+                    captions = captions.to(self.gpuid)
+                    batch_size = inputs_bt.shape[0]
+                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
+                    if self.args.model == 'clip':
+                        im_feature = self.model(captions).squeeze()
+                    elif self.args.model == 'resnet':
+                        im_feature = self.model(captions, lengths).squeeze()
+                    target_feature = global_txt_feature[d_idx, :].type_as(im_feature)
+                    # neg
+                    with torch.no_grad():
+                        if self.args.model == 'clip':
+                            old_im_feature = self.old_model(captions).squeeze()
+                        elif self.args.model == 'resnet':
+                            old_im_feature = self.old_model(captions, lengths).squeeze()
+                # pos
+                pos = torch.sum(im_feature * target_feature, dim=-1)
+                pos = pos.reshape(-1, 1)
+                # neg
+                # neg = cos(im_feature, old_im_feature)
+                neg = torch.sum(im_feature * old_im_feature, dim=-1)
+                logits = torch.cat((pos, neg.reshape(-1, 1)), dim=1)
+
+                logits /= 0.5  # temperature
+                labels = torch.zeros(images.size(0)).cuda().long()
+
+                loss = self.criterion(logits, labels)
+                loss.backward()
+                self.optimizer.step()
+
+                if is_test:
+                    break
+
+            self.old_model.phase = "None"
+            self.old_model.is_train = True
+            self.model.phase = "None"
+            self.model.is_train = True
+
+        elif self.args.contrast_local_inter:
+            global_img_feature, global_txt_feature = global_img_feature.cuda(), global_txt_feature.cuda()
+            distill_dict = {b: a for a, b in enumerate(distill_index)}  # index in coco to index to list 'distill_index'
+            self.model.phase = "extract_conv_feature"
+            self.model.is_train = False
+            # Contrast
+            self.logger.log("Start Inter-modal Contrasting!")
+            for idx, (images, captions, captions_word, _, _, _, index) in enumerate(global_train_loader):
+                self.optimizer.zero_grad()
+                d_idx = operator.itemgetter(*index)(distill_dict)  # batchidx
+                if self.dset_name == 'image':
+                    images = images.to(self.gpuid)
+                    im_feature = self.model(images)
+                    logits = torch.div(torch.matmul(im_feature, global_txt_feature.T), 0.5)
+                elif self.dset_name == 'text':
+                    captions = captions.to(self.gpuid)
+                    batch_size = inputs_bt.shape[0]
+                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
+                    if self.args.model == 'clip':
+                        im_feature = self.model(captions).squeeze()
+                    elif self.args.model == 'resnet':
+                        im_feature = self.model(captions, lengths).squeeze()
+                    logits = torch.div(torch.matmul(im_feature, global_img_feature.T), 0.5)
+
+                labels = torch.tensor(d_idx).cuda()
+
+                loss = self.criterion(logits, labels)
+                loss.backward()
+                self.optimizer.step()
+
+                if is_test:
+                    break
+
+            self.model.phase = "None"
+            self.model.is_train = True
 
     def test(self):
         def printnreset(name):
@@ -499,31 +519,25 @@ class ClientTrainer:
 
         with torch.no_grad():
             for i, data in enumerate(self.test_loader):
-                if self.dset_name == 'image' and self.args.model == 'clip':
+                if self.dset_name == 'image':
                     inputs_bt = data["processed_img"]
                     labels_bt = data["class_id"]
                     inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
-                    fvec, _, _ = self.model(inputs_var)
-                    
-                elif self.dset_name == 'image' and self.args.model == 'resnet':
-                    inputs_bt = data["processed_img"]
-                    labels_bt = data["class_id"]
-                    inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
-                    fvec, _, _, _ = self.model(inputs_var)
-                    
-                elif self.dset_name == 'text' and self.args.model == 'clip':
+                    if self.args.model == 'clip':
+                        fvec, _, _ = self.model(inputs_var)
+                    elif self.args.model == 'resnet':
+                        fvec, _, class_weight, _ = self.model(inputs_var)
+                elif self.dset_name == 'text':
                     inputs_bt = data["cap_tokens"]
                     labels_bt = data["class_id"]
-                    inputs_bt = inputs_bt.to(self.gpuid)
-                    fvec, _, _ = self.model(inputs_bt)
                     
-                elif self.dset_name == 'text' and self.args.model == 'resnet':
-                    inputs_bt = data["cap_tokens"]
-                    labels_bt = data["class_id"]
                     inputs_bt = inputs_bt.to(self.gpuid)
                     batch_size = inputs_bt.shape[0]
                     lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    fvec, _, _, _ = self.model(inputs_bt, lengths)
+                    if self.args.model == 'clip':
+                        fvec, _, _ = self.model(inputs_bt)
+                    elif self.args.model == 'resnet':
+                        fvec, _, class_weight, _ = self.model(inputs_bt, lengths)
 
                 prec1, prec5 = accuracy(fvec.data, labels_bt, topk=(1, 5))
                 self.test_top1.update(prec1[0], inputs_bt.size(0))
@@ -535,82 +549,92 @@ class ClientTrainer:
 
         printnreset(self.dset_name)
         self.model.train()
-        
-    def predict_logits(self, dataloader):
-        """用公共对齐数据输出logits"""
-        self.model.cuda()
-        self.model.eval()
-        logits_list = []
-        with torch.no_grad():
-            for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
-                if self.dset_name == 'image' and self.args.model == 'clip':
-                    inputs = images.to(self.gpuid)
-                    output = self.model.clip_visual(inputs)
-                elif self.dset_name == 'text' and self.args.model == 'clip':
-                    inputs = captions.to(self.gpuid)
-                    output = self.model.clip_text(inputs)
-                elif self.dset_name == 'image' and self.args.model == 'resnet':
-                    inputs = images.to(self.gpuid)
-                    self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
-                    output = self.model(inputs)
-                    self.model.phase = "None"
-                    self.model.is_train = True
-                elif self.dset_name == 'text' and self.args.model == 'resnet':
-                    inputs = captions.to(self.gpuid)
-                    batch_size = inputs.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
-                    output = self.model(inputs, lengths)
-                    self.model.phase = "None"
-                    self.model.is_train = True
-                logits_list.append(output.cpu().numpy())
-        return np.concatenate(logits_list, axis=0)
 
-    def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
-        """用聚合soft label对齐训练"""
+    def extract_conv_feature(self, dset):
+        self.model.phase = 'extract_conv_feature'
+        self.model.is_train = False
+        feature = []
+        labels = []
+        # iterate batch
+        for i, data in enumerate(dset):
+            with torch.no_grad():
+                if self.dset_name == 'image':
+                    inputs_bt, labels_bt = data  # <FloatTensor> <LongTensor>
+                    inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
+
+                    im_feature = self.model(inputs_var)
+
+                elif self.dset_name == 'text':
+                    input, target, caplens = data
+                    caplens = caplens.to(self.gpuid)
+
+                    input, labels_bt = map(lambda t: torch.cat(t) if type(t) != torch.Tensor else t,
+                                           (input, target))
+                    input = input.to(self.gpuid).contiguous()
+
+                    im_feature = self.model(input, caplens).squeeze()
+
+                labels_var = labels_bt.numpy().squeeze()
+                labels.extend(labels_var)
+
+                im_feature = im_feature.cpu().detach().numpy().reshape(-1)
+                feature.extend(im_feature)
+                # print(f'im_feature {im_feature.shape} labels {labels_var.shape}')
+                # if is_test and i == 1:
+                #     break
+
+        feature = np.array(feature).reshape(-1, 1024)
+        labels = np.array(labels).reshape(-1)
+        # print(f'feature {feature.shape} labels {labels.shape}')
+        self.model.phase = 'None'
+        self.model.is_train = True
+        return feature, labels
+
+    def generate_logits(self, dataloader):
+        vec, idx = self.extract_pub_feature(dataloader)
+        if self.dset_name == 'image':
+            return {'img': vec, 'txt': None}, idx
+        elif self.dset_name == 'text':
+            return {'img': None, 'txt': vec}, idx
+        else:
+            assert False
+    def extract_pub_feature(self, dataloader):
         self.model.cuda()
-        self.model.train()
-        idx = 0
-        for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
-            if self.dset_name == 'image':
-                inputs = images.to(self.gpuid)
-                batch_size = inputs.size(0)
-                img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.gpuid)
-                idx += batch_size
-                self.optimizer.zero_grad()
-                if self.args.model == 'clip':
-                    output = self.model.clip_visual(inputs)
-                elif self.args.model == 'resnet':
-                    self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
-                    output = self.model(inputs)
-                    self.model.phase = "None"
-                    self.model.is_train = True
-                loss = nn.MSELoss()(output, img_soft_label)
-                print(f'Image Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
-                loss.backward()
-                self.optimizer.step()
-            elif self.dset_name == 'text':
-                inputs = captions.to(self.gpuid)
-                batch_size = inputs.size(0)
-                txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.gpuid)
-                idx += batch_size
-                self.optimizer.zero_grad()
-                if self.args.model == 'clip':
-                    output = self.model.clip_text(inputs)
-                elif self.args.model == 'resnet':
+
+        self.model.phase = 'extract_conv_feature'
+        self.model.is_train = False
+        feature = []
+        distill_index = []
+        # iterate batch
+        for idx, (images, captions, _, _, _, _, index) in enumerate(dataloader):
+            with torch.no_grad():
+                if self.dset_name == 'image':
+                    images = images.to(self.gpuid)
+                    im_feature = self.model(images)
+
+                elif self.dset_name == 'text':
+                    captions = captions.to(self.gpuid)
+                    batch_size = images.shape[0]
                     lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
-                    output = self.model(inputs, lengths)
-                    self.model.phase = "None"
-                    self.model.is_train = True
-                loss = nn.MSELoss()(output, txt_soft_label)
-                print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
-                loss.backward()
-                self.optimizer.step()
+                    if self.args.model == 'clip':
+                        im_feature = self.model(captions).squeeze()
+                    elif self.args.model == 'resnet':
+                        im_feature = self.model(captions, lengths).squeeze()
+
+                im_feature = im_feature.cpu().detach()
+                feature.append(im_feature)
+                distill_index.extend(index)
+                # print(f'im_feature {im_feature.shape} labels {labels_var.shape}')
+                # if is_test and idx == 1:
+                #     break
+
+        feature = torch.cat(feature, dim=0)
+        # print(f'feature {feature.shape} labels {labels.shape}')
+        self.model.phase = 'None'
+        self.model.is_train = True
+
+        self.model.cpu()
+        return feature, distill_index
     def to_half(self):
         # Mixed precision
         # https://nvidia.github.io/apex/amp.html

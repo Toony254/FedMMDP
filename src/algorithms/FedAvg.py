@@ -90,25 +90,17 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim  # set global model dim
     
     def load_dataset(self, args):
-        dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
-        vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path)
-
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
 
         self.config.optimizer.learning_rate = self.args.server_lr
 
-        self._dataloaders = self.dataloaders_global.copy()
         self.evaluator = MMEvaluator(eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
                                        class_size=self.class_size)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
-
-        self.train_eval_dataloader = self._dataloaders.pop(
-            'train_subset_eval' + f'_{self.args.pub_data_num}') if self._dataloaders is not None else None
 
         self.engine.model_to_device()
         torch.backends.cudnn.enabled = True
@@ -195,22 +187,13 @@ class MMFL(object):
         all_image_encoders = []
         for model in local_image_models:
             all_image_encoders.append({
-                'visual_projector': model.visual_projector.state_dict(),
                 'clip_visual': model.clip_visual.state_dict()
             })
         
         for model in local_mm_models:
             all_image_encoders.append({
-                'visual_projector': model.img_enc.visual_projector.state_dict(),
                 'clip_visual': model.img_enc.clip_visual.state_dict()
             })
-        
-        for key in all_image_encoders[0]['visual_projector'].keys():
-            param_name = f'visual_projector.{key}'
-            params = [enc['visual_projector'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_image_encoders[0]['clip_visual'].keys():
             param_name = f'clip_visual.{key}'
@@ -226,22 +209,13 @@ class MMFL(object):
         all_text_encoders = []
         for model in local_text_models:
             all_text_encoders.append({
-                'text_projector': model.text_projector.state_dict(),
                 'clip_text': model.clip_text.state_dict()
             })
         
         for model in local_mm_models:
             all_text_encoders.append({
-                'text_projector': model.txt_enc.text_projector.state_dict(),
                 'clip_text': model.txt_enc.clip_text.state_dict()
             })
-        
-        for key in all_text_encoders[0]['text_projector'].keys():
-            param_name = f'text_projector.{key}'
-            params = [enc['text_projector'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_text_encoders[0]['clip_text'].keys():
             param_name = f'clip_text.{key}'
@@ -359,8 +333,9 @@ class MMFL(object):
         if round_n == self.args.comm_rounds - 1:
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
-        
-        mm_csv = f'mm_FedAvg.csv'
+
+        os.makedirs('results', exist_ok=True)
+        mm_csv = f'results/mm_FedAvg.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -380,7 +355,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'rsum_FedAvg.png')
+        plt.savefig(f'results/rsum_FedAvg.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

@@ -195,22 +195,13 @@ class MMFL(object):
         all_image_encoders = []
         for model in local_image_models:
             all_image_encoders.append({
-                'visual_projector': model.visual_projector.state_dict(),
                 'clip_visual': model.clip_visual.state_dict()
             })
         
         for model in local_mm_models:
             all_image_encoders.append({
-                'visual_projector': model.img_enc.visual_projector.state_dict(),
                 'clip_visual': model.img_enc.clip_visual.state_dict()
             })
-        
-        for key in all_image_encoders[0]['visual_projector'].keys():
-            param_name = f'visual_projector.{key}'
-            params = [enc['visual_projector'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_image_encoders[0]['clip_visual'].keys():
             param_name = f'clip_visual.{key}'
@@ -226,22 +217,13 @@ class MMFL(object):
         all_text_encoders = []
         for model in local_text_models:
             all_text_encoders.append({
-                'text_projector': model.text_projector.state_dict(),
                 'clip_text': model.clip_text.state_dict()
             })
         
         for model in local_mm_models:
             all_text_encoders.append({
-                'text_projector': model.txt_enc.text_projector.state_dict(),
                 'clip_text': model.txt_enc.clip_text.state_dict()
             })
-        
-        for key in all_text_encoders[0]['text_projector'].keys():
-            param_name = f'text_projector.{key}'
-            params = [enc['text_projector'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_text_encoders[0]['clip_text'].keys():
             param_name = f'clip_text.{key}'

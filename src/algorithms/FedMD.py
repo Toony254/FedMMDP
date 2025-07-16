@@ -196,7 +196,7 @@ class MMFL(object):
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
         
 
-        alignment_loader = self._dataloaders['train_subset' + f'_{self.args.pub_data_num}']
+        alignment_loader = self.train_eval_dataloader
         img_logits = []
         txt_logits = []
         for trainer in self.cur_trainers:
@@ -217,8 +217,9 @@ class MMFL(object):
         avg_img_logits = np.mean(np.stack(img_logits), axis=0)
         avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
 
-        for trainer in self.cur_trainers:
-            trainer.distill_with_logits(alignment_loader, avg_img_logits, avg_txt_logits)
+        if round_n > 0:
+            for trainer in self.cur_trainers:
+                trainer.distill_with_logits(alignment_loader, avg_img_logits, avg_txt_logits)
 
         for trainer in self.cur_trainers:
             trainer.run()
@@ -309,8 +310,9 @@ class MMFL(object):
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
         #     torch.save({'net': trainer.model.state_dict()}, self.args.name + '-last_model.pt')
         
-        img_txt_csv = f'img_txt_FedMD.csv'
-        mm_csv = f'mm_FedMD.csv'
+        os.makedirs('results', exist_ok=True)
+        img_txt_csv = f'results/img_txt_FedMD.csv'
+        mm_csv = f'results/mm_FedMD.csv'
 
         if img_txt_rows:
             write_header = not os.path.exists(img_txt_csv)
@@ -339,7 +341,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (FedMD)')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'rsum_FedMD.png')
+        plt.savefig(f'results/rsum_FedMD.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()
