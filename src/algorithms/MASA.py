@@ -247,6 +247,7 @@ class MMFL(object):
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
         self.config.train.output_file = 'model_noprob'
+        self.config.model.name = self.args.model
         self.config.model.img_client = img
         self.config.model.txt_client = txt
         self.config.train.model_save_path = self.config.train.model_save_path + '.pth'
@@ -328,7 +329,7 @@ class MMFL(object):
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
             config.train.model_save_path = os.path.join(config.model.cache_dir, config.train.model_save_path)
             config.model.embed_dim = self.args.feature_dim
-            config.model.name = 'clip'
+            config.model.name = self.args.model
             self.mm_local_trainers = []
             for client_id in range(args.num_mm_clients):
                 self.mm_local_trainers.append(
@@ -450,9 +451,9 @@ class MMFL(object):
                                 tmp_module.cuda()
                                 with torch.no_grad():
                                     if client.dset_name == 'image':
-                                        out = tmp_module.clip_visual(q_input)
+                                        out = tmp_module(q_input)
                                     elif client.dset_name == 'text':
-                                        out = tmp_module.clip_text(q_input)
+                                        out = tmp_module(q_input)
                                     else:
                                         out = tmp_module(q_input)["embedding"]
                                 layer_outs.append(out)

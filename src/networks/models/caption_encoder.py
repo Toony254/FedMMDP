@@ -30,8 +30,8 @@ class EncoderText(nn.Module):
     def __init__(self, opt, mlp_local):
         super(EncoderText, self).__init__()
 
-        wemb_type, word_dim, embed_dim = \
-            opt.wemb_type, opt.word_dim, opt.embed_dim
+        word_dim, embed_dim = \
+            opt.word_dim, opt.embed_dim
 
         self.embed_dim = embed_dim
 
@@ -62,7 +62,10 @@ class EncoderText(nn.Module):
 
     def forward(self, x, lengths):
         # Embed word ids to vectors
-        lengths = lengths.cpu()
+        if isinstance(lengths, int):
+            lengths = torch.full((x.shape[0],), lengths, dtype=torch.long, device=x.device)
+        if isinstance(lengths, torch.Tensor):
+            lengths = lengths.cpu()
         wemb_out = self.embed(x)  # [bsz, seq_len, 512]
 
         # Forward propagate RNNs

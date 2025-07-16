@@ -81,7 +81,7 @@ class MMFL(object):
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
         self.config.train.output_file = 'model_noprob'
-        self.config.model.name = self.args.model
+        self.config.model.name = 'clip'
         self.config.model.img_client = img
         self.config.model.txt_client = txt
         self.config.train.model_save_path = self.config.train.model_save_path + '.pth'
@@ -91,25 +91,17 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim  # set global model dim
     
     def load_dataset(self, args):
-        dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
-        vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path, subset_num=self.args.pub_data_num)
-
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
 
         self.config.optimizer.learning_rate = self.args.server_lr
 
-        self._dataloaders = self.dataloaders_global.copy()
         self.evaluator = MMEvaluator(eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
                                        class_size=self.class_size)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
-
-        self.train_eval_dataloader = self._dataloaders.pop(
-            'train_subset_eval' + f'_{self.args.pub_data_num}') if self._dataloaders is not None else None
 
         self.engine.model_to_device()
         torch.backends.cudnn.enabled = True
@@ -172,7 +164,7 @@ class MMFL(object):
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
             config.train.model_save_path = os.path.join(config.model.cache_dir, config.train.model_save_path)
             config.model.embed_dim = self.args.feature_dim
-            config.model.name = self.args.model
+            config.model.name = 'clip'
             self.mm_local_trainers = []
             for client_id in range(args.num_mm_clients):
                 self.mm_local_trainers.append(
@@ -186,7 +178,7 @@ class MMFL(object):
 
         for i in range(len(self.total_local_trainers)):
             self.total_local_trainers[i].client_idx = i
-
+    
     def train(self, round_n):
         self.cur_epoch = round_n
         self.cur_trainers = self.total_local_trainers
@@ -195,108 +187,51 @@ class MMFL(object):
             self.logger.log(f"Round {round_n + 1}!")
             if len(self.total_local_trainers) != 0:
                 self.cur_trainers = random.sample(self.total_local_trainers, self.args.client_num_per_round)
-        
-
-        alignment_loader = self.train_eval_dataloader
-        img_logits = []
-        txt_logits = []
-        for trainer in self.cur_trainers:
-            if trainer.dset_name == 'image':
-                logits = trainer.predict_logits(alignment_loader)
-                # print(logits.shape)
-                img_logits.append(logits)
-            elif trainer.dset_name == 'text':
-                logits = trainer.predict_logits(alignment_loader)
-                # print(logits.shape)
-                txt_logits.append(logits)
-            elif trainer.dset_name == 'mm':
-                img, txt = trainer.predict_logits(alignment_loader)
-                # print(img.shape, txt.shape)
-                img_logits.append(img)
-                txt_logits.append(txt)
-
-        avg_img_logits = np.mean(np.stack(img_logits), axis=0)
-        avg_txt_logits = np.mean(np.stack(txt_logits), axis=0)
-
-        if round_n > 0:
-            for trainer in self.cur_trainers:
-                trainer.distill_with_logits(alignment_loader, avg_img_logits, avg_txt_logits)
-
-        for trainer in self.cur_trainers:
-            trainer.run()
-
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
                 return param_group['lr']
         
         # test in own domain
         import csv
-
-        if not hasattr(self, 'img_txt_results'):
-            self.img_txt_results = []
+        
         if not hasattr(self, 'mm_results'):
             self.mm_results = []
         if not hasattr(self, 'rsum_history'):
             self.rsum_history = []
-
-        img_txt_rows = []
+            
         mm_rows = []
         
         print("Testing...")
         rsum = 0
-        for idx, trainer in enumerate(self.total_local_trainers):
-            if trainer.dset_name == "image":
-                domain_idx = idx
-                trainer.test_loader = self.val_dataloader[idx]
-                print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
-                trainer.test()
-                img_txt_rows.append([
-                    round_n, trainer.client_idx, domain_idx,
-                    trainer.losses.avg,
-                    trainer.test_top1.avg,
-                    trainer.test_top5.avg
-                ])
-            elif trainer.dset_name == "text":
-                domain_idx = idx - 5
-                trainer.test_loader = self.val_dataloader[domain_idx]
-                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
-                trainer.test()
-                img_txt_rows.append([
-                    round_n, trainer.client_idx, domain_idx,
-                    trainer.losses.avg,
-                    trainer.test_top1.avg,
-                    trainer.test_top5.avg
-                ])
-            else:
-                for domain_idx in range(self.args.num_domains):
-                    print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
-                    test_scores = trainer.evaluate({'test': self.val_dataloader[domain_idx]})
-                    metadata = trainer.metadata.copy()
-                    metadata['cur_epoch'] = round_n + 1
-                    metadata['lr'] = get_lr(trainer.optimizer)
-                    trainer.report_scores(step=round_n + 1,
-                                            scores=test_scores,
-                                            metadata=metadata)
-                    rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
-                        test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
-                    if domain_idx == idx - 10:
-                        rsum += rsum_i
-                    mm_rows.append([
-                        round_n, trainer.client_idx, domain_idx, rsum_i,
-                        test_scores['test']['n_fold']['i2t']['recall_1'],
-                        test_scores['test']['n_fold']['t2i']['recall_1'],
-                        test_scores['test']['i2t']['recall_1'],
-                        test_scores['test']['t2i']['recall_1'],
-                        test_scores['test']['n_fold']['i2t']['recall_5'],
-                        test_scores['test']['n_fold']['t2i']['recall_5'],
-                        test_scores['test']['i2t']['recall_5'],
-                        test_scores['test']['t2i']['recall_5'],
-                    ])
-                    self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+        for domain_idx in range(self.args.num_domains):
+            print(f"Server tests in domain {domain_idx}:")
+            test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
+            metadata = self.engine.metadata.copy()
+            metadata['cur_epoch'] = round_n + 1
+            metadata['lr'] = get_lr(self.engine.optimizer)
+            
+            self.engine.report_scores(step=round_n + 1,
+                                    scores=test_scores,
+                                    metadata=metadata)
+            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
+                test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
+            rsum += rsum_i
+            mm_rows.append([
+                round_n, domain_idx, rsum_i,
+                test_scores['test']['n_fold']['i2t']['recall_1'],
+                test_scores['test']['n_fold']['t2i']['recall_1'],
+                test_scores['test']['i2t']['recall_1'],
+                test_scores['test']['t2i']['recall_1'],
+                test_scores['test']['n_fold']['i2t']['recall_5'],
+                test_scores['test']['n_fold']['t2i']['recall_5'],
+                test_scores['test']['i2t']['recall_5'],
+                test_scores['test']['t2i']['recall_5'],
+            ])
+            self.wandb.log({f"Multimodal rsum_r1": rsum_i}, step=self.cur_epoch)
+            self.wandb.log({f"Multimodal n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
+            self.wandb.log({f"Multimodal n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
+            self.wandb.log({f"Multimodal i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
+            self.wandb.log({f"Multimodal t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
         
         self.rsum_history.append(rsum)
         if self.best_score < rsum:
@@ -305,31 +240,21 @@ class MMFL(object):
             metadata['best_epoch'] = round_n + 1
             self.best_metadata, self.best_score = metadata, best_score
             print(f"Best score updated: {best_score} at epoch {round_n + 1}")
-            # torch.save({'net': trainer.model.state_dict()}, self.args.name + '-best_model.pt')
+            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-best_model.pt')
 
         if round_n == self.args.comm_rounds - 1:
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
-        #     torch.save({'net': trainer.model.state_dict()}, self.args.name + '-last_model.pt')
-        
+            # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
+
         os.makedirs('results', exist_ok=True)
-        img_txt_csv = f'results/img_txt_FedMD.csv'
-        mm_csv = f'results/mm_FedMD.csv'
-
-        if img_txt_rows:
-            write_header = not os.path.exists(img_txt_csv)
-            with open(img_txt_csv, 'a', newline='') as f:
-                writer = csv.writer(f)
-                if write_header:
-                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
-                writer.writerows(img_txt_rows)
-
+        mm_csv = f'results/RawCLIP.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
                 writer = csv.writer(f)
                 if write_header:
                     writer.writerow([
-                        'round', 'client_id', 'domain_idx', 'rsum_i',
+                        'round', 'domain_idx', 'rsum_i',
                         'n_fold_i2t_r1', 'n_fold_t2i_r1', 'i2t_r1', 't2i_r1',
                         'n_fold_i2t_r5', 'n_fold_t2i_r5', 'i2t_r5', 't2i_r5'
                     ])
@@ -339,10 +264,10 @@ class MMFL(object):
         plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
         plt.xlabel('Round')
         plt.ylabel('rsum')
-        plt.title(f'rsum Curve (FedMD)')
+        plt.title(f'rsum Curve (Rsum: {self.best_score})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_FedMD.png')
+        plt.savefig(f'results/rsum_RawCLIP.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

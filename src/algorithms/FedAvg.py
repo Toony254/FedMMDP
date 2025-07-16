@@ -81,6 +81,7 @@ class MMFL(object):
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
         self.config.train.output_file = 'model_noprob'
+        self.config.model.name = self.args.model
         self.config.model.img_client = img
         self.config.model.txt_client = txt
         self.config.train.model_save_path = self.config.train.model_save_path + '.pth'
@@ -163,7 +164,7 @@ class MMFL(object):
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
             config.train.model_save_path = os.path.join(config.model.cache_dir, config.train.model_save_path)
             config.model.embed_dim = self.args.feature_dim
-            config.model.name = 'clip'
+            config.model.name = self.args.model
             self.mm_local_trainers = []
             for client_id in range(args.num_mm_clients):
                 self.mm_local_trainers.append(
@@ -253,27 +254,28 @@ class MMFL(object):
                 local_mm_model.append(trainer.model)
         
         # aggregate local models
-        server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
-        self.engine.model = server_model
-        for trainer in self.cur_trainers:
-            if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
-                trainer.model.load_state_dict(server_model.state_dict())
-            elif hasattr(trainer.model, "clip_visual"):
-                for name, param in server_model.img_enc.state_dict().items():
-                    if name in trainer.model.state_dict():
-                        trainer.model.state_dict()[name].copy_(param)
-                if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
-                    for name, param in server_model.img_enc.visual_projector.state_dict().items():
-                        if name in trainer.model.visual_projector.state_dict():
-                            trainer.model.visual_projector.state_dict()[name].copy_(param)
-            elif hasattr(trainer.model, "clip_text"):
-                for name, param in server_model.txt_enc.state_dict().items():
-                    if name in trainer.model.state_dict():
-                        trainer.model.state_dict()[name].copy_(param)
-                if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
-                    for name, param in server_model.txt_enc.text_projector.state_dict().items():
-                        if name in trainer.model.text_projector.state_dict():
-                            trainer.model.text_projector.state_dict()[name].copy_(param)
+        if self.args.model == 'clip':
+            server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
+            self.engine.model = server_model
+            for trainer in self.cur_trainers:
+                if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
+                    trainer.model.load_state_dict(server_model.state_dict())
+                elif hasattr(trainer.model, "clip_visual"):
+                    for name, param in server_model.img_enc.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+                    if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
+                        for name, param in server_model.img_enc.visual_projector.state_dict().items():
+                            if name in trainer.model.visual_projector.state_dict():
+                                trainer.model.visual_projector.state_dict()[name].copy_(param)
+                elif hasattr(trainer.model, "clip_text"):
+                    for name, param in server_model.txt_enc.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+                    if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
+                        for name, param in server_model.txt_enc.text_projector.state_dict().items():
+                            if name in trainer.model.text_projector.state_dict():
+                                trainer.model.text_projector.state_dict()[name].copy_(param)
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:

@@ -6,9 +6,9 @@ dataloader:
   partition: "hetero"
 
 model:
-  name: clip
   embed_dim: 1024
   clip_model: "RN50"
+  cnn_type: resnet18
   word_dim: 512
   cache_dir: /data/mmdata/log/MMCLIP/
   n_samples_inference: 1
