@@ -92,25 +92,18 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim  # set global model dim
     
     def load_dataset(self, args):
-        dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
-        vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path)
-
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
 
         self.config.optimizer.learning_rate = self.args.server_lr
 
-        self._dataloaders = self.dataloaders_global.copy()
-        self.evaluator = MMEvaluator(eval_method='matmul',
+        self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
                                        class_size=self.class_size)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
-
-        self.train_eval_dataloader = self._dataloaders.pop(
-            'train_subset_eval' + f'_{self.args.pub_data_num}') if self._dataloaders is not None else None
 
         self.engine.model_to_device()
         torch.backends.cudnn.enabled = True
@@ -188,7 +181,7 @@ class MMFL(object):
         for i in range(len(self.total_local_trainers)):
             self.total_local_trainers[i].client_idx = i
     
-    def aggregate_models(self, local_image_models, local_text_models, local_mm_models):
+    def aggregate_clip_models(self, local_image_models, local_text_models, local_mm_models):
         server_model = self.engine.model
         
         image_encoder_params = OrderedDict()
@@ -236,7 +229,59 @@ class MMFL(object):
         server_model.txt_enc.load_state_dict(text_encoder_params)
         
         return server_model
-
+    
+    def aggregate_resnet_models(self, local_image_models, local_text_models, local_mm_models):
+        server_model = self.engine.model
+        
+        image_encoder_params = OrderedDict()
+        
+        all_image_encoders = []
+        for model in local_image_models:
+            model.to(self.device)
+            all_image_encoders.append({
+                'resnet': model.state_dict()
+            })
+        
+        for model in local_mm_models:
+            model.to(self.device)
+            all_image_encoders.append({
+                'resnet': model.img_enc.cnn.state_dict()
+            })
+        for key in all_image_encoders[0]['resnet'].keys():
+            param_name = f'{key}'
+            if all(key in enc['resnet'] for enc in all_image_encoders):
+                params = [enc['resnet'][key] for enc in all_image_encoders]
+                orig_dtype = params[0].dtype
+                avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+                image_encoder_params[param_name] = avg_param.to(orig_dtype)
+        
+        server_model.img_enc.cnn.load_state_dict(image_encoder_params)
+        
+        text_encoder_params = OrderedDict()
+        
+        all_text_encoders = []
+        for model in local_text_models:
+            model.to(self.device)
+            all_text_encoders.append({
+                'text': model.state_dict()
+            })
+        
+        for model in local_mm_models:
+            all_text_encoders.append({
+                'text': model.txt_enc.state_dict()
+            })
+            
+        for key in all_text_encoders[0]['text'].keys():
+            param_name = f'{key}'
+            if all(key in enc['text'] for enc in all_text_encoders):
+                params = [enc['text'][key] for enc in all_text_encoders]
+                orig_dtype = params[0].dtype
+                avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+                text_encoder_params[param_name] = avg_param.to(orig_dtype)
+        
+        server_model.txt_enc.load_state_dict(text_encoder_params)
+        
+        return server_model
     def train(self, round_n):
         self.cur_epoch = round_n
         self.cur_trainers = self.total_local_trainers
@@ -263,27 +308,42 @@ class MMFL(object):
                 local_mm_model.append(trainer.model)
         
         # aggregate local models
-        server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
-        self.engine.model = server_model
-        for trainer in self.cur_trainers:
-            if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
-                trainer.model.load_state_dict(server_model.state_dict())
-            elif hasattr(trainer.model, "clip_visual"):
-                for name, param in server_model.img_enc.state_dict().items():
-                    if name in trainer.model.state_dict():
-                        trainer.model.state_dict()[name].copy_(param)
-                if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
-                    for name, param in server_model.img_enc.visual_projector.state_dict().items():
-                        if name in trainer.model.visual_projector.state_dict():
-                            trainer.model.visual_projector.state_dict()[name].copy_(param)
-            elif hasattr(trainer.model, "clip_text"):
-                for name, param in server_model.txt_enc.state_dict().items():
-                    if name in trainer.model.state_dict():
-                        trainer.model.state_dict()[name].copy_(param)
-                if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
-                    for name, param in server_model.txt_enc.text_projector.state_dict().items():
-                        if name in trainer.model.text_projector.state_dict():
-                            trainer.model.text_projector.state_dict()[name].copy_(param)
+        if self.args.model == 'clip':
+            server_model = self.aggregate_clip_models(local_image_model, local_text_model, local_mm_model)
+            self.engine.model = server_model
+            for trainer in self.cur_trainers:
+                if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
+                    trainer.model.load_state_dict(server_model.state_dict())
+                elif hasattr(trainer.model, "clip_visual"):
+                    for name, param in server_model.img_enc.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+                    if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
+                        for name, param in server_model.img_enc.visual_projector.state_dict().items():
+                            if name in trainer.model.visual_projector.state_dict():
+                                trainer.model.visual_projector.state_dict()[name].copy_(param)
+                elif hasattr(trainer.model, "clip_text"):
+                    for name, param in server_model.txt_enc.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+                    if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
+                        for name, param in server_model.txt_enc.text_projector.state_dict().items():
+                            if name in trainer.model.text_projector.state_dict():
+                                trainer.model.text_projector.state_dict()[name].copy_(param)
+        elif self.args.model == 'resnet':
+            server_model = self.aggregate_resnet_models(local_image_model, local_text_model, local_mm_model)
+            self.engine.model = server_model
+            for trainer in self.cur_trainers:
+                if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
+                    trainer.model.load_state_dict(server_model.state_dict())
+                elif hasattr(trainer.model, "ResNet"):
+                    for name, param in server_model.img_enc.cnn.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+                elif hasattr(trainer.model, "EncoderText"):
+                    for name, param in server_model.txt_enc.cnn.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
 
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:

@@ -34,7 +34,7 @@ class PCME(nn.Module):
             caption_output = self.txt_enc(captions)
             caption_output = {'embedding': caption_output}
         if self.config.name == 'resnet':
-            caption_output = self.txt_enc(captions, 77)
+            caption_output = self.txt_enc(captions)
 
         return {
             'image_features': image_output['embedding'],
@@ -53,7 +53,4 @@ class PCME(nn.Module):
         return self.img_enc(images)
 
     def text_forward(self, captions):
-        if self.config.name == 'clip':
-            return self.txt_enc(captions)
-        elif self.config.name == 'resnet':
-            return self.txt_enc(captions, 77)
+        return self.txt_enc(captions)

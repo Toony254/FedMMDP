@@ -1,5 +1,4 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='3'
 import pickle
 from collections import Counter
 from datasets import Dataset, concatenate_datasets

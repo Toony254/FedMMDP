@@ -70,7 +70,8 @@ class EngineBase(object):
         self.optimizer = None
         self.criterion = None
         self.lr_scheduler = None
-        self.evaluator = MMEvaluator(eval_method=config.model.get('eval_method', 'matmul'),
+        self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       eval_method=config.model.get('eval_method', 'matmul'),
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5,

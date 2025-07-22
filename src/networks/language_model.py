@@ -60,7 +60,8 @@ class EncoderText(nn.Module):
                 nn.Linear(1024, 1024)
             )
 
-    def forward(self, x, lengths):
+    def forward(self, x):
+        lengths = torch.full((x.shape[0],), 77, dtype=torch.long, device=x.device)
         lengths = lengths.cpu()
         # Embed word ids to vectors
         wemb_out = self.embed(x)

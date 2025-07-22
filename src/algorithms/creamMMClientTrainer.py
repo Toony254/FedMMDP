@@ -111,8 +111,6 @@ class MMClientTrainer(EngineBase):
 
     def train_epoch(self, global_img_feature, global_txt_feature, distill_index, global_train_loader, prefix=''):
         for idx, data in enumerate(self.train_loader):
-            if idx > 10:
-                break
             images = data["processed_img"].to(self.device)
             captions = data["cap_tokens"].to(self.device)
             output = self.model(images, captions)

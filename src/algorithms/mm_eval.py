@@ -72,12 +72,14 @@ class MMEvaluator(object):
     """
 
     def __init__(self,
+                 model_name='clip',
                  eval_method='matmul',
                  n_crossfolds=-1,
                  extract_device='cuda',
                  eval_device='cuda',
                  verbose=False, 
                  class_size=None):
+        self.model_name = model_name
         self.eval_method = eval_method
         self.extract_device = extract_device if torch.cuda.is_available() else 'cpu'
         self.eval_device = eval_device if torch.cuda.is_available() else 'cpu'
@@ -181,7 +183,10 @@ class MMEvaluator(object):
             captions = data["cap_tokens"].to(self.extract_device)
 
             _image_features = self.model_img(images)["embedding"]
-            _caption_features = self.model_txt(captions)
+            if self.model_name == 'clip':
+                _caption_features = self.model_txt(captions)
+            elif self.model_name == 'resnet':
+                _caption_features = self.model_txt(captions)['embedding']
             
             image_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]
             ann_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]

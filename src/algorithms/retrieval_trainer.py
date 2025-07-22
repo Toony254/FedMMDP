@@ -186,28 +186,52 @@ class TrainerEngine(EngineBase):
         torch.cuda.empty_cache()
         if self.logger is not None:
             self.logger.log("Global Training!")
-        for idx, (images, captions, _, _, a_, b_, index) in enumerate(tr_loader):
-            images = images.to(self.device)  # [bs, 3, 224, 224]
-            captions = captions.to(self.device)  # [bs, seq_len]
+        try:
+            for idx, (images, captions, _, _, a_, b_, index) in enumerate(tr_loader):
+                images = images.to(self.device)  # [bs, 3, 224, 224]
+                captions = captions.to(self.device)  # [bs, seq_len]
 
-            if idx == int(len(tr_loader) * pub_data_ratio):
-                break
+                if idx == int(len(tr_loader) * pub_data_ratio):
+                    break
 
-            output = self.model(images, captions)
-            loss, _ = self.criterion(**output)
+                output = self.model(images, captions)
+                loss, _ = self.criterion(**output)
 
-            self.optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
-            if self.config.train.get('use_fp16'):
-                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
-                    scaled_loss.backward()
-            else:
-                loss.backward()
+                if self.config.train.get('use_fp16'):
+                    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
 
-            if self.config.train.grad_clip > 0:
-                nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(),
-                                                   self.config.train.grad_clip)
-            self.optimizer.step()
+                if self.config.train.grad_clip > 0:
+                    nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(),
+                                                    self.config.train.grad_clip)
+                self.optimizer.step()
+        except:
+            for idx, data in enumerate(tr_loader):
+                images = data["processed_img"].to(self.device)
+                captions = data["cap_tokens"].to(self.device)
+                
+                if idx == int(len(tr_loader) * pub_data_ratio):
+                    break
+
+                output = self.model(images, captions)
+                loss, _ = self.criterion(**output)
+
+                self.optimizer.zero_grad()
+
+                if self.config.train.get('use_fp16'):
+                    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
+
+                if self.config.train.grad_clip > 0:
+                    nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(),
+                                                    self.config.train.grad_clip)
+                self.optimizer.step()
 
     def train_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
         self.model.cuda()

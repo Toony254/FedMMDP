@@ -1,5 +1,4 @@
 import os
-os.environ["CUDA_ViSIBLE_DEVICES"] = "2"
 
 from datasets import load_dataset, Dataset, concatenate_datasets
 from imagenet_label import ImageNetAnalyzer

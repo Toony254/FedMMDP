@@ -262,7 +262,8 @@ class MMFL(object):
 
         self.config.optimizer.learning_rate = self.args.server_lr
         
-        self.evaluator = MMEvaluator(eval_method='matmul',
+        self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
@@ -380,9 +381,9 @@ class MMFL(object):
                     ref_module = client.model.img_enc
                 elif hasattr(client.model, 'txt_enc') and modality == 'txt':
                     ref_module = client.model.txt_enc
-                elif modality == 'img':
+                elif modality == 'img' and client.args.model == 'clip':
                     ref_module = client.model.clip_visual
-                elif modality == 'txt':
+                elif modality == 'txt' and client.args.model == 'clip':
                     ref_module = client.model.clip_text
                 else:
                     ref_module = client.model
@@ -393,8 +394,6 @@ class MMFL(object):
                     continue
                 layer_shapes = [ref_state[k].shape for k in valid_keys]
                 L_m = len(layer_shapes)
-
-                # 2. 冻结所有集群编码器参数（实际训练时应设置 requires_grad=False）
 
                 # 3. 初始化分层注意力参数
                 A = [torch.zeros(num_clusters, requires_grad=True, device=self.device) for _ in range(L_m)]
@@ -417,14 +416,12 @@ class MMFL(object):
                         y = batch["class_id"]
                         if isinstance(y, list):
                             y = torch.tensor(y, dtype=torch.long)
-                    else:
+                    elif client.dset_name == 'mm':
                         x, y = batch["processed_img"], batch["cap_tokens"]
                     n = int(len(x) * beta)
                     if n == 0: n = 1
                     idx = torch.randperm(len(x))[:n]
                     query_samples.append((x[idx], y[idx]))
-                    if len(query_samples) > 5:
-                        break
 
                 # 5. 分层注意力训练
                 for _ in range(getattr(self.args, "ascc_attn_epoch", 3)):
@@ -450,9 +447,11 @@ class MMFL(object):
                                 tmp_module.eval()
                                 tmp_module.cuda()
                                 with torch.no_grad():
-                                    if client.dset_name == 'image':
+                                    if (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'clip':
                                         out = tmp_module(q_input)
-                                    elif client.dset_name == 'text':
+                                    elif (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'resnet':
+                                        tmp_module.phase = "extract_conv_feature"
+                                        tmp_module.is_train = False
                                         out = tmp_module(q_input)
                                     else:
                                         out = tmp_module(q_input)["embedding"]
@@ -462,8 +461,14 @@ class MMFL(object):
                         # 最终输出送入分类器
                         q = layer_outputs[-1]
                         client.model.to(self.device)
-                        if client.dset_name == 'image' or client.dset_name == 'text':
+                        if (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'clip':
                             logits = client.model.class_fc_2(q)
+                            loss = F.cross_entropy(logits, y)
+                        elif client.dset_name == 'image' and client.args.model == 'resnet':
+                            logits = client.model.class_fc_2(q)
+                            loss = F.cross_entropy(logits, y)
+                        elif client.dset_name == 'text' and client.args.model == 'resnet':
+                            logits = client.model.class_fc(q)
                             loss = F.cross_entropy(logits, y)
                         else:
                             logits = q
@@ -511,8 +516,12 @@ class MMFL(object):
                             x, y = batch["processed_img"].to(self.device), batch["cap_tokens"].to(self.device)
                         optimizer_finetune.zero_grad()
                         out = model(x)
-                        if hasattr(client.model, "class_fc_2"):
+                        if (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'clip':
                             logits = client.model.class_fc_2(out).to(self.device)
+                        elif client.dset_name == 'image' and client.args.model == 'resnet':
+                            logits = client.model.class_fc_2(out).to(self.device)
+                        elif client.dset_name == 'text' and client.args.model == 'resnet':
+                            logits = client.model.class_fc(out).to(self.device)
                         elif modality == 'img':
                             logits = out['embedding'].to(self.device)
                             y = client.model.txt_enc(y).to(self.device)
@@ -522,8 +531,7 @@ class MMFL(object):
                         loss = F.cross_entropy(logits, y)
                         loss.backward()
                         optimizer_finetune.step()
-                        break
-            
+
     def train(self, round_n):
         self.cur_epoch = round_n
         self.cur_trainers = self.total_local_trainers

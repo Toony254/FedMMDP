@@ -203,8 +203,6 @@ class ClientTrainer:
             self.local_epoch += 1
             self.model.train()
             for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
                 self.optimizer.zero_grad()
                 if self.dset_name == 'image':
                     inputs_bt = data["processed_img"]
@@ -225,12 +223,10 @@ class ClientTrainer:
                     inputs_bt, labels_bt = map(lambda t: torch.cat(t) if type(t) != torch.Tensor else t,
                                                (inputs_bt, labels_bt))
                     inputs_bt, labels_var = map(lambda t: t.to(self.gpuid).contiguous(), (inputs_bt, labels_bt))
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
                     if self.args.model == 'clip':
                         fvec, _, _ = self.model(inputs_bt)
                     elif self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs_bt, lengths)
+                        fvec, _, _, _ = self.model(inputs_bt)
                 loss = self.criterion(fvec, labels_var)
                 # === Proximal term ===
                 common_keys = set(dict(self.model.named_parameters()).keys()) & set(global_params.keys())
@@ -288,8 +284,6 @@ class ClientTrainer:
                 m.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
                 self.optimizer.zero_grad()
                 if self.dset_name == 'image':
                     inputs = data["processed_img"].to(self.gpuid)
@@ -316,16 +310,14 @@ class ClientTrainer:
                     if isinstance(labels, list):
                         labels = torch.tensor(labels,dtype=torch.long)
                     labels = labels.to(self.gpuid)
-                    batch_size = inputs.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
                     if self.args.model == 'clip':
                         fvec, _, _ = self.model(inputs)
                         local_logits = self.model.clip_text(inputs)
                     elif self.args.model == 'resnet':
-                        fvec, _, _, _ = self.model(inputs, lengths)
+                        fvec, _, _, _ = self.model(inputs)
                         self.model.phase = "extract_conv_feature"
                         self.model.is_train = False
-                        local_logits = self.model(inputs, lengths).squeeze()
+                        local_logits = self.model(inputs).squeeze()
                         self.model.phase = "None"
                         self.model.is_train = True
                     with torch.no_grad():
@@ -428,8 +420,6 @@ class ClientTrainer:
         self.model.train()
         
         for i, data in enumerate(self.train_loader):
-            if i > 10:
-                break
             self.optimizer.zero_grad()
             with torch.set_grad_enabled(True):
                 center_labels_var = torch.autograd.Variable(self.class_label.to(torch.long)).to(self.gpuid)
@@ -458,9 +448,7 @@ class ClientTrainer:
                     inputs_bt, labels_var = map(lambda t: t.to(self.gpuid).contiguous(), (inputs_bt, labels_bt))
                     
                     if self.args.model == 'resnet':
-                        batch_size = inputs_bt.shape[0]
-                        lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                        fvec, _, _, _ = self.model(inputs_bt, lengths)
+                        fvec, _, _, _ = self.model(inputs_bt)
                         
                     elif self.args.model == 'clip':
                         fvec, _, _ = self.model(inputs_bt)
@@ -521,9 +509,7 @@ class ClientTrainer:
                     inputs_bt = data["cap_tokens"]
                     labels_bt = data["class_id"]
                     inputs_bt = inputs_bt.to(self.gpuid)
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    fvec, _, _, _ = self.model(inputs_bt, lengths)
+                    fvec, _, _, _ = self.model(inputs_bt)
 
                 prec1, prec5 = accuracy(fvec.data, labels_bt, topk=(1, 5))
                 self.test_top1.update(prec1[0], inputs_bt.size(0))
@@ -558,11 +544,9 @@ class ClientTrainer:
                     self.model.is_train = True
                 elif self.dset_name == 'text' and self.args.model == 'resnet':
                     inputs = captions.to(self.gpuid)
-                    batch_size = inputs.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
                     self.model.phase = "extract_conv_feature"
                     self.model.is_train = False
-                    output = self.model(inputs, lengths)
+                    output = self.model(inputs)
                     self.model.phase = "None"
                     self.model.is_train = True
                 logits_list.append(output.cpu().numpy())
@@ -601,10 +585,9 @@ class ClientTrainer:
                 if self.args.model == 'clip':
                     output = self.model.clip_text(inputs)
                 elif self.args.model == 'resnet':
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
                     self.model.phase = "extract_conv_feature"
                     self.model.is_train = False
-                    output = self.model(inputs, lengths)
+                    output = self.model(inputs)
                     self.model.phase = "None"
                     self.model.is_train = True
                 loss = nn.MSELoss()(output, txt_soft_label)

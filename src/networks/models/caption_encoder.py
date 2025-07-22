@@ -60,12 +60,10 @@ class EncoderText(nn.Module):
                 nn.Linear(512, 512)
             )
 
-    def forward(self, x, lengths):
+    def forward(self, x):
         # Embed word ids to vectors
-        if isinstance(lengths, int):
-            lengths = torch.full((x.shape[0],), lengths, dtype=torch.long, device=x.device)
-        if isinstance(lengths, torch.Tensor):
-            lengths = lengths.cpu()
+        lengths = torch.full((x.shape[0],), 77, dtype=torch.long, device=x.device)
+        lengths = lengths.cpu()
         wemb_out = self.embed(x)  # [bsz, seq_len, 512]
 
         # Forward propagate RNNs

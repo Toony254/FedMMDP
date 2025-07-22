@@ -101,8 +101,6 @@ class MMClientTrainer(EngineBase):
         for i in range(self.local_epochs):
             self.local_epoch += 1
             for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
                 images = data["processed_img"].to(self.device)
                 captions = data["cap_tokens"].to(self.device)
                 output = self.model(images, captions)
@@ -172,8 +170,6 @@ class MMClientTrainer(EngineBase):
                 m.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
-                if idx > 10:
-                    break
                 self.optimizer.zero_grad()
                 images = data["processed_img"].to(self.device)
                 captions = data["cap_tokens"].to(self.device)
@@ -298,8 +294,6 @@ class MMClientTrainer(EngineBase):
 
     def train_epoch(self, prefix=''):
         for idx, data in enumerate(self.train_loader):
-            if idx > 10:
-                break
             images = data["processed_img"].to(self.device)
             captions = data["cap_tokens"].to(self.device)
             output = self.model(images, captions)

@@ -31,9 +31,9 @@ FedMMDP is a federated learning framework designed for multimodal domain persona
 3. **Download datasets**
 
    ```sh
-   nohup huggingface-cli download --repo-type dataset --resume-download gmongaras/Imagenet21K_Recaption --local-dir ~/data/zs/FedMMDP/dataset >wandb/download_dataset.log 2>&1 &
-   nohup ./hfd.sh gmongaras/Imagenet21K_Recaption --dataset --local-dir ~/data/zs/FedMMDP/dataset >wandb/download_dataset.log 2>&1 &
-   nohup find dataset/data -name "*.parquet" -exec parquet-tools inspect {} \; >wandb/check_parquet.log 2>&1 &
+   nohup huggingface-cli download --repo-type dataset --resume-download gmongaras/Imagenet21K_Recaption --local-dir ~/data/zs/FedMMDP/dataset >outputs/download_dataset.log 2>&1 &
+   nohup ./hfd.sh gmongaras/Imagenet21K_Recaption --dataset --local-dir ~/data/zs/FedMMDP/dataset >outputs/download_dataset.log 2>&1 &
+   nohup find dataset/data -name "*.parquet" -exec parquet-tools inspect {} \; >outputs/check_parquet.log 2>&1 &
    ```
 
 ## Usage
@@ -41,28 +41,31 @@ FedMMDP is a federated learning framework designed for multimodal domain persona
 ### Train the projector module
 
 ```sh
-python train_projector.py --projector bottleneck >wandb/train_projector.log 2>&1 &
+python train_projector.py --projector bottleneck >outputs/train_projector.log 2>&1 &
 ```
 
 ### Split dataset by domain
 
 ```sh
-python src/datasets/split_domain_dataset.py >wandb/preprocess_datasets.log 2>&1 &
+python src/datasets/split_domain_dataset.py >outputs/preprocess_datasets.log 2>&1 &
 ```
 
 
 ### Train FedMMDP with CLIP as server model
 
 ```sh
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --local_epochs 5 --comm_rounds 10 --batch_size 256 --model resnet >wandb/output_avg_resnet.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name RawCLIP --FL_algorithm RawCLIP --local_epochs 1 --comm_rounds 1 --batch_size 256 --model clip >wandb/output_avg_resnet.log 2>&1 &
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-moon --FL_algorithm MOON >wandb/output_moon.log 2>&1 &
-CUDA_VISIBLE_DEVICES=0 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx >wandb/output_prox.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD >wandb/output_md.log 2>&1 &
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-df --FL_algorithm FedDF >wandb/output_df.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA >wandb/output_MASA.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony >wandb/output_Harmony.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream >wandb/output_cream.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --local_epochs 1 --comm_rounds 30 --batch_size 64 --model clip >outputs/output_avg_clip.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_avg_resnet.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name RawCLIP --FL_algorithm RawCLIP --local_epochs 1 --comm_rounds 1 --batch_size 64 --model clip >outputs/output_rawclip.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model clip >outputs/output_center_clip.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_center_resnet.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-moon --FL_algorithm MOON --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_moon.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_prox.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --model resnet --local_epochs 1 --comm_rounds 30 --batch_size 64 --pub_data_num 5000 >outputs/output_md.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --model resnet --local_epochs 1 --comm_rounds 30 --batch_size 64 --pub_data_num 5000 >outputs/output_df.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA >outputs/output_MASA.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony >outputs/output_Harmony.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --model resnet --local_epochs 1 --comm_rounds 30 --batch_size 64 --pub_data_num 5000 >outputs/output_cream.log 2>&1 &
 ```
 
 ## Project Structure
@@ -103,7 +106,7 @@ CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Cream --FL_algorithm Cr
 ## Notes
 
 - Make sure to adjust dataset paths in scripts as needed.
-- For large-scale experiments, use `nohup` and redirect logs to `wandb/` for tracking.
+- For large-scale experiments, use `nohup` and redirect logs to `output/` for tracking.
 - The system supports both homogeneous and heterogeneous data partitioning; configure via YAML or command-line arguments.
 
 ## Citation

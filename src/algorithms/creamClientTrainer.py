@@ -286,8 +286,6 @@ class ClientTrainer:
         self.model.train()
         
         for i, data in enumerate(self.train_loader):
-            if i > 10:
-                break
             self.optimizer.zero_grad()
             with torch.set_grad_enabled(True):
                 center_labels_var = torch.autograd.Variable(self.class_label.to(torch.long)).to(self.gpuid)
@@ -316,9 +314,7 @@ class ClientTrainer:
                     inputs_bt, labels_var = map(lambda t: t.to(self.gpuid).contiguous(), (inputs_bt, labels_bt))
                     
                     if self.args.model == 'resnet':
-                        batch_size = inputs_bt.shape[0]
-                        lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                        fvec, _, class_weight, _ = self.model(inputs_bt, lengths)
+                        fvec, _, class_weight, _ = self.model(inputs_bt)
                         
                     elif self.args.model == 'clip':
                         fvec, class_weight, _ = self.model(inputs_bt)
@@ -364,19 +360,11 @@ class ClientTrainer:
                     logits_inter = torch.div(torch.matmul(im_feature, global_txt_feature.T), 0.5)
                 elif self.dset_name == 'text':
                     captions = captions.to(self.gpuid)
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    if self.args.model == 'clip':
-                        im_feature = self.model(captions).squeeze()
-                    elif self.args.model == 'resnet':
-                        im_feature = self.model(captions, lengths).squeeze()
+                    im_feature = self.model(captions).squeeze()
                     target_feature = global_txt_feature[d_idx, :].type_as(im_feature)
                     # neg
                     with torch.no_grad():
-                        if self.args.model == 'clip':
-                            old_im_feature = self.old_model(captions).squeeze()
-                        elif self.args.model == 'resnet':
-                            old_im_feature = self.old_model(captions, lengths).squeeze()
+                        old_im_feature = self.old_model(captions).squeeze()
 
                     logits_inter = torch.div(torch.matmul(im_feature, global_img_feature.T), 0.5)
 
@@ -431,19 +419,11 @@ class ClientTrainer:
                         old_im_feature = self.old_model(images)
                 elif self.dset_name == 'text':
                     captions = captions.to(self.gpuid)
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    if self.args.model == 'clip':
-                        im_feature = self.model(captions).squeeze()
-                    elif self.args.model == 'resnet':
-                        im_feature = self.model(captions, lengths).squeeze()
+                    im_feature = self.model(captions).squeeze()
                     target_feature = global_txt_feature[d_idx, :].type_as(im_feature)
                     # neg
                     with torch.no_grad():
-                        if self.args.model == 'clip':
-                            old_im_feature = self.old_model(captions).squeeze()
-                        elif self.args.model == 'resnet':
-                            old_im_feature = self.old_model(captions, lengths).squeeze()
+                        old_im_feature = self.old_model(captions).squeeze()
                 # pos
                 pos = torch.sum(im_feature * target_feature, dim=-1)
                 pos = pos.reshape(-1, 1)
@@ -483,12 +463,7 @@ class ClientTrainer:
                     logits = torch.div(torch.matmul(im_feature, global_txt_feature.T), 0.5)
                 elif self.dset_name == 'text':
                     captions = captions.to(self.gpuid)
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    if self.args.model == 'clip':
-                        im_feature = self.model(captions).squeeze()
-                    elif self.args.model == 'resnet':
-                        im_feature = self.model(captions, lengths).squeeze()
+                    im_feature = self.model(captions).squeeze()
                     logits = torch.div(torch.matmul(im_feature, global_img_feature.T), 0.5)
 
                 labels = torch.tensor(d_idx).cuda()
@@ -532,12 +507,10 @@ class ClientTrainer:
                     labels_bt = data["class_id"]
                     
                     inputs_bt = inputs_bt.to(self.gpuid)
-                    batch_size = inputs_bt.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
                     if self.args.model == 'clip':
                         fvec, _, _ = self.model(inputs_bt)
                     elif self.args.model == 'resnet':
-                        fvec, _, class_weight, _ = self.model(inputs_bt, lengths)
+                        fvec, _, _, _ = self.model(inputs_bt)
 
                 prec1, prec5 = accuracy(fvec.data, labels_bt, topk=(1, 5))
                 self.test_top1.update(prec1[0], inputs_bt.size(0))
@@ -614,12 +587,7 @@ class ClientTrainer:
 
                 elif self.dset_name == 'text':
                     captions = captions.to(self.gpuid)
-                    batch_size = images.shape[0]
-                    lengths = torch.full((batch_size,), 77, dtype=torch.long, device=self.gpuid)
-                    if self.args.model == 'clip':
-                        im_feature = self.model(captions).squeeze()
-                    elif self.args.model == 'resnet':
-                        im_feature = self.model(captions, lengths).squeeze()
+                    im_feature = self.model(captions).squeeze()
 
                 im_feature = im_feature.cpu().detach()
                 feature.append(im_feature)

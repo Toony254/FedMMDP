@@ -99,7 +99,8 @@ class MMFL(object):
         self.config.optimizer.learning_rate = self.args.server_lr
 
         self._dataloaders = self.dataloaders_global.copy()
-        self.evaluator = MMEvaluator(eval_method='matmul',
+        self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
@@ -169,7 +170,7 @@ class MMFL(object):
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
             config.train.model_save_path = os.path.join(config.model.cache_dir, config.train.model_save_path)
             config.model.embed_dim = self.args.feature_dim
-            config.model.name = self.args.model_name
+            config.model.name = self.args.model
             self.mm_local_trainers = []
             for client_id in range(args.num_mm_clients):
                 self.mm_local_trainers.append(

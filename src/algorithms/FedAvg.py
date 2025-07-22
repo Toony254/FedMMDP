@@ -96,7 +96,8 @@ class MMFL(object):
 
         self.config.optimizer.learning_rate = self.args.server_lr
 
-        self.evaluator = MMEvaluator(eval_method='matmul',
+        self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=5, 
@@ -180,7 +181,7 @@ class MMFL(object):
             self.total_local_trainers[i].client_idx = i
     
     
-    def aggregate_models(self, local_image_models, local_text_models, local_mm_models):
+    def aggregate_clip_models(self, local_image_models, local_text_models, local_mm_models):
         server_model = self.engine.model
         
         image_encoder_params = OrderedDict()
@@ -228,6 +229,59 @@ class MMFL(object):
         server_model.txt_enc.load_state_dict(text_encoder_params)
         
         return server_model
+    
+    def aggregate_resnet_models(self, local_image_models, local_text_models, local_mm_models):
+        server_model = self.engine.model
+        
+        image_encoder_params = OrderedDict()
+        
+        all_image_encoders = []
+        for model in local_image_models:
+            model.to(self.device)
+            all_image_encoders.append({
+                'resnet': model.state_dict()
+            })
+        
+        for model in local_mm_models:
+            model.to(self.device)
+            all_image_encoders.append({
+                'resnet': model.img_enc.cnn.state_dict()
+            })
+        for key in all_image_encoders[0]['resnet'].keys():
+            param_name = f'{key}'
+            if all(key in enc['resnet'] for enc in all_image_encoders):
+                params = [enc['resnet'][key] for enc in all_image_encoders]
+                orig_dtype = params[0].dtype
+                avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+                image_encoder_params[param_name] = avg_param.to(orig_dtype)
+        
+        server_model.img_enc.cnn.load_state_dict(image_encoder_params)
+        
+        text_encoder_params = OrderedDict()
+        
+        all_text_encoders = []
+        for model in local_text_models:
+            model.to(self.device)
+            all_text_encoders.append({
+                'text': model.state_dict()
+            })
+        
+        for model in local_mm_models:
+            all_text_encoders.append({
+                'text': model.txt_enc.state_dict()
+            })
+            
+        for key in all_text_encoders[0]['text'].keys():
+            param_name = f'{key}'
+            if all(key in enc['text'] for enc in all_text_encoders):
+                params = [enc['text'][key] for enc in all_text_encoders]
+                orig_dtype = params[0].dtype
+                avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+                text_encoder_params[param_name] = avg_param.to(orig_dtype)
+        
+        server_model.txt_enc.load_state_dict(text_encoder_params)
+        
+        return server_model
 
     def train(self, round_n):
         self.cur_epoch = round_n
@@ -255,7 +309,7 @@ class MMFL(object):
         
         # aggregate local models
         if self.args.model == 'clip':
-            server_model = self.aggregate_models(local_image_model, local_text_model, local_mm_model)
+            server_model = self.aggregate_clip_models(local_image_model, local_text_model, local_mm_model)
             self.engine.model = server_model
             for trainer in self.cur_trainers:
                 if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
@@ -276,7 +330,21 @@ class MMFL(object):
                         for name, param in server_model.txt_enc.text_projector.state_dict().items():
                             if name in trainer.model.text_projector.state_dict():
                                 trainer.model.text_projector.state_dict()[name].copy_(param)
-
+        elif self.args.model == 'resnet':
+            server_model = self.aggregate_resnet_models(local_image_model, local_text_model, local_mm_model)
+            self.engine.model = server_model
+            for trainer in self.cur_trainers:
+                if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
+                    trainer.model.load_state_dict(server_model.state_dict())
+                elif hasattr(trainer.model, "ResNet"):
+                    for name, param in server_model.img_enc.cnn.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+                elif hasattr(trainer.model, "EncoderText"):
+                    for name, param in server_model.txt_enc.cnn.state_dict().items():
+                        if name in trainer.model.state_dict():
+                            trainer.model.state_dict()[name].copy_(param)
+        
         def get_lr(optimizer):
             for param_group in optimizer.param_groups:
                 return param_group['lr']

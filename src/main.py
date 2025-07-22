@@ -62,7 +62,8 @@ def args():
 
     parser.add_argument('--client_num_per_round', type=int, default=15)
     parser.add_argument('--FL_algorithm', type=str, default='MASA',
-                        choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON', 'FedDF', 'Harmony', 'Cream', 'RawCLIP'],
+                        choices=['MASA', 'FedAvg', 'FedProx', 'FedMD', 'MOON', 
+                                 'FedDF', 'Harmony', 'Cream', 'RawCLIP', 'CenterTraining'],
                         help='Federated Learning algorithm to use')
 
     # === dataloader ===
@@ -133,6 +134,8 @@ if __name__ == "__main__":
         from algorithms.Cream import MMFL
     elif args.FL_algorithm == 'RawCLIP':
         from algorithms.RawCLIP import MMFL
+    elif args.FL_algorithm == 'CenterTraining':
+        from algorithms.CenterTraining import MMFL
     
     Algo = MMFL(args, wandb)
 

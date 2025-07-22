@@ -3,7 +3,6 @@
 # $ ps -ef|grep train_projector
 # $ kill [...]
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 
 # 导入所需的库和模块
 import datetime
