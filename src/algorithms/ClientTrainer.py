@@ -274,8 +274,21 @@ class ClientTrainer:
         gc.collect()
         
     def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
+        def printnreset(name):
+            self.logger.log('Epoch: [{0}] {1}\t'
+                            'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
+                            'Prec@1 {top1.val:.3f} ({top1.avg:.3f})\t'
+                            'Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                self.local_epoch, name, loss=self.losses, top1=self.top1, top5=self.top5))
+
+            self.losses = AverageMeter()
+            self.top1 = AverageMeter()
+            self.top5 = AverageMeter()
+            
         self.model.train()
         self.model.cuda()
+        self.old_model = copy.deepcopy(self.model)
+        self.old_model.eval().cuda()
         global_model.eval()
         global_model.cuda()
         if prev_models is not None:
@@ -339,6 +352,14 @@ class ClientTrainer:
                 loss = loss_cls + loss_con
                 loss.backward()
                 self.optimizer.step()
+                
+                prec1, prec5 = accuracy(fvec.data, labels, topk=(1, 5))
+                self.top1.update(prec1[0], inputs.size(0))
+                self.top5.update(prec5[0], inputs.size(0))
+
+                self.losses.update(loss.item(), inputs.size(0))
+
+        printnreset(self.dset_name)
 
     ##################################################
     # step 0: System check and predefine function
@@ -521,6 +542,7 @@ class ClientTrainer:
 
         printnreset(self.dset_name)
         self.model.train()
+        return self.losses.avg, self.test_top1.avg, self.test_top5.avg
         
     def predict_logits(self, dataloader):
         """用公共对齐数据输出logits"""
@@ -553,6 +575,13 @@ class ClientTrainer:
         return np.concatenate(logits_list, axis=0)
 
     def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
+        def printnreset(name):
+            self.logger.log('Epoch: [{0}] {1}\t'
+                            'Loss {loss.val:.4f} ({loss.avg:.4f})\t'.format(
+                self.local_epoch, name, loss=self.losses))
+
+            self.losses = AverageMeter()
+            
         """用聚合soft label对齐训练"""
         self.model.cuda()
         self.model.train()
@@ -594,6 +623,13 @@ class ClientTrainer:
                 print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()
                 self.optimizer.step()
+
+            self.losses.update(loss.item(), inputs.size(0))
+
+            if is_test:
+                break
+
+        printnreset(self.dset_name)
     def to_half(self):
         # Mixed precision
         # https://nvidia.github.io/apex/amp.html

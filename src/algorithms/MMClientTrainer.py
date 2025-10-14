@@ -162,6 +162,8 @@ class MMClientTrainer(EngineBase):
     def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
         self.model.cuda()
         self.model.train()
+        self.old_model = copy.deepcopy(self.model)
+        self.old_model.eval().cuda()
         global_model.eval()
         global_model.cuda()
         if prev_models is not None:

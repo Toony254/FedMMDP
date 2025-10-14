@@ -190,13 +190,22 @@ class MMFL(object):
         all_image_encoders = []
         for model in local_image_models:
             all_image_encoders.append({
+                'visual_projector': model.visual_projector.state_dict(),
                 'clip_visual': model.clip_visual.state_dict()
             })
         
         for model in local_mm_models:
             all_image_encoders.append({
+                'visual_projector': model.img_enc.visual_projector.state_dict(),
                 'clip_visual': model.img_enc.clip_visual.state_dict()
             })
+        
+        for key in all_image_encoders[0]['visual_projector'].keys():
+            param_name = f'visual_projector.{key}'
+            params = [enc['visual_projector'][key] for enc in all_image_encoders]
+            orig_dtype = params[0].dtype
+            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+            image_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_image_encoders[0]['clip_visual'].keys():
             param_name = f'clip_visual.{key}'
@@ -212,13 +221,22 @@ class MMFL(object):
         all_text_encoders = []
         for model in local_text_models:
             all_text_encoders.append({
+                'text_projector': model.text_projector.state_dict(),
                 'clip_text': model.clip_text.state_dict()
             })
         
         for model in local_mm_models:
             all_text_encoders.append({
+                'text_projector': model.txt_enc.text_projector.state_dict(),
                 'clip_text': model.txt_enc.clip_text.state_dict()
             })
+        
+        for key in all_text_encoders[0]['text_projector'].keys():
+            param_name = f'text_projector.{key}'
+            params = [enc['text_projector'][key] for enc in all_text_encoders]
+            orig_dtype = params[0].dtype
+            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+            text_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_text_encoders[0]['clip_text'].keys():
             param_name = f'clip_text.{key}'
@@ -359,9 +377,30 @@ class MMFL(object):
             self.rsum_history = []
             
         mm_rows = []
+        img_txt_rows = []
         
         print("Testing...")
         rsum = 0
+        for idx, trainer in enumerate(self.total_local_trainers):
+            if trainer.dset_name == "image":
+                domain_idx = idx
+                trainer.test_loader = self.val_dataloader[idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
+                losses, test_top1, test_top5 = trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    losses, test_top1, test_top5
+                ])
+            elif trainer.dset_name == "text":
+                domain_idx = idx - 5
+                trainer.test_loader = self.val_dataloader[domain_idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                losses, test_top1, test_top5 = trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    losses, test_top1, test_top5
+                ])
+                
         for domain_idx in range(self.args.num_domains):
             print(f"Server tests in domain {domain_idx}:")
             test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
@@ -406,7 +445,16 @@ class MMFL(object):
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
         os.makedirs('results', exist_ok=True)
-        mm_csv = f'results/mm_FedProx.csv'
+        img_txt_csv = f'results/img_txt_FedProx.csv'
+        if img_txt_rows:
+            write_header = not os.path.exists(img_txt_csv)
+            with open(img_txt_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
+                writer.writerows(img_txt_rows)
+                
+        mm_csv = f'results/server_FedProx.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -426,7 +474,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_FedProx.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

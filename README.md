@@ -54,18 +54,19 @@ python src/datasets/split_domain_dataset.py >outputs/preprocess_datasets.log 2>&
 ### Train FedMMDP with CLIP as server model
 
 ```sh
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --local_epochs 1 --comm_rounds 30 --batch_size 64 --model clip >outputs/output_avg_clip.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_avg_resnet.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name RawCLIP --FL_algorithm RawCLIP --local_epochs 1 --comm_rounds 1 --batch_size 64 --model clip >outputs/output_rawclip.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model clip >outputs/output_center_clip.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_center_resnet.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-moon --FL_algorithm MOON --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_moon.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_prox.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --model resnet --local_epochs 1 --comm_rounds 30 --batch_size 64 --pub_data_num 5000 >outputs/output_md.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --model resnet --local_epochs 1 --comm_rounds 30 --batch_size 64 --pub_data_num 5000 >outputs/output_df.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA >outputs/output_MASA.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony >outputs/output_Harmony.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --model resnet --local_epochs 1 --comm_rounds 30 --batch_size 64 --pub_data_num 5000 >outputs/output_cream.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=3 python src/main.py --name RawCLIP --FL_algorithm RawCLIP --local_epochs 1 --comm_rounds 1 --batch_size 64 --model clip >outputs/output_rawclip.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model clip >outputs/output_center_clip.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_center_resnet.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --lr 1e-5 --local_epochs 1 --comm_rounds 20  --batch_size 64 --model clip >outputs/output_avg_clip.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_prox.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_md.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_df.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-moon --FL_algorithm MOON --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_moon.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_cream.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_Harmony.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_MASA.log 2>&1 &
 ```
 
 ## Project Structure

@@ -268,7 +268,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Rsum: {self.best_score})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_RawCLIP.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

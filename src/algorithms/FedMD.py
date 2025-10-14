@@ -124,8 +124,9 @@ class MMFL(object):
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
-                                                            num_workers=4,
-                                                            collate_fn=collate_fn
+                                                            num_workers=0,
+                                                            collate_fn=collate_fn,
+                                                            # timeout=300
                                                             )
 
     def create_model(self, args):
@@ -250,23 +251,19 @@ class MMFL(object):
                 domain_idx = idx
                 trainer.test_loader = self.val_dataloader[idx]
                 print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
-                trainer.test()
+                losses, test_top1, test_top5 = trainer.test()
                 img_txt_rows.append([
                     round_n, trainer.client_idx, domain_idx,
-                    trainer.losses.avg,
-                    trainer.test_top1.avg,
-                    trainer.test_top5.avg
+                    losses, test_top1, test_top5
                 ])
             elif trainer.dset_name == "text":
                 domain_idx = idx - 5
                 trainer.test_loader = self.val_dataloader[domain_idx]
                 print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
-                trainer.test()
+                losses, test_top1, test_top5 = trainer.test()
                 img_txt_rows.append([
                     round_n, trainer.client_idx, domain_idx,
-                    trainer.losses.avg,
-                    trainer.test_top1.avg,
-                    trainer.test_top5.avg
+                    losses, test_top1, test_top5
                 ])
             else:
                 for domain_idx in range(self.args.num_domains):
@@ -340,10 +337,10 @@ class MMFL(object):
         plt.plot(range(1, len(self.rsum_history)+1), self.rsum_history, marker='o')
         plt.xlabel('Round')
         plt.ylabel('rsum')
-        plt.title(f'rsum Curve (FedMD)')
+        plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_FedMD.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

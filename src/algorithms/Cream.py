@@ -122,8 +122,9 @@ class MMFL(object):
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
-                                                            num_workers=4,
-                                                            collate_fn=collate_fn
+                                                            num_workers=0,
+                                                            collate_fn=collate_fn,
+                                                            # timeout=300
                                                             )
     def create_model(self, args):
         self.logger.log('start creating model and partition datasets')
@@ -265,9 +266,29 @@ class MMFL(object):
             self.rsum_history = []
             
         mm_rows = []
+        img_txt_rows = []
         
         print("Testing...")
         rsum = 0
+        for idx, trainer in enumerate(self.total_local_trainers):
+            if trainer.dset_name == "image":
+                domain_idx = idx
+                trainer.test_loader = self.val_dataloader[idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
+                losses, test_top1, test_top5 = trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    losses, test_top1, test_top5
+                ])
+            elif trainer.dset_name == "text":
+                domain_idx = idx - 5
+                trainer.test_loader = self.val_dataloader[domain_idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                losses, test_top1, test_top5 = trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    losses, test_top1, test_top5
+                ])
         for domain_idx in range(self.args.num_domains):
             print(f"Server tests in domain {domain_idx}:")
             test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
@@ -312,7 +333,16 @@ class MMFL(object):
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
         os.makedirs('results', exist_ok=True)
-        mm_csv = f'results/mm_cream.csv'
+        img_txt_csv = f'results/img_txt_cream.csv'
+        if img_txt_rows:
+            write_header = not os.path.exists(img_txt_csv)
+            with open(img_txt_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
+                writer.writerows(img_txt_rows)
+                
+        mm_csv = f'results/server_cream.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -332,7 +362,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_cream.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         self.engine.lr_scheduler.step()

@@ -58,6 +58,7 @@ class MMFL(object):
         self.best_score = 0
         self.cur_epoch = 0
         self.best_metadata = None
+        self.prev_models = [[] for _ in range(self.args.num_img_clients + self.args.num_txt_clients + self.args.num_mm_clients)]
 
         # img & txt local dataloaders
         self.img_train_loaders, self.txt_train_loaders = None, None
@@ -117,8 +118,9 @@ class MMFL(object):
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
-                                                            num_workers=4,
-                                                            collate_fn=collate_fn
+                                                            num_workers=0,
+                                                            collate_fn=collate_fn,
+                                                            # timeout=300
                                                             )
 
     def create_model(self, args):
@@ -189,13 +191,22 @@ class MMFL(object):
         all_image_encoders = []
         for model in local_image_models:
             all_image_encoders.append({
+                'visual_projector': model.visual_projector.state_dict(),
                 'clip_visual': model.clip_visual.state_dict()
             })
         
         for model in local_mm_models:
             all_image_encoders.append({
+                'visual_projector': model.img_enc.visual_projector.state_dict(),
                 'clip_visual': model.img_enc.clip_visual.state_dict()
             })
+        
+        for key in all_image_encoders[0]['visual_projector'].keys():
+            param_name = f'visual_projector.{key}'
+            params = [enc['visual_projector'][key] for enc in all_image_encoders]
+            orig_dtype = params[0].dtype
+            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+            image_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_image_encoders[0]['clip_visual'].keys():
             param_name = f'clip_visual.{key}'
@@ -211,13 +222,22 @@ class MMFL(object):
         all_text_encoders = []
         for model in local_text_models:
             all_text_encoders.append({
+                'text_projector': model.text_projector.state_dict(),
                 'clip_text': model.clip_text.state_dict()
             })
         
         for model in local_mm_models:
             all_text_encoders.append({
+                'text_projector': model.txt_enc.text_projector.state_dict(),
                 'clip_text': model.txt_enc.clip_text.state_dict()
             })
+        
+        for key in all_text_encoders[0]['text_projector'].keys():
+            param_name = f'text_projector.{key}'
+            params = [enc['text_projector'][key] for enc in all_text_encoders]
+            orig_dtype = params[0].dtype
+            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
+            text_encoder_params[param_name] = avg_param.to(orig_dtype)
 
         for key in all_text_encoders[0]['clip_text'].keys():
             param_name = f'clip_text.{key}'
@@ -298,8 +318,14 @@ class MMFL(object):
         for idx, trainer in enumerate(self.cur_trainers):
             self.logger.log(f"Training Client {trainer.client_idx}!")
             trainer.cur_epoch = round_n
-            trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
-                                  prev_models=copy.deepcopy(trainer.old_model))
+            if round_n == 0:
+                trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
+                                prev_models=None)
+            else:
+                old_model= copy.deepcopy(trainer.old_model)
+                self.prev_models[trainer.client_idx].append(old_model)
+                trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
+                                    prev_models=self.prev_models[trainer.client_idx])
             if trainer.dset_name == 'image':
                 local_image_model.append(trainer.model)
             elif trainer.dset_name == 'text':
@@ -356,11 +382,32 @@ class MMFL(object):
             self.mm_results = []
         if not hasattr(self, 'rsum_history'):
             self.rsum_history = []
-            
+        
+        img_txt_rows = []
         mm_rows = []
         
         print("Testing...")
         rsum = 0
+        for idx, trainer in enumerate(self.total_local_trainers):
+            if trainer.dset_name == "image":
+                domain_idx = idx
+                trainer.test_loader = self.val_dataloader[idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {idx}:")
+                losses, test_top1, test_top5 = trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    losses, test_top1, test_top5
+                ])
+            elif trainer.dset_name == "text":
+                domain_idx = idx - 5
+                trainer.test_loader = self.val_dataloader[domain_idx]
+                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                losses, test_top1, test_top5 = trainer.test()
+                img_txt_rows.append([
+                    round_n, trainer.client_idx, domain_idx,
+                    losses, test_top1, test_top5
+                ])
+                
         for domain_idx in range(self.args.num_domains):
             print(f"Server tests in domain {domain_idx}:")
             test_scores = self.engine.evaluate({'test': self.val_dataloader[domain_idx]})
@@ -404,7 +451,17 @@ class MMFL(object):
             print(f"Final best score: {self.best_score} at epoch {self.best_metadata['best_epoch']}")
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
-        mm_csv = f'mm_MOON.csv'
+        os.makedirs('results', exist_ok=True)
+        img_txt_csv = f'results/img_txt_MOON.csv'
+        if img_txt_rows:
+            write_header = not os.path.exists(img_txt_csv)
+            with open(img_txt_csv, 'a', newline='') as f:
+                writer = csv.writer(f)
+                if write_header:
+                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
+                writer.writerows(img_txt_rows)
+                
+        mm_csv = f'results/server_MOON.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -424,7 +481,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'rsum_MOON.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()
