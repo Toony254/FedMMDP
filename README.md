@@ -64,7 +64,7 @@ CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD
 CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_df.log 2>&1 &
 CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-moon --FL_algorithm MOON --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_moon.log 2>&1 &
 
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_cream.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_cream.log 2>&1 &
 CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_Harmony.log 2>&1 &
 CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_MASA.log 2>&1 &
 ```

@@ -522,6 +522,7 @@ class ClientTrainer:
 
         printnreset(self.dset_name)
         self.model.train()
+        return self.losses.avg, self.test_top1.avg, self.test_top5.avg
 
     def extract_conv_feature(self, dset):
         self.model.phase = 'extract_conv_feature'
