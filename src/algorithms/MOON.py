@@ -58,7 +58,7 @@ class MMFL(object):
         self.best_score = 0
         self.cur_epoch = 0
         self.best_metadata = None
-        self.prev_models = [[] for _ in range(self.args.num_img_clients + self.args.num_txt_clients + self.args.num_mm_clients)]
+        self.prev_models = None
 
         # img & txt local dataloaders
         self.img_train_loaders, self.txt_train_loaders = None, None
@@ -320,12 +320,14 @@ class MMFL(object):
             trainer.cur_epoch = round_n
             if round_n == 0:
                 trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
-                                prev_models=None)
+                                prev_models=None,
+                                temperature=0.5, mu=10)
             else:
                 old_model= copy.deepcopy(trainer.old_model)
-                self.prev_models[trainer.client_idx].append(old_model)
+                self.prev_models = old_model
                 trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
-                                    prev_models=self.prev_models[trainer.client_idx])
+                                    prev_models=self.prev_models,
+                                    temperature=0.5, mu=10)
             if trainer.dset_name == 'image':
                 local_image_model.append(trainer.model)
             elif trainer.dset_name == 'text':

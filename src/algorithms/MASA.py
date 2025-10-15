@@ -1,3 +1,4 @@
+from email.policy import strict
 import gc
 import random
 
@@ -444,7 +445,7 @@ class MMFL(object):
                                 tmp_state = tmp_module.state_dict()
                                 keys = list(tmp_state.keys())
                                 tmp_state[keys[l]] = torch.tensor(cluster_layer_params, dtype=tmp_state[keys[l]].dtype)
-                                tmp_module.load_state_dict(tmp_state)
+                                tmp_module.load_state_dict(tmp_state, strict=False)
                                 tmp_module.eval()
                                 tmp_module.cuda()
                                 with torch.no_grad():

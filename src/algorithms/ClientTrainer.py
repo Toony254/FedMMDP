@@ -292,9 +292,8 @@ class ClientTrainer:
         global_model.eval()
         global_model.cuda()
         if prev_models is not None:
-            for m in prev_models:
-                m.eval()
-                m.cuda()
+            prev_models.eval()
+            prev_models.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
@@ -316,7 +315,7 @@ class ClientTrainer:
                         self.model.is_train = True
                     with torch.no_grad():
                         fvec_global = global_model.img_enc(inputs)["embedding"]
-                        fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
+                        fvec_prev = prev_models(inputs)[0] if prev_models else None
                 elif self.dset_name == 'text':
                     inputs = data["cap_tokens"].to(self.gpuid)
                     labels = data["class_id"]
@@ -335,7 +334,7 @@ class ClientTrainer:
                         self.model.is_train = True
                     with torch.no_grad():
                         fvec_global = global_model.txt_enc(inputs)
-                        fvec_prev = [m(inputs)[0] for m in prev_models] if prev_models else []
+                        fvec_prev = prev_models(inputs)[0] if prev_models else None
                 # 分类损失
                 loss_cls = self.criterion(fvec, labels)
                 # MOON对比损失
@@ -343,9 +342,8 @@ class ClientTrainer:
                 posi = cos(local_logits, fvec_global)
                 logits = posi.reshape(-1, 1)
                 if prev_models:
-                    for fvec_p in fvec_prev:
-                        nega = cos(fvec, fvec_p)
-                        logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
+                    nega = cos(fvec, fvec_prev)
+                    logits = torch.cat((logits, nega.reshape(-1, 1)), dim=1)
                 logits /= temperature
                 contrastive_labels = torch.zeros(inputs.size(0)).long().to(self.gpuid)
                 loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)

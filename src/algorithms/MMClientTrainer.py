@@ -167,9 +167,8 @@ class MMClientTrainer(EngineBase):
         global_model.eval()
         global_model.cuda()
         if prev_models is not None:
-            for m in prev_models:
-                m.eval()
-                m.cuda()
+            prev_models.eval()
+            prev_models.cuda()
         for i in range(self.local_epochs):
             for idx, data in enumerate(self.train_loader):
                 self.optimizer.zero_grad()
@@ -182,8 +181,8 @@ class MMClientTrainer(EngineBase):
                     output_global = global_model(images, captions)
                     img_fvec_global = output_global['image_features']
                     txt_fvec_global = output_global['caption_features']
-                    img_fvec_prev = [m(images, captions)['image_features'] for m in prev_models] if prev_models else []
-                    txt_fvec_prev = [m(images, captions)['caption_features'] for m in prev_models] if prev_models else []
+                    img_fvec_prev = prev_models(images, captions)['image_features'] if prev_models else None
+                    txt_fvec_prev = prev_models(images, captions)['caption_features'] if prev_models else None
                 # 多模态损失
                 loss_cls, _ = self.criterion(**output)
                 # MOON对比损失
@@ -193,12 +192,10 @@ class MMClientTrainer(EngineBase):
                 img_logits = posi_img.reshape(-1, 1)
                 txt_logits = posi_txt.reshape(-1, 1)
                 if prev_models:
-                    for img_fvec_p in img_fvec_prev:
-                        nega = cos(img_fvec, img_fvec_p)
-                        img_logits = torch.cat((img_logits, nega.reshape(-1, 1)), dim=1)
-                    for txt_fvec_p in txt_fvec_prev:
-                        nega = cos(txt_fvec, txt_fvec_p)
-                        txt_logits = torch.cat((txt_logits, nega.reshape(-1, 1)), dim=1)
+                    nega = cos(img_fvec, img_fvec_prev)
+                    img_logits = torch.cat((img_logits, nega.reshape(-1, 1)), dim=1)
+                    nega = cos(txt_fvec, txt_fvec_prev)
+                    txt_logits = torch.cat((txt_logits, nega.reshape(-1, 1)), dim=1)
                 img_logits /= temperature
                 txt_logits /= temperature
                 contrastive_labels = torch.zeros(images.size(0)).long().to(self.device)
