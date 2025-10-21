@@ -321,13 +321,13 @@ class MMFL(object):
             if round_n == 0:
                 trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
                                 prev_models=None,
-                                temperature=0.5, mu=10)
+                                temperature=1, mu=1)
             else:
                 old_model= copy.deepcopy(trainer.old_model)
                 self.prev_models = old_model
                 trainer.run_with_moon(global_model=copy.deepcopy(self.engine.model),
                                     prev_models=self.prev_models,
-                                    temperature=0.5, mu=10)
+                                    temperature=1, mu=1)
             if trainer.dset_name == 'image':
                 local_image_model.append(trainer.model)
             elif trainer.dset_name == 'text':
@@ -338,22 +338,26 @@ class MMFL(object):
         # aggregate local models
         if self.args.model == 'clip':
             server_model = self.aggregate_clip_models(local_image_model, local_text_model, local_mm_model)
+            # Check for NaN or abnormal values in server_model parameters
+            for name, param in server_model.state_dict().items():
+                if torch.isnan(param).any():
+                    print(f"NaN detected in parameter: {name}")
             self.engine.model = server_model
             for trainer in self.cur_trainers:
                 if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
                     trainer.model.load_state_dict(server_model.state_dict())
                 elif hasattr(trainer.model, "clip_visual"):
-                    for name, param in server_model.img_enc.state_dict().items():
-                        if name in trainer.model.state_dict():
-                            trainer.model.state_dict()[name].copy_(param)
+                    # for name, param in server_model.img_enc.state_dict().items():
+                    #     if name in trainer.model.state_dict():
+                    #         trainer.model.state_dict()[name].copy_(param)
                     if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
                         for name, param in server_model.img_enc.visual_projector.state_dict().items():
                             if name in trainer.model.visual_projector.state_dict():
                                 trainer.model.visual_projector.state_dict()[name].copy_(param)
                 elif hasattr(trainer.model, "clip_text"):
-                    for name, param in server_model.txt_enc.state_dict().items():
-                        if name in trainer.model.state_dict():
-                            trainer.model.state_dict()[name].copy_(param)
+                    # for name, param in server_model.txt_enc.state_dict().items():
+                    #     if name in trainer.model.state_dict():
+                    #         trainer.model.state_dict()[name].copy_(param)
                     if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
                         for name, param in server_model.txt_enc.text_projector.state_dict().items():
                             if name in trainer.model.text_projector.state_dict():
@@ -420,8 +424,8 @@ class MMFL(object):
             self.engine.report_scores(step=round_n + 1,
                                     scores=test_scores,
                                     metadata=metadata)
-            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
-                test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
+            rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
+                test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
             rsum += rsum_i
             mm_rows.append([
                 round_n, domain_idx, rsum_i,

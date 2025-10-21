@@ -181,6 +181,7 @@ class ClientTrainer:
         self.setModel()
 
         self.old_model = None
+        self.global_anchor = None
 
         self.local_epochs = args.local_epochs
         self.local_epoch = 0
@@ -273,6 +274,84 @@ class ClientTrainer:
         import gc
         gc.collect()
         
+    def set_global_anchor(self, anchor):
+        self.global_anchor = anchor
+
+    def train_with_anchor(self):
+        self.model.to(self.gpuid)
+        self.lr_scheduler(self.cur_epoch)
+
+        mse_loss = nn.MSELoss()
+        anchor_accum = []
+
+        for _ in range(self.local_epochs):
+            self.local_epoch += 1
+            self.model.train()
+            for idx, data in enumerate(self.train_loader):
+                self.optimizer.zero_grad()
+
+                if self.dset_name == 'image':
+                    inputs_bt = data["processed_img"]
+                    labels_bt = data["class_id"]
+                    if isinstance(labels_bt, list):
+                        labels_bt = torch.tensor(labels_bt, dtype=torch.long)
+                    inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
+                    labels_var = torch.autograd.Variable(labels_bt).to(self.gpuid)
+
+                    if self.args.model == 'clip':
+                        logits, _, embedding = self.model(inputs_var)
+                    elif self.args.model == 'resnet':
+                        logits, embedding, _, _ = self.model(inputs_var)
+
+                elif self.dset_name == 'text':
+                    inputs_bt = data["cap_tokens"]
+                    labels_bt = data["class_id"]
+                    if isinstance(labels_bt, list):
+                        labels_bt = torch.tensor(labels_bt, dtype=torch.long)
+
+                    inputs_bt, labels_bt = map(
+                        lambda t: torch.cat(t) if not isinstance(t, torch.Tensor) else t,
+                        (inputs_bt, labels_bt)
+                    )
+                    inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
+                    labels_var = torch.autograd.Variable(labels_bt).to(self.gpuid)
+
+                    if self.args.model == 'clip':
+                        logits, _, embedding = self.model(inputs_var)
+                    elif self.args.model == 'resnet':
+                        logits, embedding, _, _ = self.model(inputs_var)
+
+                if embedding.dim() > 2:
+                    embedding = embedding.view(embedding.size(0), -1)
+
+                loss_cls = self.criterion(logits, labels_var)
+                if getattr(self, 'global_anchor', None) is not None:
+                    anchor_target = torch.tensor(self.global_anchor, device=embedding.device, dtype=embedding.dtype)
+                    anchor_loss = mse_loss(embedding.mean(dim=0), anchor_target)
+                    total_loss = loss_cls + 0.1 * anchor_loss
+                else:
+                    total_loss = loss_cls
+
+                total_loss.backward()
+                self.optimizer.step()
+
+                anchor_accum.append(embedding.detach().mean(dim=0).cpu().numpy())
+                if is_test:
+                    break
+
+        if self.args.save_client:
+            torch.save(self.model.state_dict(),
+                       f'./saved_clients/{self.dset_name}/Client{self.client_id}-model_{self.local_epoch}.pth')
+
+        if anchor_accum:
+            local_anchor = np.mean(np.stack(anchor_accum), axis=0)
+        else:
+            local_anchor = np.zeros(self.args.feature_dim, dtype=np.float32)
+
+        model_copy = copy.deepcopy(self.model).cpu()
+        self.model.cpu()
+        gc.collect()
+        return model_copy, local_anchor
     def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
         def printnreset(name):
             self.logger.log('Epoch: [{0}] {1}\t'
@@ -335,6 +414,7 @@ class ClientTrainer:
                     with torch.no_grad():
                         fvec_global = global_model.txt_enc(inputs)
                         fvec_prev = prev_models(inputs)[0] if prev_models else None
+                print(f'fvec: {fvec}, local_logits: {local_logits}, fvec_global: {fvec_global}, fvec_prev: {fvec_prev}')
                 # 分类损失
                 loss_cls = self.criterion(fvec, labels)
                 # MOON对比损失
@@ -348,6 +428,7 @@ class ClientTrainer:
                 contrastive_labels = torch.zeros(inputs.size(0)).long().to(self.gpuid)
                 loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)
                 loss = loss_cls + loss_con
+                print(f'loss: {loss:.3f}, cls: {loss_cls:.3f}, con: {loss_con:.3f}')
                 loss.backward()
                 self.optimizer.step()
                 

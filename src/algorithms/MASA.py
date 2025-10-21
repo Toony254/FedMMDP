@@ -486,8 +486,12 @@ class MMFL(object):
                 for l in range(L_m):
                     attn = F.softmax(A[l].detach(), dim=0).cpu().numpy()
                     layer_key = valid_keys[l]
-                    agg_layer = sum(attn[k] * cluster_models[k][layer_key] for k in range(num_clusters))
-                    personalized_layers.append(agg_layer)
+                    shapes = [cluster_models[k][layer_key].shape for k in range(num_clusters)]
+                    if all(s == shapes[0] for s in shapes):
+                        agg_layer = sum(attn[k] * cluster_models[k][layer_key] for k in range(num_clusters))
+                        personalized_layers.append(agg_layer)
+                    else:
+                        print(f"Skip layer {layer_key} due to shape mismatch: {shapes}")
                 personalized_flat = np.concatenate([l.reshape(-1) for l in personalized_layers], axis=0)
                 set_model_parameters(client, modality, dict(zip(valid_keys, personalized_layers)))
 
@@ -599,8 +603,8 @@ class MMFL(object):
                     trainer.report_scores(step=round_n + 1,
                                             scores=test_scores,
                                             metadata=metadata)
-                    rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
-                        test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
+                    rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
+                        test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
                     if domain_idx == idx - 10:
                         rsum += rsum_i
                     mm_rows.append([

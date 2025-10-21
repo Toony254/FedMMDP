@@ -158,7 +158,66 @@ class MMClientTrainer(EngineBase):
         del self.old_model
         import gc
         gc.collect()
-        
+    def set_global_anchor(self, anchor):
+        self.global_anchor = anchor
+    def train_with_anchor(self, prefix='FedMEMA_'):
+        self.model.cuda()
+        if self.local_epoch == 0 and self.config.train.get('use_fp16'):
+            _, self.optimizer = amp.initialize([], self.optimizer, opt_level='O2')
+
+        self.model.train()
+        mse_loss = nn.MSELoss()
+        anchor_accum = []
+
+        for _ in range(self.local_epochs):
+            self.local_epoch += 1
+            for idx, data in enumerate(self.train_loader):
+                images = data["processed_img"].to(self.device)
+                captions = data["cap_tokens"].to(self.device)
+
+                output = self.model(images, captions)
+                loss, _ = self.criterion(**output)
+
+                img_features = output['image_features']
+                txt_features = output['caption_features']
+
+                if getattr(self, 'global_anchor', None) is not None:
+                    batch_anchor = torch.cat([img_features, txt_features], dim=0).mean(dim=0)
+                    anchor_target = torch.tensor(self.global_anchor, device=batch_anchor.device,
+                                                 dtype=batch_anchor.dtype)
+                    loss = loss + 0.1 * mse_loss(batch_anchor, anchor_target)
+                else:
+                    batch_anchor = torch.cat([img_features, txt_features], dim=0).mean(dim=0)
+
+                self.optimizer.zero_grad()
+                if self.config.train.get('use_fp16'):
+                    with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                        scaled_loss.backward()
+                else:
+                    loss.backward()
+
+                if self.config.train.grad_clip > 0:
+                    nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), self.config.train.grad_clip)
+                self.optimizer.step()
+
+                anchor_accum.append(batch_anchor.detach().cpu().numpy())
+                if is_test:
+                    break
+
+        if self.args.save_client:
+            torch.save(self.model.state_dict(),
+                       f'./saved_clients/mm/Client{self.client}-model_{self.local_epoch}.pth')
+
+        if anchor_accum:
+            local_anchor = np.mean(np.stack(anchor_accum), axis=0)
+        else:
+            local_anchor = np.zeros(self.args.feature_dim, dtype=np.float32)
+
+        model_copy = copy.deepcopy(self.model).cpu()
+        self.model.cpu()
+        gc.collect()
+        return model_copy, local_anchor
+    
     def run_with_moon(self, global_model, prev_models=None, temperature=0.5, mu=1.0):
         self.model.cuda()
         self.model.train()

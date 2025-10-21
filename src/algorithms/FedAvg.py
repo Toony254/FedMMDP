@@ -116,7 +116,7 @@ class MMFL(object):
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
-                                                            num_workers=4,
+                                                            num_workers=0,
                                                             collate_fn=collate_fn
                                                             )
 
@@ -410,8 +410,8 @@ class MMFL(object):
             self.engine.report_scores(step=round_n + 1,
                                     scores=test_scores,
                                     metadata=metadata)
-            rsum_i = test_scores['test']['n_fold']['i2t']['recall_1'] + test_scores['test']['n_fold']['t2i']['recall_1'] + \
-                test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1']
+            rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
+                test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
             rsum += rsum_i
             mm_rows.append([
                 round_n, domain_idx, rsum_i,
