@@ -141,7 +141,7 @@ class MMFL(object):
         if args.num_img_clients > 0:
             dataset = 'image'
             self.img_trainloaders, test_loaders = get_FL_trainloader(dataset, '/home/bd/data/zs/FedMMDP/data/processed_datasets/',
-                                                                 args.num_img_clients, "hetero", 0.1, self.args.batch_size)
+                                                                 args.num_img_clients, "hetero", self.args.alpha, self.args.batch_size)
             self.img_local_trainers = []
             for i in range(args.num_img_clients):
                 self.img_local_trainers.append(
@@ -155,7 +155,7 @@ class MMFL(object):
         if args.num_txt_clients > 0:
             dataset = 'text'
             self.txt_trainloaders, test_loaders = get_FL_trainloader(dataset, '/home/bd/data/zs/FedMMDP/data/processed_datasets/',
-                                                                 args.num_txt_clients, "hetero", 0.1, self.args.batch_size)
+                                                                 args.num_txt_clients, "hetero", self.args.alpha, self.args.batch_size)
             self.txt_local_trainers = []
             for i in range(args.num_txt_clients):
                 self.txt_local_trainers.append(
@@ -310,16 +310,7 @@ class MMFL(object):
         #     torch.save({'net': trainer.model.state_dict()}, self.args.name + '-last_model.pt')
         
         os.makedirs('results', exist_ok=True)
-        img_txt_csv = f'results/img_txt_FedMD.csv'
-        mm_csv = f'results/mm_FedMD.csv'
-
-        if img_txt_rows:
-            write_header = not os.path.exists(img_txt_csv)
-            with open(img_txt_csv, 'a', newline='') as f:
-                writer = csv.writer(f)
-                if write_header:
-                    writer.writerow(['round', 'client_id', 'domain_idx', 'losses', 'test_top1', 'test_top5'])
-                writer.writerows(img_txt_rows)
+        mm_csv = f'results/mm_{self.args.FL_algorithm}.csv'
 
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
@@ -340,7 +331,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()
