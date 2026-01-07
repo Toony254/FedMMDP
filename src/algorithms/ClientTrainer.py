@@ -383,8 +383,7 @@ class ClientTrainer:
                         labels = torch.tensor(labels,dtype=torch.long)
                     labels = labels.to(self.gpuid)
                     if self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs)
-                        local_logits = self.model.clip_visual(inputs)
+                        fvec, _, local_logits = self.model(inputs)
                     elif self.args.model == 'resnet':
                         fvec, _, _, _ = self.model(inputs)
                         self.model.phase = "extract_conv_feature"
@@ -402,8 +401,7 @@ class ClientTrainer:
                         labels = torch.tensor(labels,dtype=torch.long)
                     labels = labels.to(self.gpuid)
                     if self.args.model == 'clip':
-                        fvec, _, _ = self.model(inputs)
-                        local_logits = self.model.clip_text(inputs)
+                        fvec, _, local_logits = self.model(inputs)
                     elif self.args.model == 'resnet':
                         fvec, _, _, _ = self.model(inputs)
                         self.model.phase = "extract_conv_feature"
@@ -627,30 +625,29 @@ class ClientTrainer:
         """用公共对齐数据输出logits"""
         self.model.cuda()
         self.model.eval()
+        self.model.is_train = False
         logits_list = []
         with torch.no_grad():
             for i, (images, captions, _, _, a_, b_, index) in enumerate(dataloader):
                 if self.dset_name == 'image' and self.args.model == 'clip':
                     inputs = images.to(self.gpuid)
-                    output = self.model.clip_visual(inputs)
+                    output = self.model(inputs)
                 elif self.dset_name == 'text' and self.args.model == 'clip':
                     inputs = captions.to(self.gpuid)
-                    output = self.model.clip_text(inputs)
+                    output = self.model(inputs)
                 elif self.dset_name == 'image' and self.args.model == 'resnet':
                     inputs = images.to(self.gpuid)
                     self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
                     output = self.model(inputs)
                     self.model.phase = "None"
-                    self.model.is_train = True
                 elif self.dset_name == 'text' and self.args.model == 'resnet':
                     inputs = captions.to(self.gpuid)
                     self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
                     output = self.model(inputs)
                     self.model.phase = "None"
-                    self.model.is_train = True
                 logits_list.append(output.cpu().numpy())
+        self.model.is_train = True
+        
         return np.concatenate(logits_list, axis=0)
 
     def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
@@ -672,14 +669,14 @@ class ClientTrainer:
                 img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
+                self.model.is_train = False
                 if self.args.model == 'clip':
-                    output = self.model.clip_visual(inputs)
+                    output = self.model(inputs)
                 elif self.args.model == 'resnet':
                     self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
                     output = self.model(inputs)
                     self.model.phase = "None"
-                    self.model.is_train = True
+                self.model.is_train = True
                 loss = nn.MSELoss()(output, img_soft_label)
                 # print(f'Image Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()
@@ -690,14 +687,14 @@ class ClientTrainer:
                 txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
+                self.model.is_train = False
                 if self.args.model == 'clip':
-                    output = self.model.clip_text(inputs)
+                    output = self.model(inputs)
                 elif self.args.model == 'resnet':
                     self.model.phase = "extract_conv_feature"
-                    self.model.is_train = False
                     output = self.model(inputs)
                     self.model.phase = "None"
-                    self.model.is_train = True
+                self.model.is_train = True
                 loss = nn.MSELoss()(output, txt_soft_label)
                 # print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()

@@ -184,9 +184,9 @@ def get_model_parameters(client, modality):
     elif hasattr(client.model, 'txt_enc') and modality == 'txt':
         return client.model.txt_enc.state_dict()
     elif modality == 'img':
-        return client.model.clip_visual.state_dict()
+        return client.model.visual_projector.state_dict()
     elif modality == 'txt':
-        return client.model.clip_text.state_dict()
+        return client.model.text_projector.state_dict()
     else:
         return client.model.state_dict()
 
@@ -197,9 +197,9 @@ def set_model_parameters(client, modality, param_dict):
     elif hasattr(client.model, 'txt_enc') and modality == 'txt':
         model = client.model.txt_enc
     elif modality == 'img':
-        model = client.model.clip_visual
+        model = client.model.visual_projector
     elif modality == 'txt':
-        model = client.model.clip_text
+        model = client.model.text_projector
     else:
         model = client.model
     state_dict = model.state_dict()
@@ -385,9 +385,9 @@ class MMFL(object):
                 elif hasattr(client.model, 'txt_enc') and modality == 'txt':
                     ref_module = client.model.txt_enc
                 elif modality == 'img' and client.args.model == 'clip':
-                    ref_module = client.model.clip_visual
+                    ref_module = client.model.visual_projector
                 elif modality == 'txt' and client.args.model == 'clip':
-                    ref_module = client.model.clip_text
+                    ref_module = client.model.text_projector
                 else:
                     ref_module = client.model
                 ref_state = ref_module.state_dict()

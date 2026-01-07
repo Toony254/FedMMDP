@@ -190,26 +190,17 @@ class MMFL(object):
         all_image_encoders = []
         for model in local_image_models:
             all_image_encoders.append({
-                'visual_projector': model.visual_projector.state_dict(),
-                'clip_visual': model.clip_visual.state_dict()
+                'visual_projector': model.visual_projector.state_dict()
             })
         
         for model in local_mm_models:
             all_image_encoders.append({
-                'visual_projector': model.img_enc.visual_projector.state_dict(),
-                'clip_visual': model.img_enc.clip_visual.state_dict()
+                'visual_projector': model.img_enc.visual_projector.state_dict()
             })
         
         for key in all_image_encoders[0]['visual_projector'].keys():
             param_name = f'visual_projector.{key}'
             params = [enc['visual_projector'][key] for enc in all_image_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            image_encoder_params[param_name] = avg_param.to(orig_dtype)
-
-        for key in all_image_encoders[0]['clip_visual'].keys():
-            param_name = f'clip_visual.{key}'
-            params = [enc['clip_visual'][key] for enc in all_image_encoders]
             orig_dtype = params[0].dtype
             avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
             image_encoder_params[param_name] = avg_param.to(orig_dtype)
@@ -221,26 +212,17 @@ class MMFL(object):
         all_text_encoders = []
         for model in local_text_models:
             all_text_encoders.append({
-                'text_projector': model.text_projector.state_dict(),
-                'clip_text': model.clip_text.state_dict()
+                'text_projector': model.text_projector.state_dict()
             })
         
         for model in local_mm_models:
             all_text_encoders.append({
-                'text_projector': model.txt_enc.text_projector.state_dict(),
-                'clip_text': model.txt_enc.clip_text.state_dict()
+                'text_projector': model.txt_enc.text_projector.state_dict()
             })
         
         for key in all_text_encoders[0]['text_projector'].keys():
             param_name = f'text_projector.{key}'
             params = [enc['text_projector'][key] for enc in all_text_encoders]
-            orig_dtype = params[0].dtype
-            avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
-            text_encoder_params[param_name] = avg_param.to(orig_dtype)
-
-        for key in all_text_encoders[0]['clip_text'].keys():
-            param_name = f'clip_text.{key}'
-            params = [enc['clip_text'][key] for enc in all_text_encoders]
             orig_dtype = params[0].dtype
             avg_param = torch.mean(torch.stack([p.float() for p in params]), dim=0)
             text_encoder_params[param_name] = avg_param.to(orig_dtype)
@@ -331,22 +313,14 @@ class MMFL(object):
             for trainer in self.cur_trainers:
                 if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
                     trainer.model.load_state_dict(server_model.state_dict())
-                elif hasattr(trainer.model, "clip_visual"):
-                    for name, param in server_model.img_enc.state_dict().items():
-                        if name in trainer.model.state_dict():
-                            trainer.model.state_dict()[name].copy_(param)
-                    if hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
-                        for name, param in server_model.img_enc.visual_projector.state_dict().items():
-                            if name in trainer.model.visual_projector.state_dict():
-                                trainer.model.visual_projector.state_dict()[name].copy_(param)
-                elif hasattr(trainer.model, "clip_text"):
-                    for name, param in server_model.txt_enc.state_dict().items():
-                        if name in trainer.model.state_dict():
-                            trainer.model.state_dict()[name].copy_(param)
-                    if hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
-                        for name, param in server_model.txt_enc.text_projector.state_dict().items():
-                            if name in trainer.model.text_projector.state_dict():
-                                trainer.model.text_projector.state_dict()[name].copy_(param)
+                elif hasattr(trainer.model, "visual_projector") and hasattr(server_model.img_enc, "visual_projector"):
+                    for name, param in server_model.img_enc.visual_projector.state_dict().items():
+                        if name in trainer.model.visual_projector.state_dict():
+                            trainer.model.visual_projector.state_dict()[name].copy_(param)
+                elif hasattr(trainer.model, "text_projector") and hasattr(server_model.txt_enc, "text_projector"):
+                    for name, param in server_model.txt_enc.text_projector.state_dict().items():
+                        if name in trainer.model.text_projector.state_dict():
+                            trainer.model.text_projector.state_dict()[name].copy_(param)
         elif self.args.model == 'resnet':
             server_model = self.aggregate_resnet_models(local_image_model, local_text_model, local_mm_model)
             self.engine.model = server_model
