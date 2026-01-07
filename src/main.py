@@ -68,8 +68,8 @@ def args():
                         help='Federated Learning algorithm to use')
 
     # === dataloader ===
-    parser.add_argument('--dataset', type=str, default='imagenet_cap')
-    parser.add_argument('--data_root', type=str, default='data/processed_datasets/')
+    parser.add_argument('--dataset', type=str, default='imagenet', choices=['imagenet', 'fashion', 'food'])
+    parser.add_argument('--data_root', type=str, default='/home/bd/data/zs/FedMMDP/preprocessed_imagenet/domain_datasets/')
     parser.add_argument('--batch_size', type=int, default=256, metavar='N',
                         help='input batch size for training (default: 256)')
     parser.add_argument('--alpha', type=float, default=0.1)

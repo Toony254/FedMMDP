@@ -236,7 +236,7 @@ class ClientTrainer:
                     param = dict(self.model.named_parameters())[name]
                     prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
                 total_loss = loss + 0.5 * mu * prox_loss
-                print(f'Client {self.client_id} - Epoch {self.local_epoch}, Step {idx}, Loss: {total_loss:.4f}, Prox Loss: {prox_loss:.4f}')
+                # print(f'Client {self.client_id} - Epoch {self.local_epoch}, Step {idx}, Loss: {total_loss:.4f}, Prox Loss: {prox_loss:.4f}')
                 total_loss.backward()
                 self.optimizer.step()
                 if is_test:
@@ -414,7 +414,7 @@ class ClientTrainer:
                     with torch.no_grad():
                         fvec_global = global_model.txt_enc(inputs)
                         fvec_prev = prev_models(inputs)[0] if prev_models else None
-                print(f'fvec: {fvec}, local_logits: {local_logits}, fvec_global: {fvec_global}, fvec_prev: {fvec_prev}')
+                # print(f'fvec: {fvec}, local_logits: {local_logits}, fvec_global: {fvec_global}, fvec_prev: {fvec_prev}')
                 # 分类损失
                 loss_cls = self.criterion(fvec, labels)
                 # MOON对比损失
@@ -428,7 +428,7 @@ class ClientTrainer:
                 contrastive_labels = torch.zeros(inputs.size(0)).long().to(self.gpuid)
                 loss_con = mu * nn.CrossEntropyLoss()(logits, contrastive_labels)
                 loss = loss_cls + loss_con
-                print(f'loss: {loss:.3f}, cls: {loss_cls:.3f}, con: {loss_con:.3f}')
+                # print(f'loss: {loss:.3f}, cls: {loss_cls:.3f}, con: {loss_con:.3f}')
                 loss.backward()
                 self.optimizer.step()
                 
@@ -681,7 +681,7 @@ class ClientTrainer:
                     self.model.phase = "None"
                     self.model.is_train = True
                 loss = nn.MSELoss()(output, img_soft_label)
-                print(f'Image Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
+                # print(f'Image Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()
                 self.optimizer.step()
             elif self.dset_name == 'text':
@@ -699,7 +699,7 @@ class ClientTrainer:
                     self.model.phase = "None"
                     self.model.is_train = True
                 loss = nn.MSELoss()(output, txt_soft_label)
-                print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
+                # print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
                 loss.backward()
                 self.optimizer.step()
 

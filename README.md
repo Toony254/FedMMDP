@@ -59,6 +59,10 @@ python src/datasets/split_domain_dataset.py >outputs/preprocess_datasets.log 2>&
 # CUDA_VISIBLE_DEVICES=3 python src/main.py --name CenterTraining --FL_algorithm CenterTraining --local_epochs 1 --comm_rounds 30 --batch_size 64 --model resnet >outputs/output_center_resnet.log 2>&1 &
 # CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-moon --FL_algorithm MOON --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_moon.log 2>&1 &
 Non-IID
+imagenet
+
+rm -rf data_partition/*
+
 CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --lr 1e-5 --local_epochs 1 --comm_rounds 20  --batch_size 64 --model clip >outputs/output_avg_clip.log 2>&1 &
 CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_prox.log 2>&1 &
 CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_md.log 2>&1 &
@@ -68,6 +72,34 @@ CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Cream --FL_algorithm Cr
 CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_Harmony.log 2>&1 &
 CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_MASA.log 2>&1 &
 CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MEMA --FL_algorithm FedMEMA --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_FedMEMA.log 2>&1 &
+
+fashion
+
+rm -rf data_partition/*
+
+CUDA_VISIBLE_DEVICES=0 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20  --batch_size 64 --model clip >outputs/output_avg_clip_fashion.log 2>&1 &
+CUDA_VISIBLE_DEVICES=0 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_prox_fashion.log 2>&1 &
+CUDA_VISIBLE_DEVICES=0 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_md_fashion.log 2>&1 &
+CUDA_VISIBLE_DEVICES=0 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_df_fashion.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_cream_fashion.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_Harmony_fashion.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_MASA_fashion.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MEMA --FL_algorithm FedMEMA --dataset fashion --data_root /home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_FedMEMA_fashion.log 2>&1 &
+
+food
+
+rm -rf data_partition/*
+
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20  --batch_size 64 --model clip >outputs/output_avg_clip_food.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_prox_food.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_md_food.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_df_food.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 --pub_data_num 5000 >outputs/output_cream_food.log 2>&1 &
+CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_Harmony_food.log 2>&1 &
+CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_MASA_food.log 2>&1 &
+CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MEMA --FL_algorithm FedMEMA --dataset food --data_root /home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/ --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 64 >outputs/output_FedMEMA_food.log 2>&1 &
 
 IID
 CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --lr 1e-5 --local_epochs 1 --alpha 5.0 --comm_rounds 20  --batch_size 64 --model clip >outputs/output_avg_clip.log 2>&1 &

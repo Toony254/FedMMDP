@@ -3,6 +3,27 @@ import torch
 import torch.nn as nn
 from functools import partial
 from tqdm import tqdm
+import json
+
+
+def convert_food_id_to_int(id_str, label2id_dict):
+    parts = id_str.rsplit('_', 1)
+    
+    if len(parts) != 2:
+        raise ValueError(f"Invalid ID format: {id_str}, expected 'label_sequence'")
+    
+    label_name = parts[0]
+    try:
+        sequence_id = int(parts[1])
+    except ValueError:
+        raise ValueError(f"Invalid sequence ID in {id_str}: {parts[1]} is not an integer")
+    
+    if label_name not in label2id_dict:
+        raise ValueError(f"Unknown label: {label_name}")
+    
+    label_id = label2id_dict[label_name]
+    unique_id = label_id * 10000 + sequence_id
+    return unique_id
 
 
 def to_numpy(tensor, n_dims=2):
@@ -73,6 +94,7 @@ class MMEvaluator(object):
 
     def __init__(self,
                  model_name='clip',
+                 dataset='imagenet',
                  eval_method='matmul',
                  n_crossfolds=-1,
                  extract_device='cuda',
@@ -80,6 +102,7 @@ class MMEvaluator(object):
                  verbose=False, 
                  class_size=None):
         self.model_name = model_name
+        self.dataset = dataset
         self.eval_method = eval_method
         self.extract_device = extract_device if torch.cuda.is_available() else 'cpu'
         self.eval_device = eval_device if torch.cuda.is_available() else 'cpu'
@@ -90,12 +113,7 @@ class MMEvaluator(object):
         self.pbar = partial(tqdm, disable=not verbose)
         self.n_embeddings = 1
         self.feat_size = 1024
-        # if isinstance(self.model, nn.DataParallel):
-        #     self.n_embeddings = self.model.module.n_embeddings
-        #     self.feat_size = self.model.module.embed_dim
-        # else:
-        #     self.n_embeddings = self.model.n_embeddings
-        #     self.feat_size = self.model.embed_dim
+        
     def set_model(self, model):
         """set model
         """
@@ -115,6 +133,7 @@ class MMEvaluator(object):
         """set logger
         """
         self.logger = logger
+        
     @torch.no_grad()
     def extract_features(self, dataloader):
         """Extract image and caption features using the given model.
@@ -147,10 +166,22 @@ class MMEvaluator(object):
         seen_image_ids = set()
         
         iid_to_cls = {}
+        
+        # 加载 food 数据集的 label2id 映射
+        label2id_dict = None
+        if self.dataset == 'food':
+            with open('/home/bd/data/zs/FedMMDP/preprocessed_food/label2id.json', 'r') as f:
+                label2id_dict = json.load(f)
+        
         if dataloader is not None:
             for idx, item in enumerate(dataloader):
                 for i in range(len(item['id'])):
-                    image_id = int(item['id'][i].replace("n", "").replace("_", "0"))
+                    if self.dataset == 'imagenet':
+                        image_id = int(item['id'][i].replace("n", "").replace("_", "0"))
+                    elif self.dataset == 'fashion':
+                        image_id = int(item['id'][i])
+                    elif self.dataset == 'food':
+                        image_id = convert_food_id_to_int(item['id'][i], label2id_dict)
                     code = iid_to_cls.get(image_id, [0] * self.class_size)
                     code[int(item['class_id'][i]) - 1] = 1
                     iid_to_cls[image_id] = code
@@ -168,9 +199,6 @@ class MMEvaluator(object):
                     idx += 1
             iid_to_cls = new_iid_to_cls
 
-            # if self.all_image_ids - set(iid_to_cls.keys()):
-            #     print(f'Found mismatched! {len(self.all_image_ids - set(iid_to_cls.keys()))}')
-
         def get_image_class(image_id):
             if iid_to_cls:
                 image_class = iid_to_cls.get(image_id, image_id)
@@ -187,9 +215,16 @@ class MMEvaluator(object):
                 _caption_features = self.model_txt(captions)
             elif self.model_name == 'resnet':
                 _caption_features = self.model_txt(captions)['embedding']
-            
-            image_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]
-            ann_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]
+                
+            if self.dataset == 'imagenet':
+                image_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]
+                ann_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]
+            elif self.dataset == 'fashion':
+                image_ids = [int(data["id"][j]) for j in range(len(data["id"]))]
+                ann_ids = [int(data["id"][j]) for j in range(len(data["id"]))]
+            elif self.dataset == 'food':
+                image_ids = [convert_food_id_to_int(data["id"][j], label2id_dict) for j in range(len(data["id"]))]
+                ann_ids = [convert_food_id_to_int(data["id"][j], label2id_dict) for j in range(len(data["id"]))]
 
             for idx, image_id in enumerate(image_ids):
                 image_class = get_image_class(image_id)
@@ -203,7 +238,6 @@ class MMEvaluator(object):
                 caption_classes[cur_caption_idx] = image_class
                 caption_features[cur_caption_idx] = to_numpy(_caption_features[idx])
                 cur_caption_idx += 1
-            # break
 
         if iid_to_cls:
             print(f'Num images ({num_images}) -> Num classes ({len(set(image_classes))})')
@@ -215,10 +249,6 @@ class MMEvaluator(object):
             raise RuntimeError('unexpected error, I({}) != C({})'.format(set(image_classes), set(caption_classes)))
 
         if not iid_to_cls:
-            # XXX this code is for aligning image features and caption features
-            # but if you use classes as COCO classes, but image_id,
-            # the sorted_caption_idx will return multiple instances, and
-            # the results will be corrupted.
             sorted_caption_idx = []
             for image_class in image_classes:
                 sorted_caption_idx.extend(np.where(caption_classes == image_class)[0])
@@ -368,9 +398,6 @@ class MMEvaluator(object):
         }
 
         for idx in range(n_crossfolds):
-            # if self.logger:
-            #     self.logger.log('evaluating {}-th fold'.format(idx + 1))
-
             _image_split = np.arange(idx * n_images_per_crossfold, (idx + 1) * n_images_per_crossfold)
             _image_features = image_features[_image_split]
             _image_classes = image_classes[_image_split]
@@ -407,9 +434,6 @@ class MMEvaluator(object):
         """
         scores = {}
 
-        # if self.logger:
-        #     self.logger.log('extracting features...')
-
         extracted_features = self.extract_features(dataloader)
 
         image_features = extracted_features['image_features']
@@ -429,15 +453,11 @@ class MMEvaluator(object):
                                                  eval_batch_size)
             scores['n_fold'] = n_fold_scores
 
-        # if self.logger:
-        #     self.logger.log('evaluating i2t...')
         scores['i2t'] = self.evaluate_recall(image_features,
                                              caption_features,
                                              image_classes,
                                              caption_classes,
                                              batch_size=eval_batch_size)
-        # if self.logger:
-        #     self.logger.log('evaluating t2i...')
         scores['t2i'] = self.evaluate_recall(caption_features,
                                              image_features,
                                              caption_classes,

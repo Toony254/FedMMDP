@@ -219,7 +219,7 @@ class MMFL(object):
         self.txt_local_trainers = None
         self.mm_local_trainers = None
         # self.engine = None
-        self.class_size = get_class_size('/home/bd/data/zs/FedMMDP/data/processed_datasets/domain_dataset_0') * 5
+        self.class_size = get_class_size(self.args.data_root + 'domain_dataset_0/train') * 5
         self.engine = None
         self.best_score = 0
         self.cur_epoch = 0
@@ -264,6 +264,7 @@ class MMFL(object):
         self.config.optimizer.learning_rate = self.args.server_lr
         
         self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       dataset=self.args.dataset,
                                        eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
@@ -279,7 +280,7 @@ class MMFL(object):
             
         self.val_dataloader = {}
         for i in range(args.num_img_clients):
-            val_dataset = load_from_disk(f'/home/bd/data/zs/FedMMDP/data/processed_datasets/domain_dataset_{i}_test')
+            val_dataset = load_from_disk(self.args.data_root + f'domain_dataset_{i}/test')
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
@@ -298,7 +299,7 @@ class MMFL(object):
         # img clients
         if args.num_img_clients > 0:
             dataset = 'image'
-            self.img_trainloaders, test_loaders = get_FL_trainloader(dataset, '/home/bd/data/zs/FedMMDP/data/processed_datasets/',
+            self.img_trainloaders, test_loaders = get_FL_trainloader(dataset, self.args.data_root,
                                                                  args.num_img_clients, "hetero", self.args.alpha, self.args.batch_size)
             self.img_local_trainers = []
             for i in range(args.num_img_clients):
@@ -312,7 +313,7 @@ class MMFL(object):
         # txt clients
         if args.num_txt_clients > 0:
             dataset = 'text'
-            self.txt_trainloaders, test_loaders = get_FL_trainloader(dataset, '/home/bd/data/zs/FedMMDP/data/processed_datasets/',
+            self.txt_trainloaders, test_loaders = get_FL_trainloader(dataset, self.args.data_root,
                                                                  args.num_txt_clients, "hetero", self.args.alpha, self.args.batch_size)
             self.txt_local_trainers = []
             for i in range(args.num_txt_clients):
@@ -594,35 +595,36 @@ class MMFL(object):
                     losses, test_top1, test_top5
                 ])
             else:
-                for domain_idx in range(self.args.num_domains):
-                    print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
-                    test_scores = trainer.evaluate({'test': self.val_dataloader[domain_idx]})
-                    metadata = trainer.metadata.copy()
-                    metadata['cur_epoch'] = round_n + 1
-                    metadata['lr'] = get_lr(trainer.optimizer)
-                    trainer.report_scores(step=round_n + 1,
-                                            scores=test_scores,
-                                            metadata=metadata)
-                    rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
-                        test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
-                    if domain_idx == idx - 10:
-                        rsum += rsum_i
-                    mm_rows.append([
-                        round_n, trainer.client_idx, domain_idx, rsum_i,
-                        test_scores['test']['n_fold']['i2t']['recall_1'],
-                        test_scores['test']['n_fold']['t2i']['recall_1'],
-                        test_scores['test']['i2t']['recall_1'],
-                        test_scores['test']['t2i']['recall_1'],
-                        test_scores['test']['n_fold']['i2t']['recall_5'],
-                        test_scores['test']['n_fold']['t2i']['recall_5'],
-                        test_scores['test']['i2t']['recall_5'],
-                        test_scores['test']['t2i']['recall_5'],
-                    ])
-                    self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+                # for domain_idx in range(self.args.num_domains):
+                domain_idx = idx - 10
+                print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
+                test_scores = trainer.evaluate({'test': self.val_dataloader[domain_idx]})
+                metadata = trainer.metadata.copy()
+                metadata['cur_epoch'] = round_n + 1
+                metadata['lr'] = get_lr(trainer.optimizer)
+                trainer.report_scores(step=round_n + 1,
+                                        scores=test_scores,
+                                        metadata=metadata)
+                rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
+                    test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
+                if domain_idx == idx - 10:
+                    rsum += rsum_i
+                mm_rows.append([
+                    round_n, trainer.client_idx, domain_idx, rsum_i,
+                    test_scores['test']['n_fold']['i2t']['recall_1'],
+                    test_scores['test']['n_fold']['t2i']['recall_1'],
+                    test_scores['test']['i2t']['recall_1'],
+                    test_scores['test']['t2i']['recall_1'],
+                    test_scores['test']['n_fold']['i2t']['recall_5'],
+                    test_scores['test']['n_fold']['t2i']['recall_5'],
+                    test_scores['test']['i2t']['recall_5'],
+                    test_scores['test']['t2i']['recall_5'],
+                ])
+                self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
         
         self.rsum_history.append(rsum)
         if self.best_score < rsum:

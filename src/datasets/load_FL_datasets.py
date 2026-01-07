@@ -9,7 +9,7 @@ from src.datasets.transform import collate_fn
 def get_class_size(data_root):
     dataset = load_from_disk(data_root)
     # Count and print unique classes in the dataset
-    class_ids = dataset['class']
+    class_ids = dataset['class_id']
     unique_classes = len(set(class_ids))
     print(f"Dataset contains {unique_classes} unique classes")
     return unique_classes
@@ -18,8 +18,7 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
     net_dataset_map_list = []
     test_loaders = []
     for domain in range(num_clients):
-        dataset = load_from_disk(data_root + f"domain_dataset_{domain}")
-        dataset = dataset.remove_columns(["recaption_short"])
+        dataset = load_from_disk(data_root + f"domain_dataset_{domain}/train")
         train_test_split = dataset.train_test_split(test_size=0.1)
         train_set = train_test_split["train"]
         test_set = train_test_split["test"]
@@ -48,7 +47,7 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
             pin_memory=False,
             collate_fn=collate_fn
         ))
-    
+    generator = torch.Generator()
     if dataset_name == 'image':
         loader_map = {
             i: torch.utils.data.DataLoader(
@@ -56,6 +55,7 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
                 batch_size=batch_size, 
                 shuffle=True, 
                 num_workers=0,
+                generator=generator,
                 pin_memory=False,
                 collate_fn=collate_fn,
                 drop_last=True
@@ -68,6 +68,7 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
                 batch_size=batch_size, 
                 shuffle=True, 
                 num_workers=0,
+                generator=generator,
                 pin_memory=False,
                 collate_fn=collate_fn,
                 drop_last=True
@@ -80,6 +81,7 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
                 batch_size=batch_size, 
                 shuffle=True, 
                 num_workers=0,
+                generator=generator,
                 pin_memory=False,
                 collate_fn=collate_fn,
                 drop_last=True

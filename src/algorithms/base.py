@@ -71,6 +71,7 @@ class EngineBase(object):
         self.criterion = None
         self.lr_scheduler = None
         self.evaluator = MMEvaluator(model_name=self.args.model,
+                                       dataset=self.args.dataset,
                                        eval_method=config.model.get('eval_method', 'matmul'),
                                        verbose=False,
                                        eval_device='cuda',
@@ -80,7 +81,7 @@ class EngineBase(object):
         self.logger = logger
         self.metadata = {}
         self.client = client
-        self.dataloaders, self.test_loaders = get_FL_trainloader(dset_name, '/home/bd/data/zs/FedMMDP/data/processed_datasets/',
+        self.dataloaders, self.test_loaders = get_FL_trainloader(dset_name, self.args.data_root,
                                               args.num_mm_clients, config.dataloader["partition"], 
                                               config.dataloader["alpha"], 
                                               config.dataloader["batch_size"])

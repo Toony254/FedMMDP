@@ -13,10 +13,10 @@ def collate_fn(batch):
                 processed_imgs.append(torch.tensor(item["processed_img"], dtype=torch.float))
 
         if "cap_tokens" in item:
-            if isinstance(item["cap_tokens"][0], torch.Tensor):
-                cap_tokens.append(item["cap_tokens"][0])
+            if isinstance(item["cap_tokens"], torch.Tensor):
+                cap_tokens.append(item["cap_tokens"])
             else:
-                cap_tokens.append(torch.tensor(item["cap_tokens"][0], dtype=torch.long))
+                cap_tokens.append(torch.tensor(item["cap_tokens"], dtype=torch.long))
                 
         for k, v in item.items():
             if k not in ["processed_img", "cap_tokens"]:

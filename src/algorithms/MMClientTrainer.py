@@ -110,7 +110,7 @@ class MMClientTrainer(EngineBase):
                 for name, param in self.model.named_parameters():
                     prox_loss += ((param - global_params[name].to(param.device)) ** 2).sum()
                 total_loss = loss + 0.5 * mu * prox_loss
-                print(f"Client {self.client} - Epoch {self.local_epoch}, Step {idx}, Loss: {loss:.4f}, Prox Loss: {prox_loss:.4f}")
+                # print(f"Client {self.client} - Epoch {self.local_epoch}, Step {idx}, Loss: {loss:.4f}, Prox Loss: {prox_loss:.4f}")
                 self.optimizer.zero_grad()
                 if self.config.train.get('use_fp16'):
                     with amp.scale_loss(total_loss, self.optimizer) as scaled_loss:
@@ -419,7 +419,7 @@ class MMClientTrainer(EngineBase):
             if torch.isnan(loss):
                 print("Found nan in loss!")
                 continue
-            print(f"Multimodal Client {self.client} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}")
+            # print(f"Multimodal Client {self.client} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}")
             loss.backward()
             if self.config.train.grad_clip > 0:
                 nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(),
