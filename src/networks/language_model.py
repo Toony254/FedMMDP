@@ -54,10 +54,10 @@ class EncoderText(nn.Module):
         self.mlp_local = mlp_local
         if self.mlp_local:
             self.head_proj = nn.Sequential(
-                nn.Linear(1024, 1024),
-                nn.BatchNorm1d(1024),
+                nn.Linear(self.embed_dim, self.embed_dim),
+                nn.BatchNorm1d(self.embed_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(1024, 1024)
+                nn.Linear(self.embed_dim, self.embed_dim)
             )
 
     def forward(self, x):

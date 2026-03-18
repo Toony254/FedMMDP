@@ -2,6 +2,7 @@ import datetime
 import sys
 
 import torch.nn as nn
+import torch.nn.functional as F
 
 from tqdm import tqdm
 
@@ -22,6 +23,7 @@ from src.criterions import get_criterion
 from src.networks.models import get_model
 from src.utils.config import parse_config
 from src.utils.serialize_utils import flatten_dict, torch_safe_load
+from src.algorithms.distill_utils import compute_distill_loss
 
 try:
     from apex import amp
@@ -241,17 +243,19 @@ class TrainerEngine(EngineBase):
             images = images.to(self.device)
             captions = captions.to(self.device)
             batch_size = images.size(0)
-            img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.device)
-            txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.device)
+            img_soft_label = torch.as_tensor(avg_img_logits[idx:idx+batch_size], dtype=torch.float32, device=self.device)
+            txt_soft_label = torch.as_tensor(avg_txt_logits[idx:idx+batch_size], dtype=torch.float32, device=self.device)
             idx += batch_size
             self.optimizer.zero_grad()
             output = self.model(images, captions)
-            image_logits = output['image_features']
-            text_logits = output['caption_features']
-            loss = nn.MSELoss()(image_logits, img_soft_label)
-            loss += nn.MSELoss()(text_logits, txt_soft_label)
-            print(f"Distill with logits, Step {i}, Loss: {loss.item():.4f}")
+            loss = compute_distill_loss(output['image_features'], img_soft_label)
+            loss += compute_distill_loss(output['caption_features'], txt_soft_label)
+            print(f"Distill with logits, Step {i}, Loss: {loss.item():.6f}")
+            if torch.isnan(loss) or torch.isinf(loss):
+                continue
             loss.backward()
+            if self.config.train.grad_clip > 0:
+                nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), self.config.train.grad_clip)
             self.optimizer.step()
     def report_scores(self, step, scores, metadata, prefix=''):
         report_dict = {data_key: flatten_dict(_scores, sep='_')
@@ -282,6 +286,8 @@ class rawTrainerEngine(EngineBase):
         self.model.train()
         torch.cuda.empty_cache()
 
+        loss_dict = {}
+        last_idx = -1
         for idx, (images, captions, captions_word, caption_lens, _, _, index) in tqdm(enumerate(dataloader), total=len(dataloader)):
             images = images.to(self.device)  # [bs, 3, 224, 224]
             captions = captions.to(self.device)  # [bs, seq_len]
@@ -290,6 +296,7 @@ class rawTrainerEngine(EngineBase):
             if idx == int(len(dataloader) * pub_data_ratio):
                 break
 
+            last_idx = idx
             output = self.model(images, captions, captions_word, caption_lens)
             loss, loss_dict = self.criterion(**output)
             self.optimizer.zero_grad()
@@ -303,6 +310,9 @@ class rawTrainerEngine(EngineBase):
                                                    self.config.train.grad_clip)
             self.optimizer.step()
 
+        if last_idx < 0:
+            return
+
         loss_dict = {'{}{}'.format(prefix, key): val
                      for key, val in loss_dict.items()}
 
@@ -313,7 +323,7 @@ class rawTrainerEngine(EngineBase):
             else:
                 return _cur_step
 
-        loss_dict['step'] = cur_step(cur_epoch, idx, len(dataloader))
+        loss_dict['step'] = cur_step(cur_epoch, last_idx, len(dataloader))
         if self.logger is not None:
             self.logger.report(loss_dict, prefix='[Train] Report @step: ')
 

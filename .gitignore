@@ -18,3 +18,4 @@
 /temp_batches
 /outputs
 /results
+/src/datasets/coco_emb.pt

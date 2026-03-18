@@ -22,7 +22,7 @@ sys.path.append("../../")
 sys.path.append("../../../")
 
 from src.datasets.transform import collate_fn
-from src.datasets.load_FL_datasets import get_FL_trainloader, get_class_size
+from src.datasets.load_FL_datasets import get_FL_trainloader
 from src.algorithms.ClientTrainer import ClientTrainer
 from src.algorithms.MMClientTrainer import MMClientTrainer
 
@@ -219,7 +219,14 @@ class MMFL(object):
         self.txt_local_trainers = None
         self.mm_local_trainers = None
         # self.engine = None
-        self.class_size = get_class_size(self.args.data_root + 'domain_dataset_0/train') * 5
+        if self.args.dataset == 'imagenet':
+            self.class_size = 50
+        elif self.args.dataset == 'fashion':
+            self.class_size = 48
+        elif self.args.dataset == 'food':
+            self.class_size = 101
+        elif self.args.dataset == 'iapr':
+            self.class_size = 30  # 5 domains x 6 classes
         self.engine = None
         self.best_score = 0
         self.cur_epoch = 0
@@ -244,7 +251,15 @@ class MMFL(object):
 
 
     def set_config(self, img='image', txt='text'):
-        self.config = parse_config("./src/imageNet_cap.yaml", strict_cast=False)
+        if self.args.dataset == 'imagenet':
+            yaml_name = 'imageNet_cap.yaml'
+        elif self.args.dataset == 'fashion':
+            yaml_name = 'fashion_gen.yaml'
+        elif self.args.dataset == 'food':
+            yaml_name = 'umpc_food.yaml'
+        elif self.args.dataset == 'iapr':
+            yaml_name = 'iapr.yaml'
+        self.config = parse_config("./src/" + yaml_name, strict_cast=False)
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
         self.config.train.output_file = 'model_noprob'
@@ -268,8 +283,10 @@ class MMFL(object):
                                        eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
-                                       n_crossfolds=5, 
-                                       class_size=self.class_size)
+                                       n_crossfolds=1, 
+                                       class_size=self.class_size,
+                                        feature_dim=self.args.feature_dim,
+                                        data_root=self.args.data_root)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
 
         self.engine.model_to_device()
@@ -280,7 +297,7 @@ class MMFL(object):
             
         self.val_dataloader = {}
         for i in range(args.num_img_clients):
-            val_dataset = load_from_disk(self.args.data_root + f'domain_dataset_{i}/test')
+            val_dataset = load_from_disk(os.path.join(self.args.data_root, f'domain_dataset_{i}', 'test'))
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
@@ -327,7 +344,15 @@ class MMFL(object):
         # mm clients
         if args.num_mm_clients > 0:
             # mm img models
-            config = parse_config("./src/imageNet_cap.yaml", strict_cast=False)
+            if self.args.dataset == 'imagenet':
+                yaml_name = 'imageNet_cap.yaml'
+            elif self.args.dataset == 'fashion':
+                yaml_name = 'fashion_gen.yaml'
+            elif self.args.dataset == 'food':
+                yaml_name = 'umpc_food.yaml'
+            elif self.args.dataset == 'iapr':
+                yaml_name = 'iapr.yaml'
+            config = parse_config("./src/" + yaml_name, strict_cast=False)
             config.model.cache_dir = config.model.cache_dir + '-' + config.train.server_dataset
             config.train.output_file = os.path.join(config.model.cache_dir, config.train.output_file)
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
@@ -374,11 +399,24 @@ class MMFL(object):
 
         # 3. 服务器端最终聚合
         final_models = server.aggregate_final_models(num_clusters)
-        cluster_models = [final_models[c] for c in sorted(final_models.keys())]
+        modality_cluster_models = {}
+        for key, model_state in final_models.items():
+            if not isinstance(key, tuple) or len(key) != 2:
+                continue
+            modality, cluster_label = key
+            modality_cluster_models.setdefault(modality, {})[cluster_label] = model_state
 
         # 4. ASCC分层注意力个性化与本地微调
         for client in trainers:
+            if client.dset_name == 'mm':
+                continue
             for modality in get_modalities(client):
+                modality_models_map = modality_cluster_models.get(modality, {})
+                if not modality_models_map:
+                    continue
+                cluster_labels = sorted(modality_models_map.keys())
+                cluster_models = [modality_models_map[label] for label in cluster_labels]
+                num_modality_clusters = len(cluster_models)
                 # 1. 获取分层结构
                 if hasattr(client.model, 'img_enc') and modality == 'img':
                     ref_module = client.model.img_enc
@@ -392,14 +430,14 @@ class MMFL(object):
                     ref_module = client.model
                 ref_state = ref_module.state_dict()
                 all_keys = list(ref_state.keys())
-                valid_keys = [k for k in all_keys if any(k in cluster_models[kk] for kk in range(num_clusters))]
+                valid_keys = [k for k in all_keys if any(k in cluster_models[kk] for kk in range(num_modality_clusters))]
                 if not valid_keys:
                     continue
                 layer_shapes = [ref_state[k].shape for k in valid_keys]
                 L_m = len(layer_shapes)
 
                 # 3. 初始化分层注意力参数
-                A = [torch.zeros(num_clusters, requires_grad=True, device=self.device) for _ in range(L_m)]
+                A = [torch.zeros(num_modality_clusters, requires_grad=True, device=self.device) for _ in range(L_m)]
                 optimizer = torch.optim.Adam(A, lr=getattr(self.args, "ascc_lr", 0.05))
 
                 # 4. 查询数据采样
@@ -428,7 +466,7 @@ class MMFL(object):
 
                 # 5. 分层注意力训练
                 for _ in range(getattr(self.args, "ascc_attn_epoch", 3)):
-                    total_loss = 0
+                    total_loss = None
                     for x, y in query_samples:
                         q_input = x.to(self.device)
                         y = y.to(self.device)
@@ -437,7 +475,7 @@ class MMFL(object):
                         for l in range(L_m):
                             attn = F.softmax(A[l], dim=0)
                             layer_outs = []
-                            for k in range(num_clusters):
+                            for k in range(num_modality_clusters):
                                 # 获取第k个聚类模型的第l层参数
                                 layer_key = valid_keys[l]
                                 cluster_layer_params = cluster_models[k][layer_key]
@@ -449,18 +487,22 @@ class MMFL(object):
                                 tmp_module.load_state_dict(tmp_state, strict=False)
                                 tmp_module.eval()
                                 tmp_module.cuda()
+                                module_param = next(tmp_module.parameters(), None)
+                                q_forward = q_input
+                                if module_param is not None and torch.is_floating_point(q_forward):
+                                    q_forward = q_forward.to(dtype=module_param.dtype)
                                 with torch.no_grad():
                                     if (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'clip':
-                                        out = tmp_module(q_input)
+                                        out = tmp_module(q_forward)
                                     elif (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'resnet':
                                         tmp_module.phase = "extract_conv_feature"
                                         tmp_module.is_train = False
-                                        out = tmp_module(q_input)
+                                        out = tmp_module(q_forward)
                                     else:
-                                        out = tmp_module(q_input)["embedding"]
+                                        out = tmp_module(q_forward)["embedding"]
                                 layer_outs.append(out)
                             # 加权聚合
-                            layer_outputs.append(sum(attn[k] * layer_outs[k] for k in range(num_clusters)))
+                            layer_outputs.append(sum(attn[k] * layer_outs[k] for k in range(num_modality_clusters)))
                         # 最终输出送入分类器
                         q = layer_outputs[-1]
                         client.model.to(self.device)
@@ -477,7 +519,9 @@ class MMFL(object):
                             logits = q
                             y = client.model.txt_enc(y)
                             loss = F.cross_entropy(logits, y)
-                        total_loss += loss
+                        total_loss = loss if total_loss is None else total_loss + loss
+                    if total_loss is None:
+                        continue
                     optimizer.zero_grad()
                     total_loss.backward()
                     optimizer.step()
@@ -487,19 +531,20 @@ class MMFL(object):
                 for l in range(L_m):
                     attn = F.softmax(A[l].detach(), dim=0).cpu().numpy()
                     layer_key = valid_keys[l]
-                    shapes = [cluster_models[k][layer_key].shape for k in range(num_clusters)]
+                    shapes = [cluster_models[k][layer_key].shape for k in range(num_modality_clusters)]
                     if all(s == shapes[0] for s in shapes):
-                        agg_layer = sum(attn[k] * cluster_models[k][layer_key] for k in range(num_clusters))
+                        agg_layer = sum(attn[k] * cluster_models[k][layer_key] for k in range(num_modality_clusters))
                         personalized_layers.append(agg_layer)
                     else:
                         print(f"Skip layer {layer_key} due to shape mismatch: {shapes}")
-                personalized_flat = np.concatenate([l.reshape(-1) for l in personalized_layers], axis=0)
+                if not personalized_layers:
+                    continue
                 set_model_parameters(client, modality, dict(zip(valid_keys, personalized_layers)))
 
                 # 7. 选择最优聚类
-                attn_sum = np.array([sum(F.softmax(A[l], dim=0)[k].item() for l in range(L_m)) for k in range(num_clusters)])
+                attn_sum = np.array([sum(F.softmax(A[l], dim=0)[k].item() for l in range(L_m)) for k in range(num_modality_clusters)])
                 best_idx = int(np.argmax(attn_sum))
-                client.selected_cluster = best_idx
+                client.selected_cluster = cluster_labels[best_idx]
 
                 # 8. 本地微调
                 model = ref_module
@@ -522,7 +567,11 @@ class MMFL(object):
                         else:
                             x, y = batch["processed_img"].to(self.device), batch["cap_tokens"].to(self.device)
                         optimizer_finetune.zero_grad()
-                        out = model(x)
+                        model_param = next(model.parameters(), None)
+                        x_forward = x
+                        if model_param is not None and torch.is_floating_point(x_forward):
+                            x_forward = x_forward.to(dtype=model_param.dtype)
+                        out = model(x_forward)
                         if (client.dset_name == 'image' or client.dset_name == 'text') and client.args.model == 'clip':
                             logits = client.model.class_fc_2(out).to(self.device)
                         elif client.dset_name == 'image' and client.args.model == 'resnet':
@@ -586,7 +635,7 @@ class MMFL(object):
                     losses, test_top1, test_top5
                 ])
             elif trainer.dset_name == "text":
-                domain_idx = idx - 5
+                domain_idx = idx - self.args.num_img_clients
                 trainer.test_loader = self.val_dataloader[domain_idx]
                 print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
                 losses, test_top1, test_top5 = trainer.test()
@@ -596,7 +645,7 @@ class MMFL(object):
                 ])
             else:
                 # for domain_idx in range(self.args.num_domains):
-                domain_idx = idx - 10
+                domain_idx = idx - self.args.num_img_clients - self.args.num_txt_clients
                 print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
                 test_scores = trainer.evaluate({'test': self.val_dataloader[domain_idx]})
                 metadata = trainer.metadata.copy()
@@ -607,7 +656,7 @@ class MMFL(object):
                                         metadata=metadata)
                 rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
                     test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
-                if domain_idx == idx - 10:
+                if domain_idx == idx - self.args.num_img_clients - self.args.num_txt_clients:
                     rsum += rsum_i
                 mm_rows.append([
                     round_n, trainer.client_idx, domain_idx, rsum_i,
@@ -620,11 +669,12 @@ class MMFL(object):
                     test_scores['test']['i2t']['recall_5'],
                     test_scores['test']['t2i']['recall_5'],
                 ])
-                self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
-                self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
-                self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
-                self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
-                self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+                mm_client_idx = idx - self.args.num_img_clients - self.args.num_txt_clients
+                self.wandb.log({f"Multimodal_{mm_client_idx} rsum_r1": rsum_i}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{mm_client_idx} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{mm_client_idx} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{mm_client_idx} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
+                self.wandb.log({f"Multimodal_{mm_client_idx} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
         
         self.rsum_history.append(rsum)
         if self.best_score < rsum:
@@ -660,7 +710,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.dataset}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

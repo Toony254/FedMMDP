@@ -26,6 +26,7 @@ except ImportError:
     print('failed to import apex')
 
 from src.utils.serialize_utils import flatten_dict
+from src.algorithms.distill_utils import compute_distill_loss
 
 
 def seed_torch(seed=2021):
@@ -282,6 +283,12 @@ class MMClientTrainer(EngineBase):
             txt_features.append(txt_feat)
             img_labels.append(labels.numpy())
             txt_labels.append(labels.numpy())
+        if not img_features or not txt_features:
+            if self.logger is not None:
+                self.logger.log(f"Skip MASA local epoch for client {self.client}: train loader has no full batch")
+            self.model.train()
+            return
+
         img_features = np.concatenate(img_features, axis=0)
         txt_features = np.concatenate(txt_features, axis=0)
         img_labels = np.concatenate(img_labels, axis=0)
@@ -289,6 +296,7 @@ class MMClientTrainer(EngineBase):
 
         # 2. 计算互信息分数MIS
         def compute_mis(features, labels):
+            features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
             unique_labels, labels_mapped = np.unique(labels, return_inverse=True)
             kmeans = KMeans(n_clusters=len(unique_labels))
             cluster_labels = kmeans.fit_predict(features)
@@ -351,7 +359,10 @@ class MMClientTrainer(EngineBase):
             self.optimizer.step()
 
     def train_epoch(self, prefix=''):
+        loss_dict = {}
+        last_idx = -1
         for idx, data in enumerate(self.train_loader):
+            last_idx = idx
             images = data["processed_img"].to(self.device)
             captions = data["cap_tokens"].to(self.device)
             output = self.model(images, captions)
@@ -373,13 +384,18 @@ class MMClientTrainer(EngineBase):
             if is_test:
                 break
 
+        if last_idx < 0:
+            if self.logger is not None:
+                self.logger.log(f"Skip local epoch for client {self.client}: train loader has no full batch")
+            return
+
         loss_dict = {'{}'.format(key): val
                      for key, val in loss_dict.items()}
-        loss_dict['step'] = cur_step(self.cur_epoch, idx, len(self.train_loader))
+        loss_dict['step'] = cur_step(self.cur_epoch, last_idx, len(self.train_loader))
         
         loss_dict = {'{}{}'.format(prefix, key): val
                      for key, val in loss_dict.items()}
-        loss_dict['step'] = cur_step(self.cur_epoch, idx, len(self.train_loader))
+        loss_dict['step'] = cur_step(self.cur_epoch, last_idx, len(self.train_loader))
         
     def predict_logits(self, dataloader):
         self.model.cuda()
@@ -393,9 +409,11 @@ class MMClientTrainer(EngineBase):
                 output = self.model(images, captions)
                 img_logits = output['image_features']
                 txt_logits = output['caption_features']
-                img_logits_list.append(img_logits.cpu().numpy())
-                txt_logits_list.append(txt_logits.cpu().numpy())
-        return np.concatenate(img_logits_list, axis=0), np.concatenate(txt_logits_list, axis=0)
+                img_logits_list.append(img_logits.float().cpu().numpy().astype(np.float32))
+                txt_logits_list.append(txt_logits.float().cpu().numpy().astype(np.float32))
+        if not img_logits_list or not txt_logits_list:
+            return np.empty((0, self.args.feature_dim), dtype=np.float32), np.empty((0, self.args.feature_dim), dtype=np.float32)
+        return np.concatenate(img_logits_list, axis=0).astype(np.float32, copy=False), np.concatenate(txt_logits_list, axis=0).astype(np.float32, copy=False)
 
     def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
         self.model.cuda()
@@ -405,21 +423,21 @@ class MMClientTrainer(EngineBase):
             images = images.to(self.device)
             captions = captions.to(self.device)
             batch_size = images.size(0)
-            img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size], dtype=torch.float32).to(self.device)
-            txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size], dtype=torch.float32).to(self.device)
+            img_soft_label = torch.as_tensor(avg_img_logits[idx:idx+batch_size], dtype=torch.float32, device=self.device)
+            txt_soft_label = torch.as_tensor(avg_txt_logits[idx:idx+batch_size], dtype=torch.float32, device=self.device)
             if torch.isnan(img_soft_label).any() or torch.isnan(txt_soft_label).any():
                 print("Found nan in soft labels!")
             idx += batch_size
             self.optimizer.zero_grad()
             output = self.model(images, captions)
-            image_logits = output['image_features'].float()
-            text_logits = output['caption_features'].float()
-            loss = nn.MSELoss()(image_logits, img_soft_label)
-            loss += nn.MSELoss()(text_logits, txt_soft_label)
-            if torch.isnan(loss):
-                print("Found nan in loss!")
+            loss = compute_distill_loss(output['image_features'], img_soft_label)
+            loss += compute_distill_loss(output['caption_features'], txt_soft_label)
+            if torch.isnan(loss) or torch.isinf(loss):
+                print("Found invalid loss during distillation!")
                 continue
-            # print(f"Multimodal Client {self.client} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}")
+            if i == 0 or (i + 1) % 20 == 0:
+                client_key = getattr(self, 'client_idx', self.client)
+                self.logger.log(f"Distill client {client_key} ({self.dset_name}) step {i}: loss={loss.item():.6f}")
             loss.backward()
             if self.config.train.grad_clip > 0:
                 nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(),

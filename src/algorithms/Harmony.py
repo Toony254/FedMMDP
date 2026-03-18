@@ -23,7 +23,7 @@ sys.path.append("../../")
 sys.path.append("../../../")
 
 from src.datasets.transform import collate_fn
-from src.datasets.load_FL_datasets import get_FL_trainloader, get_class_size
+from src.datasets.load_FL_datasets import get_FL_trainloader
 from src.algorithms.ClientTrainer import ClientTrainer
 from src.algorithms.MMClientTrainer import MMClientTrainer
 
@@ -52,7 +52,14 @@ class MMFL(object):
         self.txt_local_trainers = None
         self.mm_local_trainers = None
         # self.engine = None
-        self.class_size = get_class_size(self.args.data_root + 'domain_dataset_0/train') * 5
+        if self.args.dataset == 'imagenet':
+            self.class_size = 50
+        elif self.args.dataset == 'fashion':
+            self.class_size = 48
+        elif self.args.dataset == 'food':
+            self.class_size = 101
+        elif self.args.dataset == 'iapr':
+            self.class_size = 30  # 5 domains x 6 classes
         self.engine = None
         self.best_score = 0
         self.cur_epoch = 0
@@ -80,7 +87,15 @@ class MMFL(object):
 
 
     def set_config(self, img='image', txt='text'):
-        self.config = parse_config("./src/imageNet_cap.yaml", strict_cast=False)
+        if self.args.dataset == 'imagenet':
+            yaml_name = 'imageNet_cap.yaml'
+        elif self.args.dataset == 'fashion':
+            yaml_name = 'fashion_gen.yaml'
+        elif self.args.dataset == 'food':
+            yaml_name = 'umpc_food.yaml'
+        elif self.args.dataset == 'iapr':
+            yaml_name = 'iapr.yaml'
+        self.config = parse_config("./src/" + yaml_name, strict_cast=False)
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
         self.config.train.output_file = 'model_noprob'
@@ -104,8 +119,10 @@ class MMFL(object):
                                        eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
-                                       n_crossfolds=5, 
-                                       class_size=self.class_size)
+                                       n_crossfolds=1, 
+                                       class_size=self.class_size,
+                                        feature_dim=self.args.feature_dim,
+                                        data_root=self.args.data_root)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
 
         self.engine.model_to_device()
@@ -116,7 +133,7 @@ class MMFL(object):
             
         self.val_dataloader = {}
         for i in range(args.num_img_clients):
-            val_dataset = load_from_disk(self.args.data_root + f'domain_dataset_{i}/test')
+            val_dataset = load_from_disk(os.path.join(self.args.data_root, f'domain_dataset_{i}', 'test'))
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
@@ -163,7 +180,15 @@ class MMFL(object):
         # mm clients
         if args.num_mm_clients > 0:
             # mm img models
-            config = parse_config("./src/imageNet_cap.yaml", strict_cast=False)
+            if self.args.dataset == 'imagenet':
+                yaml_name = 'imageNet_cap.yaml'
+            elif self.args.dataset == 'fashion':
+                yaml_name = 'fashion_gen.yaml'
+            elif self.args.dataset == 'food':
+                yaml_name = 'umpc_food.yaml'
+            elif self.args.dataset == 'iapr':
+                yaml_name = 'iapr.yaml'
+            config = parse_config("./src/" + yaml_name, strict_cast=False)
             config.model.cache_dir = config.model.cache_dir + '-' + config.train.server_dataset
             config.train.output_file = os.path.join(config.model.cache_dir, config.train.output_file)
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
@@ -260,7 +285,7 @@ class MMFL(object):
                     losses, test_top1, test_top5
                 ])
             elif trainer.dset_name == "text":
-                domain_idx = idx - 5
+                domain_idx = idx - self.args.num_img_clients
                 trainer.test_loader = self.val_dataloader[domain_idx]
                 print(f"Client {trainer.dset_name} {idx} tests in domain {domain_idx}:")
                 losses, test_top1, test_top5 = trainer.test()
@@ -280,7 +305,7 @@ class MMFL(object):
                                             metadata=metadata)
                     rsum_i = test_scores['test']['i2t']['recall_1'] + test_scores['test']['t2i']['recall_1'] + \
                         test_scores['test']['i2t']['recall_5'] + test_scores['test']['t2i']['recall_5']
-                    if domain_idx == idx - 10:
+                    if domain_idx == idx - self.args.num_img_clients - self.args.num_txt_clients:
                         rsum += rsum_i
                     mm_rows.append([
                         round_n, trainer.client_idx, domain_idx, rsum_i,
@@ -293,11 +318,12 @@ class MMFL(object):
                         test_scores['test']['i2t']['recall_5'],
                         test_scores['test']['t2i']['recall_5'],
                     ])
-                    self.wandb.log({f"Multimodal_{idx-10} rsum_r1": rsum_i}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
-                    self.wandb.log({f"Multimodal_{idx-10} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
+                    mm_client_idx = idx - self.args.num_img_clients - self.args.num_txt_clients
+                    self.wandb.log({f"Multimodal_{mm_client_idx} rsum_r1": rsum_i}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{mm_client_idx} n_fold_i2t_r1": test_scores['test']['n_fold']['i2t']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{mm_client_idx} n_fold_t2i_r1": test_scores['test']['n_fold']['t2i']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{mm_client_idx} i2t_r1": test_scores['test']['i2t']['recall_1']}, step=self.cur_epoch)
+                    self.wandb.log({f"Multimodal_{mm_client_idx} t2i_r1": test_scores['test']['t2i']['recall_1']}, step=self.cur_epoch)
         
         self.rsum_history.append(rsum)
         if self.best_score < rsum:
@@ -334,7 +360,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.dataset}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

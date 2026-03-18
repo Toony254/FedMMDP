@@ -5,20 +5,12 @@ import torch
 import pickle
 from datasets import load_from_disk
 from src.datasets.transform import collate_fn
-
-def get_class_size(data_root):
-    dataset = load_from_disk(data_root)
-    # Count and print unique classes in the dataset
-    class_ids = dataset['class_id']
-    unique_classes = len(set(class_ids))
-    print(f"Dataset contains {unique_classes} unique classes")
-    return unique_classes
-
 def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, batch_size):
     net_dataset_map_list = []
     test_loaders = []
     for domain in range(num_clients):
-        dataset = load_from_disk(data_root + f"domain_dataset_{domain}/train")
+        dataset_path = os.path.join(data_root, f"domain_dataset_{domain}", "train")
+        dataset = load_from_disk(dataset_path)
         train_test_split = dataset.train_test_split(test_size=0.1)
         train_set = train_test_split["train"]
         test_set = train_test_split["test"]
@@ -32,8 +24,17 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
         targets = train_set['class_id']
         num_samples = train_set.num_rows
         
+        # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_imagenet/domain_datasets/"
+        # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/"
+        # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/"
+        dataset_name_from_path = data_root.split('preprocessed_')[-1].split('/')[0]
+        check_dir = os.path.join('./data_partition/', dataset_name_from_path)
+        if "ALIGN" in data_root:
+            check_dir = './data_partition/imagenet_align_'
+        elif "siglip" in data_root:
+            check_dir = './data_partition/imagenet_siglip_'
         net_dataidx_map = data_partitioner(domain, num_samples, 3, partition=partition,
-                                        check_dir="./data_partition/", alpha=alpha,
+                                        check_dir=check_dir, alpha=alpha,
                                         y_train=np.array(targets))
         print(f"Samples Num: {[len(i) for i in net_dataidx_map.values()]}")
         

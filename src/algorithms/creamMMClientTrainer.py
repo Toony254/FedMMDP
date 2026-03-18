@@ -110,7 +110,10 @@ class MMClientTrainer(EngineBase):
         gc.collect()
 
     def train_epoch(self, global_img_feature, global_txt_feature, distill_index, global_train_loader, prefix=''):
+        loss_dict = {}
+        last_idx = -1
         for idx, data in enumerate(self.train_loader):
+            last_idx = idx
             images = data["processed_img"].to(self.device)
             captions = data["cap_tokens"].to(self.device)
             output = self.model(images, captions)
@@ -132,13 +135,17 @@ class MMClientTrainer(EngineBase):
             if is_test:
                 break
 
-        loss_dict = {'{}'.format(key): val
-                     for key, val in loss_dict.items()}
-        loss_dict['step'] = cur_step(self.cur_epoch, idx, len(self.train_loader))
-        
-        loss_dict = {'{}{}'.format(prefix, key): val
-                     for key, val in loss_dict.items()}
-        loss_dict['step'] = cur_step(self.cur_epoch, idx, len(self.train_loader))
+        if last_idx < 0:
+            if self.logger is not None:
+                self.logger.log(f"Skip local supervised step for client {self.client}: train loader has no full batch")
+        else:
+            loss_dict = {'{}'.format(key): val
+                         for key, val in loss_dict.items()}
+            loss_dict['step'] = cur_step(self.cur_epoch, last_idx, len(self.train_loader))
+            
+            loss_dict = {'{}{}'.format(prefix, key): val
+                         for key, val in loss_dict.items()}
+            loss_dict['step'] = cur_step(self.cur_epoch, last_idx, len(self.train_loader))
 
         criterion = nn.CrossEntropyLoss().cuda()
         if self.args.contrast_local_intra and self.args.contrast_local_inter:

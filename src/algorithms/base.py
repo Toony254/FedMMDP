@@ -75,7 +75,7 @@ class EngineBase(object):
                                        eval_method=config.model.get('eval_method', 'matmul'),
                                        verbose=False,
                                        eval_device='cuda',
-                                       n_crossfolds=5,
+                                       n_crossfolds=1,
                                        class_size=self.class_size)
 
         self.logger = logger

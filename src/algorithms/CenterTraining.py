@@ -26,7 +26,7 @@ sys.path.append("../../../")
 
 from networks.clip_ft import train
 from src.datasets.transform import collate_fn
-from src.datasets.load_FL_datasets import get_FL_trainloader, get_class_size
+from src.datasets.load_FL_datasets import get_FL_trainloader
 from src.algorithms.ClientTrainer import ClientTrainer
 from src.algorithms.MMClientTrainer import MMClientTrainer
 
@@ -56,7 +56,14 @@ class MMFL(object):
         self.txt_local_trainers = None
         self.mm_local_trainers = None
         # self.engine = None
-        self.class_size = get_class_size(self.args.data_root + 'domain_dataset_0/train') * 5
+        if self.args.dataset == 'imagenet':
+            self.class_size = 50
+        elif self.args.dataset == 'fashion':
+            self.class_size = 48
+        elif self.args.dataset == 'food':
+            self.class_size = 101
+        elif self.args.dataset == 'iapr':
+            self.class_size = 30  # 5 domains x 6 classes
         self.engine = None
         self.best_score = 0
         self.cur_epoch = 0
@@ -81,7 +88,15 @@ class MMFL(object):
 
 
     def set_config(self, img='image', txt='text'):
-        self.config = parse_config("./src/imageNet_cap.yaml", strict_cast=False)
+        if self.args.dataset == 'imagenet':
+            yaml_name = 'imageNet_cap.yaml'
+        elif self.args.dataset == 'fashion':
+            yaml_name = 'fashion_gen.yaml'
+        elif self.args.dataset == 'food':
+            yaml_name = 'umpc_food.yaml'
+        elif self.args.dataset == 'iapr':
+            yaml_name = 'iapr.yaml'
+        self.config = parse_config("./src/" + yaml_name, strict_cast=False)
         self.config.model.name = self.args.model
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
@@ -105,8 +120,10 @@ class MMFL(object):
                                        eval_method='matmul',
                                        verbose=False,
                                        eval_device='cuda',
-                                       n_crossfolds=5, 
-                                       class_size=self.class_size)
+                                       n_crossfolds=1, 
+                                       class_size=self.class_size,
+                                       feature_dim=self.args.feature_dim,
+                                       data_root=self.args.data_root)
         self.engine.create(self.config, self.evaluator, self.args.mlp_local)
 
         self.engine.model_to_device()
@@ -117,7 +134,7 @@ class MMFL(object):
             
         train_dataset = []
         for i in range(args.num_domains):
-            domain_dataset = load_from_disk(self.args.data_root + f'domain_dataset_{i}/train')
+            domain_dataset = load_from_disk(os.path.join(self.args.data_root, f'domain_dataset_{i}', 'train'))
             train_dataset.append(domain_dataset)
         merged_dataset = concatenate_datasets(train_dataset)
         merged_dataset = merged_dataset.shuffle(seed=42)  # Shuffle the dataset for better training
@@ -134,7 +151,7 @@ class MMFL(object):
         
         self.val_dataloader = {}
         for i in range(args.num_img_clients):
-            val_dataset = load_from_disk(self.args.data_root + f'domain_dataset_{i}/test')
+            val_dataset = load_from_disk(os.path.join(self.args.data_root, f'domain_dataset_{i}', 'test'))
             self.val_dataloader[i] = torch.utils.data.DataLoader(val_dataset, 
                                                             batch_size=self.args.batch_size, 
                                                             shuffle=False, 
@@ -181,7 +198,15 @@ class MMFL(object):
         # mm clients
         if args.num_mm_clients > 0:
             # mm img models
-            config = parse_config("./src/imageNet_cap.yaml", strict_cast=False)
+            if self.args.dataset == 'imagenet':
+                yaml_name = 'imageNet_cap.yaml'
+            elif self.args.dataset == 'fashion':
+                yaml_name = 'fashion_gen.yaml'
+            elif self.args.dataset == 'food':
+                yaml_name = 'umpc_food.yaml'
+            elif self.args.dataset == 'iapr':
+                yaml_name = 'iapr.yaml'
+            config = parse_config("./src/" + yaml_name, strict_cast=False)
             config.model.cache_dir = config.model.cache_dir + '-' + config.train.server_dataset
             config.train.output_file = os.path.join(config.model.cache_dir, config.train.output_file)
             config.train.best_model_save_path = os.path.join(config.model.cache_dir, config.train.best_model_save_path)
@@ -288,7 +313,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
+        plt.savefig(f'results/rsum_{self.args.FL_algorithm}_{self.args.dataset}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

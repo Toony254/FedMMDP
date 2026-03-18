@@ -6,25 +6,19 @@ https://github.com/yalesong/pvse/blob/master/data.py
 """
 
 import os
+from glob import glob
 
 import torch
-from torchvision import datasets
-
-from src.datasets.dataset_L import caption_transform
-from src.datasets.vocab import Vocabulary
 
 try:
     import ujson as json
 except ImportError:
     import json
 
-from PIL import Image
 from pycocotools.coco import COCO
-
 from torch.utils.data import Dataset
-from glob import glob
 
-import numpy as np
+from src.datasets.coco_preprocess import build_cache_path, load_clip_cache
 
 
 class CocoCaptionsCap(Dataset):
@@ -61,10 +55,11 @@ class CocoCaptionsCap(Dataset):
             u'A mountain that has a plane flying overheard in the distance.',
             u'A mountain view with a plume of smoke in the background']
     """
+
     def __init__(self, root, annFile, ids=None,
                  extra_annFile=None, extra_ids=None,
-                 transform=None, target_transform=None,
-                 instance_annFile=None, client=-1):
+                 instance_annFile=None, client=-1,
+                 cache_file=None, cache_map_location="cpu"):
         self.root = os.path.expanduser(root)
         if extra_annFile:
             self.coco = COCO()
@@ -87,8 +82,6 @@ class CocoCaptionsCap(Dataset):
         if extra_ids is not None:
             self.ids += list(extra_ids)
         self.ids = [int(id_) for id_ in self.ids]
-        self.transform = transform
-        self.target_transform = target_transform
 
         self.all_image_ids = set([self.coco.loadAnns(annotation_id)[0]['image_id'] for annotation_id in self.ids])
 
@@ -123,6 +116,28 @@ class CocoCaptionsCap(Dataset):
         self.iid_to_cls = iid_to_cls
         self.n_images = len(self.all_image_ids)
 
+        cache_path = cache_file or build_cache_path(annFile, extra_annFile)
+        cache = load_clip_cache(cache_path, map_location=cache_map_location)
+
+        self.image_features = cache["image_features"].float()
+        self.caption_features = cache["caption_features"].float()
+        self.cache_image_ids = cache["image_ids"]
+        self.cache_ann_ids = cache["ann_ids"]
+        self.cache_captions = cache.get("captions", [])
+
+        self.image_id_to_idx = {iid: idx for idx, iid in enumerate(self.cache_image_ids)}
+        self.ann_id_to_idx = {ann_id: idx for idx, ann_id in enumerate(self.cache_ann_ids)}
+
+        missing_ann = [ann_id for ann_id in self.ids if ann_id not in self.ann_id_to_idx]
+        if missing_ann:
+            sample = missing_ann[:5]
+            raise KeyError(f"Missing {len(missing_ann)} annotation embeddings in cache {cache_path}, e.g. {sample}")
+
+        missing_image_ids = self.all_image_ids - set(self.image_id_to_idx)
+        if missing_image_ids:
+            sample = list(missing_image_ids)[:5]
+            raise KeyError(f"Missing {len(missing_image_ids)} image embeddings in cache {cache_path}, e.g. {sample}")
+
     def __getitem__(self, index):
         """
         Args:
@@ -136,113 +151,15 @@ class CocoCaptionsCap(Dataset):
         image_id = annotation['image_id']
         caption = annotation['caption']  # language caption
 
-        path = coco.loadImgs(image_id)[0]['file_name']
+        img_idx = self.image_id_to_idx[image_id]
+        caption_idx = self.ann_id_to_idx[annotation_id]
 
-        img = Image.open(os.path.join(self.root, path)).convert('RGB')
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(caption)
+        img = self.image_features[img_idx]
+        target = self.caption_features[caption_idx]
+        if self.cache_captions:
+            caption = self.cache_captions[caption_idx]
 
         return img, target, caption, annotation_id, image_id, index
 
     def __len__(self):
         return len(self.ids)
-
-
-class CocoImageRetrieval(datasets.coco.CocoDetection):
-    def __init__(self, root='/home/bd/data/zs' + "/data/mmdata/MSCOCO/2014/train2014",
-                 annFile='/home/bd/data/zs' + "/data/mmdata/MSCOCO/2014/annotations/instances_train2014.json",
-                 transform=None, target_transform=None):
-        self.root = root
-        self.coco = COCO(annFile)
-
-        self.ids = list(self.coco.imgToAnns.keys())
-        self.transform = transform
-        self.target_transform = target_transform
-        self.cat2cat = dict()
-        for cat in self.coco.cats.keys():
-            self.cat2cat[cat] = len(self.cat2cat)
-        # print(self.cat2cat)
-
-    def __getitem__(self, index):
-        coco = self.coco
-        img_id = self.ids[index]
-        ann_ids = coco.getAnnIds(imgIds=img_id)
-        target = coco.loadAnns(ann_ids)
-
-        # output = torch.zeros((3, 80), dtype=torch.long)
-        output = torch.zeros(80, dtype=torch.long)
-        for obj in target:
-            # if obj['area'] < 32 * 32:
-            #     output[0][self.cat2cat[obj['category_id']]] = 1
-            # elif obj['area'] < 96 * 96:
-            #     output[1][self.cat2cat[obj['category_id']]] = 1
-            # else:
-            #     output[2][self.cat2cat[obj['category_id']]] = 1
-            output[self.cat2cat[obj['category_id']]] = 1
-        target = output
-        path = coco.loadImgs(img_id)[0]['file_name']
-        img = Image.open(os.path.join(self.root, path)).convert('RGB')
-        if self.transform is not None:
-            img = self.transform(img)
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-        return img, target
-
-
-class CocoTextRetrieval(Dataset):
-    def __init__(self, root='/home/bd/data/zs' + "/data/mmdata/MSCOCO/2014/train2014",
-                 annFile='/home/bd/data/zs' + "/data/mmdata/MSCOCO/2014/annotations/captions_train2014.json",
-                 insFile='/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014/annotations/instances_train2014.json',
-                 transform=None, target_transform=None):
-        self.root = os.path.expanduser(root)
-        self.coco = COCO(annFile)
-        self.coco_ins = COCO(insFile)
-
-        self.ids = list(self.coco.anns.keys())
-        self.target_transform = target_transform
-
-        self.cat2cat = dict()
-        for cat in self.coco_ins.cats.keys():
-            self.cat2cat[cat] = len(self.cat2cat)
-
-        if not transform:
-            vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-            if isinstance(vocab_path, str):
-                vocab = Vocabulary()
-                vocab.load_from_pickle(vocab_path)
-            else:
-                vocab = vocab_path
-            transform = caption_transform(vocab, 0)
-
-        self.transform = transform
-
-    def __getitem__(self, index):
-        annotation_id = self.ids[index]
-        annotation = self.coco.loadAnns(annotation_id)[0]
-
-        ann_ids = self.coco_ins.getAnnIds(imgIds=annotation['image_id'])
-        target = self.coco_ins.loadAnns(ann_ids)
-
-        output = np.zeros(80)
-        for obj in target:
-            output[self.cat2cat[obj['category_id']]] = 1
-        target = output
-
-        if self.transform is not None:
-            annotation = self.transform(annotation['caption'])
-
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-        return annotation, target
-
-    # annotation_id = self.ids[index]
-    # annotation = coco.loadAnns(annotation_id)[0]
-    # image_id = annotation['image_id']
-
-    def __len__(self):
-        return len(self.ids)
-        # return 100

@@ -119,7 +119,7 @@ class ResNet(nn.Module):
             self.linear = nn.Linear(512, self.embed_dim)
         # self.bn2 = nn.BatchNorm1d(2048)
         self.class_fc_2 = nn.Linear(self.embed_dim, kwargs['num_class'])
-        self.class_fc_22 = nn.Linear(self.embed_dim, 1024)
+        self.class_fc_22 = nn.Linear(self.embed_dim, self.embed_dim)
         # normalze the weight with
         self.is_train = bool(kwargs['is_train'])
         self.scale = int(kwargs['scale'])

@@ -101,11 +101,11 @@ class COCOEvaluator(object):
         if isinstance(self.model, nn.DataParallel):
             self.n_embeddings = self.model.module.n_embeddings
             # self.feat_size = self.model.module.embed_dim
-            self.feat_size = 1024
+            self.feat_size = getattr(self.model.module, 'embed_dim', 1024)
         else:
             self.n_embeddings = self.model.n_embeddings
             # self.feat_size = self.model.embed_dim
-            self.feat_size = 1024
+            self.feat_size = getattr(self.model, 'embed_dim', 1024)
 
     def set_criterion(self, criterion):
         """set criterion (for matching prob retrieval)

@@ -557,7 +557,7 @@ class ClientTrainer:
                 # if is_test and i == 1:
                 #     break
 
-        feature = np.array(feature).reshape(-1, 1024)
+        feature = np.array(feature).reshape(-1, self.args.feature_dim)
         labels = np.array(labels).reshape(-1)
         # print(f'feature {feature.shape} labels {labels.shape}')
         self.model.phase = 'None'

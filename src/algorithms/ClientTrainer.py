@@ -4,6 +4,7 @@ import operator
 import torch
 import torch.optim as optim
 import torch.nn as nn
+import torch.nn.functional as F
 
 from apex import amp
 from sklearn.metrics import pairwise_distances
@@ -16,6 +17,7 @@ from src.networks.clip_model import ClientImageEncoder
 from src.networks.language_model import EncoderText
 from src.networks.resnet_client import resnet18_client
 from src.utils.Utils import to_one_hot
+from src.algorithms.distill_utils import compute_distill_loss
 
 torch.backends.cudnn.enabled = True
 
@@ -645,10 +647,12 @@ class ClientTrainer:
                     self.model.phase = "extract_conv_feature"
                     output = self.model(inputs)
                     self.model.phase = "None"
-                logits_list.append(output.cpu().numpy())
+                logits_list.append(output.float().cpu().numpy().astype(np.float32))
         self.model.is_train = True
         
-        return np.concatenate(logits_list, axis=0)
+        if not logits_list:
+            return np.empty((0, self.args.feature_dim), dtype=np.float32)
+        return np.concatenate(logits_list, axis=0).astype(np.float32, copy=False)
 
     def distill_with_logits(self, dataloader, avg_img_logits, avg_txt_logits):
         def printnreset(name):
@@ -666,39 +670,47 @@ class ClientTrainer:
             if self.dset_name == 'image':
                 inputs = images.to(self.gpuid)
                 batch_size = inputs.size(0)
-                img_soft_label = torch.tensor(avg_img_logits[idx:idx+batch_size]).to(self.gpuid)
+                img_soft_label = torch.as_tensor(avg_img_logits[idx:idx+batch_size], dtype=torch.float32, device=self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
                 self.model.is_train = False
                 if self.args.model == 'clip':
-                    output = self.model(inputs)
+                    output = self.model(inputs).float()
                 elif self.args.model == 'resnet':
                     self.model.phase = "extract_conv_feature"
-                    output = self.model(inputs)
+                    output = self.model(inputs).float()
                     self.model.phase = "None"
                 self.model.is_train = True
-                loss = nn.MSELoss()(output, img_soft_label)
-                # print(f'Image Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
+                loss = compute_distill_loss(output, img_soft_label)
+                if torch.isnan(loss) or torch.isinf(loss):
+                    continue
                 loss.backward()
                 self.optimizer.step()
+                if i == 0 or (i + 1) % 20 == 0:
+                    client_key = getattr(self, 'client_idx', self.client_id)
+                    self.logger.log(f"Distill client {client_key} ({self.dset_name}) step {i}: loss={loss.item():.6f}")
             elif self.dset_name == 'text':
                 inputs = captions.to(self.gpuid)
                 batch_size = inputs.size(0)
-                txt_soft_label = torch.tensor(avg_txt_logits[idx:idx+batch_size]).to(self.gpuid)
+                txt_soft_label = torch.as_tensor(avg_txt_logits[idx:idx+batch_size], dtype=torch.float32, device=self.gpuid)
                 idx += batch_size
                 self.optimizer.zero_grad()
                 self.model.is_train = False
                 if self.args.model == 'clip':
-                    output = self.model(inputs)
+                    output = self.model(inputs).float()
                 elif self.args.model == 'resnet':
                     self.model.phase = "extract_conv_feature"
-                    output = self.model(inputs)
+                    output = self.model(inputs).float()
                     self.model.phase = "None"
                 self.model.is_train = True
-                loss = nn.MSELoss()(output, txt_soft_label)
-                # print(f'Text Client {self.client_id} - Epoch {self.local_epoch}, Step {i}, Loss: {loss.item():.4f}')
+                loss = compute_distill_loss(output, txt_soft_label)
+                if torch.isnan(loss) or torch.isinf(loss):
+                    continue
                 loss.backward()
                 self.optimizer.step()
+                if i == 0 or (i + 1) % 20 == 0:
+                    client_key = getattr(self, 'client_idx', self.client_id)
+                    self.logger.log(f"Distill client {client_key} ({self.dset_name}) step {i}: loss={loss.item():.6f}")
 
             self.losses.update(loss.item(), inputs.size(0))
 

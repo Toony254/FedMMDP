@@ -20,7 +20,7 @@ from src.datasets.coco import CocoCaptionsCap
 def prepare_coco_dataloaders(dataloader_config,
                              dataset_root,
                              vocab_path='./vocabs/coco_vocab.pkl',
-                             num_workers=0, tsne=False, client=-1, subset_num=50000):
+                             num_workers=0, tsne=False, client=-1, pub_data_num=50000):
     """Prepare MS-COCO Caption train / val / test dataloaders
     Args:
         dataloader_config (dict): configuration file which should contain "batch_size"
@@ -66,7 +66,7 @@ def prepare_coco_dataloaders(dataloader_config,
             client=client
         )
     else:
-        dataloaders['train_subset' + f'_{subset_num}'] = _get_coco_loader(
+        dataloaders['train_subset' + f'_{pub_data_num}'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
             num_workers=num_workers, batch_size=batch_size,
             train=True,
@@ -75,10 +75,10 @@ def prepare_coco_dataloaders(dataloader_config,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
             subset=True,
-            subset_num=subset_num
+            pub_data_num=pub_data_num
         )
 
-        dataloaders['train_subset_eval' + f'_{subset_num}'] = _get_coco_loader(
+        dataloaders['train_subset_eval' + f'_{pub_data_num}'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
             num_workers=num_workers, batch_size=batch_size * 2,
             train=False,
@@ -87,7 +87,7 @@ def prepare_coco_dataloaders(dataloader_config,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
             subset=True,
-            subset_num=subset_num
+            pub_data_num=pub_data_num
         )
 
     dataloaders['val'] = _get_coco_loader(
@@ -131,7 +131,7 @@ def _get_coco_loader(image_root,
                      cutout_prob=0.0,
                      caption_drop_prob=0.0,
                      subset=False,
-                     subset_num=50000,
+                     pub_data_num=50000,
                      client=-1):
     _image_transform = imagenet_transform(
         random_resize_crop=train,
@@ -142,22 +142,21 @@ def _get_coco_loader(image_root,
 
     coco_dataset = CocoCaptionsCap(image_root, annotation_path,
                                    extra_annFile=extra_annotation_path,
-                                   ids=ids,
-                                   extra_ids=extra_ids,
-                                   transform=_image_transform,
-                                   target_transform=_caption_transform, client=client)
+                                   ids=ids, cache_file='src/datasets/coco_emb.pt',
+                                   extra_ids=extra_ids, client=client)
 
     if subset:
-        if not os.path.exists('coco_subset_idx_file'):
+        subset_idx_file = f'coco_subset_idx_{pub_data_num}.pkl'
+        if not os.path.exists(subset_idx_file):
             full_idx = [i for i in range(566435)]
             random.shuffle(full_idx)
-            idx = full_idx[0: subset_num]
+            idx = full_idx[0: pub_data_num]
             idx.sort()
-            if not os.path.exists('coco_subset_idx_file'):
-                with open('coco_subset_idx_file', 'wb') as f:
+            if not os.path.exists(subset_idx_file):
+                with open(subset_idx_file, 'wb') as f:
                     pickle.dump(idx, f)
 
-        with open('coco_subset_idx_file', 'rb') as f:
+        with open(subset_idx_file, 'rb') as f:
             idx = pickle.load(f)
 
         coco_dataset = torch.utils.data.Subset(coco_dataset, idx)

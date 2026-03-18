@@ -1,3 +1,5 @@
+import os
+import re
 import numpy as np
 import torch
 import torch.nn as nn
@@ -6,15 +8,26 @@ from tqdm import tqdm
 import json
 
 
+def convert_iapr_id_to_int(id_str):
+    """Convert IAPR TC-12 image ID (filename like '37745.jpg') to unique integer."""
+    name = id_str.rsplit('.', 1)[0]
+    try:
+        return int(name)
+    except ValueError:
+        raise ValueError(f"Cannot convert IAPR ID to int: {id_str}")
+
+
 def convert_food_id_to_int(id_str, label2id_dict):
-    parts = id_str.rsplit('_', 1)
+    name = id_str.rsplit('.', 1)[0]
+    parts = name.rsplit('_', 1)
     
     if len(parts) != 2:
         raise ValueError(f"Invalid ID format: {id_str}, expected 'label_sequence'")
     
     label_name = parts[0]
     try:
-        sequence_id = int(parts[1])
+        sequence_token = re.sub(r'\D', '', parts[1])
+        sequence_id = int(sequence_token)
     except ValueError:
         raise ValueError(f"Invalid sequence ID in {id_str}: {parts[1]} is not an integer")
     
@@ -100,9 +113,12 @@ class MMEvaluator(object):
                  extract_device='cuda',
                  eval_device='cuda',
                  verbose=False, 
-                 class_size=None):
+                 class_size=None,
+                 feature_dim=1024,
+                 data_root=None):
         self.model_name = model_name
         self.dataset = dataset
+        self.data_root = data_root
         self.eval_method = eval_method
         self.extract_device = extract_device if torch.cuda.is_available() else 'cpu'
         self.eval_device = eval_device if torch.cuda.is_available() else 'cpu'
@@ -112,7 +128,7 @@ class MMEvaluator(object):
 
         self.pbar = partial(tqdm, disable=not verbose)
         self.n_embeddings = 1
-        self.feat_size = 1024
+        self.feat_size = feature_dim
         
     def set_model(self, model):
         """set model
@@ -170,7 +186,12 @@ class MMEvaluator(object):
         # 加载 food 数据集的 label2id 映射
         label2id_dict = None
         if self.dataset == 'food':
-            with open('/home/bd/data/zs/FedMMDP/preprocessed_food/label2id.json', 'r') as f:
+            label_root = self.data_root or ''
+            label_root = label_root.rstrip('/\\')
+            if label_root.endswith('domain_datasets'):
+                label_root = os.path.dirname(label_root)
+            label2id_path = os.path.join(label_root, 'label2id.json')
+            with open(label2id_path, 'r') as f:
                 label2id_dict = json.load(f)
         
         if dataloader is not None:
@@ -182,9 +203,15 @@ class MMEvaluator(object):
                         image_id = int(item['id'][i])
                     elif self.dataset == 'food':
                         image_id = convert_food_id_to_int(item['id'][i], label2id_dict)
-                    code = iid_to_cls.get(image_id, [0] * self.class_size)
-                    code[int(item['class_id'][i]) - 1] = 1
-                    iid_to_cls[image_id] = code
+                    elif self.dataset == 'iapr':
+                        image_id = convert_iapr_id_to_int(item['id'][i])
+                    if self.dataset == 'iapr':
+                        # class_id 已是全局唯一 ID (domain*6+local, 范围 0-29)
+                        iid_to_cls[image_id] = [int(item['class_id'][i])]
+                    else:
+                        code = iid_to_cls.get(image_id, [0] * self.class_size)
+                        code[int(item['class_id'][i]) - 1] = 1
+                        iid_to_cls[image_id] = code
 
             seen_classes = {}
             new_iid_to_cls = {}
@@ -215,6 +242,11 @@ class MMEvaluator(object):
                 _caption_features = self.model_txt(captions)
             elif self.model_name == 'resnet':
                 _caption_features = self.model_txt(captions)['embedding']
+
+            if not torch.isfinite(_image_features).all():
+                raise RuntimeError(f"Non-finite image features detected during evaluation on dataset {self.dataset}")
+            if not torch.isfinite(_caption_features).all():
+                raise RuntimeError(f"Non-finite caption features detected during evaluation on dataset {self.dataset}")
                 
             if self.dataset == 'imagenet':
                 image_ids = [int(data["id"][j].replace("n","").replace("_","0")) for j in range(len(data["id"]))]
@@ -225,6 +257,9 @@ class MMEvaluator(object):
             elif self.dataset == 'food':
                 image_ids = [convert_food_id_to_int(data["id"][j], label2id_dict) for j in range(len(data["id"]))]
                 ann_ids = [convert_food_id_to_int(data["id"][j], label2id_dict) for j in range(len(data["id"]))]
+            elif self.dataset == 'iapr':
+                image_ids = [convert_iapr_id_to_int(data["id"][j]) for j in range(len(data["id"]))]
+                ann_ids = [convert_iapr_id_to_int(data["id"][j]) for j in range(len(data["id"]))]
 
             for idx, image_id in enumerate(image_ids):
                 image_class = get_image_class(image_id)
