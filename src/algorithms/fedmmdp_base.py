@@ -3,7 +3,6 @@ import hashlib
 import munch
 
 import torch
-import clip
 
 try:
     from src import losses

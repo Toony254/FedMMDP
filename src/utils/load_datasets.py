@@ -15,18 +15,26 @@ sys.path.append("../../..")
 
 from src.datasets._dataloader import image_to_caption_collate_fn
 from src.datasets.coco import CocoCaptionsCap
-from src.datasets.coco_preprocess import load_clip_cache, precompute_coco_clip
+from src.datasets.coco_preprocess import load_clip_cache, precompute_coco_embeddings
+from src.utils.model_utils import normalize_model_name
 
 
 #  COCO
-def _get_coco_cache_path(dataset_root, feature_dim):
-    return os.path.join(dataset_root, f'coco_emb_{feature_dim}.pt')
+def _get_coco_cache_path(dataset_root, model_name, feature_dim):
+    model_name = normalize_model_name(model_name)
+    return os.path.join(dataset_root, f'coco_emb_{model_name}_{feature_dim}.pt')
 
 
-def _validate_coco_cache(cache_path, feature_dim):
+def _validate_coco_cache(cache_path, feature_dim, model_name):
     cache = load_clip_cache(cache_path, map_location='cpu')
+    normalized_model_name = normalize_model_name(model_name)
+    cache_model_name = normalize_model_name(cache.get('model_name', normalized_model_name))
     image_dim = cache['image_features'].shape[-1]
     caption_dim = cache['caption_features'].shape[-1]
+    if cache_model_name != normalized_model_name:
+        raise ValueError(
+            f"COCO cache model mismatch for {cache_path}: cache_model={cache_model_name}, expected={normalized_model_name}"
+        )
     if image_dim != feature_dim or caption_dim != feature_dim:
         raise ValueError(
             f"COCO cache dimension mismatch for {cache_path}: "
@@ -40,12 +48,13 @@ def ensure_coco_embedding_cache(dataset_root,
                                 val_ann,
                                 feature_dim,
                                 clip_model_name='RN50',
+                                model_name='clip',
                                 device=None,
                                 batch_size=256,
                                 wait_seconds=10):
-    cache_path = _get_coco_cache_path(dataset_root, feature_dim)
+    cache_path = _get_coco_cache_path(dataset_root, model_name, feature_dim)
     if os.path.exists(cache_path):
-        _validate_coco_cache(cache_path, feature_dim)
+        _validate_coco_cache(cache_path, feature_dim, model_name)
         return cache_path
 
     os.makedirs(dataset_root, exist_ok=True)
@@ -53,7 +62,7 @@ def ensure_coco_embedding_cache(dataset_root,
 
     while os.path.exists(lock_path):
         if os.path.exists(cache_path):
-            _validate_coco_cache(cache_path, feature_dim)
+            _validate_coco_cache(cache_path, feature_dim, model_name)
             return cache_path
         print(f'Waiting for COCO cache generation: {lock_path}')
         time.sleep(wait_seconds)
@@ -64,17 +73,19 @@ def ensure_coco_embedding_cache(dataset_root,
 
         if not os.path.exists(cache_path):
             print(f'COCO cache not found, generating {cache_path}')
-            precompute_coco_clip(
+            precompute_coco_embeddings(
                 root=image_root,
                 ann_file=train_ann,
                 extra_ann_file=val_ann,
                 output_path=cache_path,
+                model_name=model_name,
                 clip_model_name=clip_model_name,
                 batch_size=batch_size,
                 device=device,
+                feature_dim=feature_dim,
             )
 
-        _validate_coco_cache(cache_path, feature_dim)
+        _validate_coco_cache(cache_path, feature_dim, model_name)
     finally:
         if os.path.exists(lock_path):
             os.remove(lock_path)
@@ -91,6 +102,7 @@ def prepare_coco_dataloaders(dataloader_config,
                              pub_data_num=50000,
                              feature_dim=1024,
                              clip_model_name='RN50',
+                             model_name='clip',
                              cache_device=None):
     """Prepare MS-COCO Caption train / val / test dataloaders
     Args:
@@ -117,6 +129,7 @@ def prepare_coco_dataloaders(dataloader_config,
         val_ann=val_ann,
         feature_dim=feature_dim,
         clip_model_name=clip_model_name,
+        model_name=model_name,
         device=cache_device,
         batch_size=max(batch_size, eval_batch_size),
     )
@@ -234,15 +247,28 @@ def _get_coco_loader(image_root,
                                    extra_ids=extra_ids, client=client)
 
     if subset:
-        subset_idx_file = f'coco_subset_idx_{pub_data_num}.pkl'
+        subset_cache_dir = os.path.join(dataset_root, '.cache')
+        os.makedirs(subset_cache_dir, exist_ok=True)
+        subset_idx_file = os.path.join(subset_cache_dir, f'coco_subset_idx_{pub_data_num}.pkl')
+        subset_lock_path = subset_idx_file + '.lock'
+        while os.path.exists(subset_lock_path):
+            if os.path.exists(subset_idx_file):
+                break
+            time.sleep(1)
         if not os.path.exists(subset_idx_file):
-            full_idx = [i for i in range(566435)]
-            random.shuffle(full_idx)
-            idx = full_idx[0: pub_data_num]
-            idx.sort()
-            if not os.path.exists(subset_idx_file):
-                with open(subset_idx_file, 'wb') as f:
-                    pickle.dump(idx, f)
+            try:
+                with open(subset_lock_path, 'w', encoding='utf-8') as fout:
+                    fout.write(str(os.getpid()))
+                if not os.path.exists(subset_idx_file):
+                    full_idx = [i for i in range(566435)]
+                    random.shuffle(full_idx)
+                    idx = full_idx[0: pub_data_num]
+                    idx.sort()
+                    with open(subset_idx_file, 'wb') as f:
+                        pickle.dump(idx, f)
+            finally:
+                if os.path.exists(subset_lock_path):
+                    os.remove(subset_lock_path)
 
         with open(subset_idx_file, 'rb') as f:
             idx = pickle.load(f)

@@ -3,7 +3,6 @@ import gc
 import os
 import random
 
-import clip
 import numpy as np
 import torch
 import torch.multiprocessing
@@ -19,6 +18,7 @@ from src.networks.clip_model import ClientImageEncoder
 from src.networks.clip_model import ClientTextEncoder
 from src.networks.language_model import EncoderText
 from src.networks.resnet_client import resnet18_client
+from src.utils.model_utils import is_embedding_model
 
 
 torch.backends.cudnn.enabled = True
@@ -161,7 +161,7 @@ class ClientTrainer:
         return torch.tensor(targets, dtype=torch.long, device=self.gpuid)
 
     def _extract_assignment_features(self, data):
-        if self.dset_name == 'image' and self.args.model == 'clip':
+        if self.dset_name == 'image' and is_embedding_model(self.args.model):
             images = data["processed_img"].to(self.gpuid)
             return self.model(images)
         if self.dset_name == 'image' and self.args.model == 'resnet':
@@ -172,7 +172,7 @@ class ClientTrainer:
             self.model.phase = "None"
             self.model.is_train = True
             return features
-        if self.dset_name == 'text' and self.args.model == 'clip':
+        if self.dset_name == 'text' and is_embedding_model(self.args.model):
             captions = data["cap_tokens"].to(self.gpuid)
             return self.model(captions)
         captions = data["cap_tokens"].to(self.gpuid)
@@ -216,7 +216,7 @@ class ClientTrainer:
     def setModel(self):
         if self.logger is not None:
             self.logger.log(f'Setting model {self.client_id}')
-        if self.dset_name == 'image' and self.args.model == 'clip':
+        if self.dset_name == 'image' and is_embedding_model(self.args.model):
             self.model = ClientImageEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, mlp_local=self.args.mlp_local, is_train=True,
                                         use_pretrained_proj=bool(self.args.use_pretrained_proj))
             self.criterion = losses.create(self.loss)
@@ -228,7 +228,7 @@ class ClientTrainer:
             )
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
-        elif self.dset_name == 'text' and self.args.model == 'clip':
+        elif self.dset_name == 'text' and is_embedding_model(self.args.model):
             self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
@@ -379,7 +379,7 @@ class ClientTrainer:
 
         with torch.no_grad():
             for _, data in enumerate(self.test_loader):
-                if self.dset_name == 'image' and self.args.model == 'clip':
+                if self.dset_name == 'image' and is_embedding_model(self.args.model):
                     inputs_bt = data["processed_img"]
                     labels_bt = data["class_id"]
                     inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
@@ -389,7 +389,7 @@ class ClientTrainer:
                     labels_bt = data["class_id"]
                     inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
                     fvec, _, _, _ = self.model(inputs_var)
-                elif self.dset_name == 'text' and self.args.model == 'clip':
+                elif self.dset_name == 'text' and is_embedding_model(self.args.model):
                     inputs_bt = data["cap_tokens"]
                     labels_bt = data["class_id"]
                     inputs_bt = inputs_bt.to(self.gpuid)

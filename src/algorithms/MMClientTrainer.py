@@ -147,6 +147,8 @@ class MMClientTrainer(EngineBase):
                 self.logger.log(f"Epoch {self.local_epoch}")
             if self.args.FL_algorithm == 'FedAvg':
                 self.train_epoch(prefix='FedAvg_')
+            elif self.args.FL_algorithm == 'Harmony':
+                self.train_epoch(prefix='Harmony_')
             elif self.args.FL_algorithm == 'MASA':
                 self.train_gcmd_epoch(prefix='MASA_')
 

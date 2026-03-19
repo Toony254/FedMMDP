@@ -205,12 +205,10 @@ python src/networks/train_projector_IAPR_TC12.py \
 
 说明：
 
-- `SigLIP` 实验当前仍然使用 `--model clip` 这一套训练封装。
-- `SigLIP` 与 `CLIP` 的区别主要体现在：
-  - `data_root`
-  - `feature_dim`
-- `CLIP` 使用 `feature_dim=1024`
-- `SigLIP` 使用 `feature_dim=768`
+- `--model` 必须与预编码数据使用的 backbone 保持一致：`clip` / `align` / `siglip` / `resnet`。
+- `clip`、`align`、`siglip` 在运行期共用同一套 embedding projector 封装，但命令参数不能混写。
+- `CLIP` 使用 `feature_dim=1024`。
+- `SigLIP` 使用 `feature_dim=768`。
 
 ### 5.1 通用模板
 
@@ -220,7 +218,7 @@ python src/main.py \
   --FL_algorithm FedMMDP \
   --dataset DATASET \
   --data_root DATA_ROOT \
-  --model clip \
+  --model MODEL_NAME \
   --feature_dim FEATURE_DIM \
   --lr 1e-5 \
   --local_epochs 1 \
@@ -262,7 +260,7 @@ python src/main.py \
   --FL_algorithm FedMMDP \
   --dataset imagenet \
   --data_root "$IMAGENET_SIGLIP_ROOT" \
-  --model clip \
+  --model siglip \
   --feature_dim 768 \
   --lr 1e-5 \
   --local_epochs 1 \
@@ -302,7 +300,7 @@ python src/main.py \
   --FL_algorithm FedMMDP \
   --dataset iapr \
   --data_root "$IAPR_SIGLIP_ROOT" \
-  --model clip \
+  --model siglip \
   --feature_dim 768 \
   --lr 1e-5 \
   --local_epochs 1 \
@@ -363,8 +361,9 @@ run_shared_baselines() {
   local prefix=$1
   local dataset=$2
   local data_root=$3
-  local feature_dim=$4
-  local batch_size=$5
+  local model_name=$4
+  local feature_dim=$5
+  local batch_size=$6
 
   for alg in FedAvg FedProx MOON Harmony MASA FedMEMA RawCLIP CenterTraining; do
     python src/main.py \
@@ -372,7 +371,7 @@ run_shared_baselines() {
       --FL_algorithm "${alg}" \
       --dataset "${dataset}" \
       --data_root "${data_root}" \
-      --model clip \
+      --model "${model_name}" \
       --feature_dim "${feature_dim}" \
       --lr 1e-5 \
       --local_epochs 1 \
@@ -386,16 +385,16 @@ run_shared_baselines() {
 
 ```bash
 rm -rf data_partition/*
-run_shared_baselines imagenet_clip imagenet "$IMAGENET_CLIP_ROOT" 1024 64
+run_shared_baselines imagenet_clip imagenet "$IMAGENET_CLIP_ROOT" clip 1024 64
 
 rm -rf data_partition/*
-run_shared_baselines imagenet_siglip imagenet "$IMAGENET_SIGLIP_ROOT" 768 64
+run_shared_baselines imagenet_siglip imagenet "$IMAGENET_SIGLIP_ROOT" siglip 768 64
 
 rm -rf data_partition/*
-run_shared_baselines iapr_clip iapr "$IAPR_CLIP_ROOT" 1024 64
+run_shared_baselines iapr_clip iapr "$IAPR_CLIP_ROOT" clip 1024 64
 
 rm -rf data_partition/*
-run_shared_baselines iapr_siglip iapr "$IAPR_SIGLIP_ROOT" 768 64
+run_shared_baselines iapr_siglip iapr "$IAPR_SIGLIP_ROOT" siglip 768 64
 ```
 
 ### 6.2 蒸馏类对比算法
@@ -406,17 +405,16 @@ run_shared_baselines iapr_siglip iapr "$IAPR_SIGLIP_ROOT" 768 64
 - `FedDF`
 - `Cream`
 
-先确认项目代码中的 public data 路径与你本地数据一致。如果不一致，请修改 `src/utils/load_datasets.py` 和相关配置，或者在本地建立对应软链接。
-
-再定义 bash 函数：
+public MSCOCO 2014 cache 会在数据目录下按模型自动生成，例如 `coco_emb_clip_1024.pt`、`coco_emb_siglip_768.pt`。训练前仍需确认代码中的 MSCOCO 2014 根路径与你的本地环境一致。
 
 ```bash
 run_public_baselines() {
   local prefix=$1
   local dataset=$2
   local data_root=$3
-  local feature_dim=$4
-  local batch_size=$5
+  local model_name=$4
+  local feature_dim=$5
+  local batch_size=$6
 
   for alg in FedMD FedDF Cream; do
     python src/main.py \
@@ -424,7 +422,7 @@ run_public_baselines() {
       --FL_algorithm "${alg}" \
       --dataset "${dataset}" \
       --data_root "${data_root}" \
-      --model clip \
+      --model "${model_name}" \
       --feature_dim "${feature_dim}" \
       --lr 1e-5 \
       --local_epochs 1 \
@@ -439,16 +437,16 @@ run_public_baselines() {
 
 ```bash
 rm -rf data_partition/*
-run_public_baselines imagenet_clip imagenet "$IMAGENET_CLIP_ROOT" 1024 64
+run_public_baselines imagenet_clip imagenet "$IMAGENET_CLIP_ROOT" clip 1024 64
 
 rm -rf data_partition/*
-run_public_baselines imagenet_siglip imagenet "$IMAGENET_SIGLIP_ROOT" 768 64
+run_public_baselines imagenet_siglip imagenet "$IMAGENET_SIGLIP_ROOT" siglip 768 64
 
 rm -rf data_partition/*
-run_public_baselines iapr_clip iapr "$IAPR_CLIP_ROOT" 1024 64
+run_public_baselines iapr_clip iapr "$IAPR_CLIP_ROOT" clip 1024 64
 
 rm -rf data_partition/*
-run_public_baselines iapr_siglip iapr "$IAPR_SIGLIP_ROOT" 768 64
+run_public_baselines iapr_siglip iapr "$IAPR_SIGLIP_ROOT" siglip 768 64
 ```
 
 ## 7. 调试与回归测试
@@ -489,7 +487,7 @@ results/
 
 ## 9. 额外说明
 
-- `SigLIP` 实验不是通过 `--model siglip` 切换，而是通过 `SigLIP` 预处理数据目录和 `--feature_dim 768` 切换。
+- `SigLIP` 实验需要同时切换三项：`--model siglip`、`SigLIP` 预处理数据目录，以及 `--feature_dim 768`。
 - `FedMD`、`FedDF`、`Cream` 除了联邦数据外，还需要单独准备 MSCOCO public dataset。
 - 当更换数据集、模态特征目录或者客户端划分配置时，建议重新删除 `data_partition/*`。
 - 如果只做训练逻辑调试，建议附加 `--disable_tsne`，避免可视化耗时影响实验排查。

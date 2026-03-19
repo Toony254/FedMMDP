@@ -8,6 +8,7 @@ sys.path.append("../../")
 from src.networks.clip_model import CLIPImageEncoder, CLIPTextEncoder
 from src.networks.models.caption_encoder import EncoderText
 from src.networks.models.image_encoder import EncoderImage
+from src.utils.model_utils import is_embedding_model
     
 class PCME(nn.Module):
     """Probabilistic CrossModal Embedding (PCME) module"""
@@ -21,16 +22,18 @@ class PCME(nn.Module):
         else:
             self.n_embeddings = 1
 
-        if config.name == 'clip':
+        if is_embedding_model(config.name):
             self.img_enc = CLIPImageEncoder(config, mlp_local=mlp_local)
             self.txt_enc = CLIPTextEncoder(config, mlp_local=mlp_local)
         elif config.name == 'resnet':
             self.img_enc = EncoderImage(config, mlp_local=mlp_local)
             self.txt_enc = EncoderText(config, mlp_local=mlp_local)
+        else:
+            raise ValueError(f'Unsupported model config.name: {config.name}')
 
     def forward(self, images, captions):
         image_output = self.img_enc(images)
-        if self.config.name == 'clip':
+        if is_embedding_model(self.config.name):
             caption_output = self.txt_enc(captions)
             caption_output = {'embedding': caption_output}
         if self.config.name == 'resnet':

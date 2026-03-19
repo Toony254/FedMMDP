@@ -7,6 +7,8 @@ from functools import partial
 from tqdm import tqdm
 import json
 
+from src.utils.model_utils import is_embedding_model
+
 
 def convert_iapr_id_to_int(id_str):
     """Convert IAPR TC-12 image ID (filename like '37745.jpg') to unique integer."""
@@ -238,7 +240,7 @@ class MMEvaluator(object):
             captions = data["cap_tokens"].to(self.extract_device)
 
             _image_features = self.model_img(images)["embedding"]
-            if self.model_name == 'clip':
+            if is_embedding_model(self.model_name):
                 _caption_features = self.model_txt(captions)
             elif self.model_name == 'resnet':
                 _caption_features = self.model_txt(captions)['embedding']

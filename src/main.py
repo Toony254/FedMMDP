@@ -3,6 +3,7 @@ import random
 import argparse
 
 from utils.helper import Helper as helper
+from utils.model_utils import MODEL_CHOICES
 
 
 ALGORITHM_MODULES = {
@@ -44,7 +45,7 @@ def build_parser():
     parser.add_argument('--local_epochs', type=int, default=1)
     parser.add_argument('--comm_rounds', type=int, default=20)
 
-    parser.add_argument('--model', type=str, default='clip', choices=['clip', 'resnet', 'align'])
+    parser.add_argument('--model', type=str, default='clip', choices=list(MODEL_CHOICES))
     parser.add_argument('--pretrained', type=int, default=0)
     parser.add_argument('--no-cuda', action='store_true', default=False, help='disables CUDA training')
     parser.add_argument('--seed', type=int, default=random.randint(0, 100000), metavar='S', help='random seed')
@@ -125,6 +126,16 @@ def build_parser():
     parser.add_argument('--fedmekt_server_retrieval_weight', type=float, default=1.0)
     parser.add_argument('--fedmekt_proxy_steps', type=int, default=16)
     parser.add_argument('--fedmekt_server_proxy_epochs', type=int, default=1)
+    parser.add_argument('--harmony_stage1_rounds', type=int, default=0,
+                        help='rounds used for Harmony modality-wise warmup; 0 selects an automatic split')
+    parser.add_argument('--harmony_clusters', type=int, default=2,
+                        help='number of multimodal clusters during Harmony fusion')
+    parser.add_argument('--harmony_cluster_mode', type=str, default='fixed', choices=['fixed', 'svd'],
+                        help='cluster count strategy for Harmony multimodal fusion')
+    parser.add_argument('--harmony_svd_threshold', type=float, default=0.1,
+                        help='relative singular value threshold when Harmony uses SVD-based cluster selection')
+    parser.add_argument('--harmony_bias_metric', type=str, default='cosine', choices=['cosine'],
+                        help='discrepancy metric used by Harmony for benchmark encoder comparison')
     return parser
 
 

@@ -7,7 +7,6 @@ import torch.nn as nn
 
 from apex import amp
 from sklearn.metrics import pairwise_distances
-import clip
 
 from algorithms.mm_eval import batch
 from src import losses
@@ -16,6 +15,7 @@ from src.networks.clip_model import ClientImageEncoder
 from src.networks.language_model import EncoderText
 from src.networks.resnet_client import resnet18_client
 from src.utils.Utils import to_one_hot
+from src.utils.model_utils import is_embedding_model
 
 torch.backends.cudnn.enabled = True
 
@@ -228,7 +228,7 @@ class ClientTrainer:
     def setModel(self):
         if self.logger is not None:
             self.logger.log(f'Setting model {self.client_id}')
-        if self.dset_name == 'image' and self.args.model == 'clip':
+        if self.dset_name == 'image' and is_embedding_model(self.args.model):
             self.model = ClientImageEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, 
                                         mlp_local=self.args.mlp_local, is_train=True,
                                         use_pretrained_proj=bool(self.args.use_pretrained_proj))
@@ -240,7 +240,7 @@ class ClientTrainer:
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
             # params = [p for n, p in self.model.named_parameters() if "lora" in n and p.requires_grad]
-        elif self.dset_name == 'text' and self.args.model == 'clip':
+        elif self.dset_name == 'text' and is_embedding_model(self.args.model):
             self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim,
                                         mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj))
             self.criterion = losses.create(self.loss)
@@ -301,7 +301,7 @@ class ClientTrainer:
                     if self.args.model == 'resnet':
                         fvec, _, class_weight, _ = self.model(inputs_var)
                         
-                    elif self.args.model == 'clip':
+                    elif is_embedding_model(self.args.model):
                         fvec, class_weight, _ = self.model(inputs_var)
 
                 elif self.dset_name == 'text':
@@ -317,7 +317,7 @@ class ClientTrainer:
                     if self.args.model == 'resnet':
                         fvec, _, class_weight, _ = self.model(inputs_bt)
                         
-                    elif self.args.model == 'clip':
+                    elif is_embedding_model(self.args.model):
                         fvec, class_weight, _ = self.model(inputs_bt)
 
                 # intra_class_distance
@@ -499,7 +499,7 @@ class ClientTrainer:
                     inputs_bt = data["processed_img"]
                     labels_bt = data["class_id"]
                     inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
-                    if self.args.model == 'clip':
+                    if is_embedding_model(self.args.model):
                         fvec, _, _ = self.model(inputs_var)
                     elif self.args.model == 'resnet':
                         fvec, _, class_weight, _ = self.model(inputs_var)
@@ -508,7 +508,7 @@ class ClientTrainer:
                     labels_bt = data["class_id"]
                     
                     inputs_bt = inputs_bt.to(self.gpuid)
-                    if self.args.model == 'clip':
+                    if is_embedding_model(self.args.model):
                         fvec, _, _ = self.model(inputs_bt)
                     elif self.args.model == 'resnet':
                         fvec, _, _, _ = self.model(inputs_bt)

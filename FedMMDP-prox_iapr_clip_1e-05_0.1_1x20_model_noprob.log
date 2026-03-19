@@ -1,0 +1,52 @@
+[2026-03-19 10:47:04] start creating model and partition datasets
+[2026-03-19 10:47:04] Setting model 0
+[2026-03-19 10:47:04] Setting model 1
+[2026-03-19 10:47:05] Setting model 2
+[2026-03-19 10:47:05] Setting model 3
+[2026-03-19 10:47:05] Setting model 4
+[2026-03-19 10:47:05] Setting model 0
+[2026-03-19 10:47:05] Setting model 1
+[2026-03-19 10:47:05] Setting model 2
+[2026-03-19 10:47:05] Setting model 3
+[2026-03-19 10:47:05] Setting model 4
+[2026-03-19 10:47:06] Engine is created.
+[2026-03-19 10:47:06] Munch({'dataloader': Munch({'batch_size': 256, 'eval_batch_size': 256, 'num_workers': 0, 'alpha': 0.1, 'partition': 'hetero'}), 'model': Munch({'embed_dim': 1024, 'clip_model': 'RN50', 'cnn_type': 'resnet18', 'word_dim': 512, 'cache_dir': '/data/mmdata/log/MMCLIP/', 'n_samples_inference': 1, 'eval_method': 'matmul', 'use_img_client': True, 'use_txt_client': True, 'use_mm_client': True, 'client': 0.1, 'momentum': 0.9, 'name': 'clip', 'use_pretrained_proj': False, 'img_client': 'image', 'txt_client': 'text'}), 'optimizer': Munch({'name': 'adamp', 'learning_rate': 0.0002, 'weight_decay': 0.0}), 'lr_scheduler': Munch({'name': 'cosine_annealing', 'T_max': 30}), 'criterion': Munch({'name': 'pcme', 'init_negative_scale': 15, 'init_shift': 15, 'num_samples': 7, 'vib_beta': 0, 'criterion__negative_sampling_ratio': -1}), 'train': Munch({'is_client': True, 'server_dataset': 'Coco', 'model_save_path': 'model_last_no_prob.pth', 'best_model_save_path': 'model_best_no_prob.pth', 'pretrain_epochs': 0, 'finetune_epochs': 2, 'finetune_lr_decay': 0.1, 'log_step': 1000, 'grad_clip': 2, 'val_epochs': 1, 'pretrain_val_epochs': 1, 'use_fp16': True, 'output_file': 'FedMMDP-prox_iapr_clip_1e-05_0.1_1x20_model_noprob.log'})})
+[2026-03-19 10:47:06] start train
+[2026-03-19 10:47:06] Train with half precision
+[2026-03-19 10:47:06] Round 1!
+[2026-03-19 10:47:06] Training Client 10!
+[2026-03-19 10:47:07] Training Client 1!
+[2026-03-19 10:47:08] TEST:  Epoch: [1] image	Prec@1 14.094 (14.094)	Prec@5 21.812 (21.812)
+[2026-03-19 10:47:08] Training Client 0!
+[2026-03-19 10:47:08] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 10:47:09] Training Client 11!
+[2026-03-19 10:47:10] Training Client 4!
+[2026-03-19 10:47:10] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 39.286 (39.286)
+[2026-03-19 10:47:10] Training Client 3!
+[2026-03-19 10:47:11] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 40.764 (40.764)
+[2026-03-19 10:47:11] Training Client 9!
+[2026-03-19 10:47:11] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 12.500 (12.500)
+[2026-03-19 10:47:11] Training Client 2!
+[2026-03-19 10:47:12] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 28.179 (26.152)
+[2026-03-19 10:47:12] Training Client 5!
+[2026-03-19 10:47:13] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 10:47:13] Training Client 12!
+[2026-03-19 10:47:15] Training Client 14!
+[2026-03-19 10:47:15] Training Client 6!
+[2026-03-19 10:47:15] TEST:  Epoch: [1] text	Prec@1 12.081 (12.081)	Prec@5 48.658 (48.658)
+[2026-03-19 10:47:16] Training Client 7!
+[2026-03-19 10:47:18] TEST:  Epoch: [1] text	Prec@1 54.296 (53.300)	Prec@5 96.220 (95.392)
+[2026-03-19 10:47:18] Training Client 13!
+[2026-03-19 10:47:19] Training Client 8!
+[2026-03-19 10:47:19] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 26.752 (26.752)
+[2026-03-19 10:47:20] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 10:47:20] TEST:  Epoch: [1] image	Prec@1 14.667 (13.293)	Prec@5 17.333 (16.616)
+[2026-03-19 10:47:21] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 2.419 (2.691)
+[2026-03-19 10:47:21] TEST:  Epoch: [1] image	Prec@1 16.000 (16.000)	Prec@5 34.286 (34.286)
+[2026-03-19 10:47:21] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 1.613 (1.613)
+[2026-03-19 10:47:22] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 10:47:22] TEST:  Epoch: [1] text	Prec@1 16.000 (13.595)	Prec@5 48.000 (43.202)
+[2026-03-19 10:47:23] TEST:  Epoch: [1] text	Prec@1 60.484 (53.251)	Prec@5 93.548 (91.480)
+[2026-03-19 10:47:23] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 20.571 (20.571)
+[2026-03-19 10:47:23] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 12.903 (12.903)
+[2026-03-19 10:47:23] Evaluating test...

@@ -1,0 +1,45 @@
+[2026-03-19 10:47:03] start creating model and partition datasets
+[2026-03-19 10:47:03] Setting model 0
+[2026-03-19 10:47:03] Setting model 1
+[2026-03-19 10:47:03] Setting model 2
+[2026-03-19 10:47:03] Setting model 3
+[2026-03-19 10:47:03] Setting model 4
+[2026-03-19 10:47:03] Setting model 0
+[2026-03-19 10:47:03] Setting model 1
+[2026-03-19 10:47:03] Setting model 2
+[2026-03-19 10:47:04] Setting model 3
+[2026-03-19 10:47:04] Setting model 4
+[2026-03-19 10:47:05] Engine is created.
+[2026-03-19 10:47:05] Munch({'dataloader': Munch({'batch_size': 256, 'eval_batch_size': 256, 'num_workers': 0, 'alpha': 0.1, 'partition': 'hetero'}), 'model': Munch({'embed_dim': 1024, 'clip_model': 'RN50', 'cnn_type': 'resnet18', 'word_dim': 512, 'cache_dir': '/data/mmdata/log/MMCLIP/', 'n_samples_inference': 1, 'eval_method': 'matmul', 'use_img_client': True, 'use_txt_client': True, 'use_mm_client': True, 'client': 0.1, 'momentum': 0.9, 'name': 'clip', 'use_pretrained_proj': False, 'img_client': 'image', 'txt_client': 'text'}), 'optimizer': Munch({'name': 'adamp', 'learning_rate': 0.0002, 'weight_decay': 0.0}), 'lr_scheduler': Munch({'name': 'cosine_annealing', 'T_max': 30}), 'criterion': Munch({'name': 'pcme', 'init_negative_scale': 15, 'init_shift': 15, 'num_samples': 7, 'vib_beta': 0, 'criterion__negative_sampling_ratio': -1}), 'train': Munch({'is_client': True, 'server_dataset': 'Coco', 'model_save_path': 'model_last_no_prob.pth', 'best_model_save_path': 'model_best_no_prob.pth', 'pretrain_epochs': 0, 'finetune_epochs': 2, 'finetune_lr_decay': 0.1, 'log_step': 1000, 'grad_clip': 2, 'val_epochs': 1, 'pretrain_val_epochs': 1, 'use_fp16': False, 'output_file': 'FedMMDP-Mobile_iapr_clip_1e-05_0.1_1x20_model_noprob.log'})})
+[2026-03-19 10:47:05] start train
+[2026-03-19 10:47:05] Round 1!
+[2026-03-19 10:47:05] FedMobile client 0 stats: {'total_batches': 3, 'optimized_batches': 3, 'skipped_batches': 0, 'finite_grad_batches': 3, 'mean_loss': 5.3880289395650225, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:06] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 10:47:06] FedMobile client 1 stats: {'total_batches': 1, 'optimized_batches': 1, 'skipped_batches': 0, 'finite_grad_batches': 1, 'mean_loss': 5.821634292602539, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:06] TEST:  Epoch: [1] image	Prec@1 9.396 (9.396)	Prec@5 29.195 (29.195)
+[2026-03-19 10:47:07] FedMobile client 2 stats: {'total_batches': 3, 'optimized_batches': 3, 'skipped_batches': 0, 'finite_grad_batches': 3, 'mean_loss': 5.227787971496582, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:07] TEST:  Epoch: [1] image	Prec@1 0.000 (0.125)	Prec@5 6.186 (6.476)
+[2026-03-19 10:47:08] FedMobile client 3 stats: {'total_batches': 3, 'optimized_batches': 3, 'skipped_batches': 0, 'finite_grad_batches': 3, 'mean_loss': 5.3486307462056475, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:08] TEST:  Epoch: [1] image	Prec@1 8.917 (8.917)	Prec@5 26.752 (26.752)
+[2026-03-19 10:47:08] FedMobile client 4 stats: {'total_batches': 1, 'optimized_batches': 1, 'skipped_batches': 0, 'finite_grad_batches': 1, 'mean_loss': 5.7260661125183105, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:08] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 23.214 (23.214)
+[2026-03-19 10:47:08] FedMobile client 0 stats: {'total_batches': 1, 'optimized_batches': 1, 'skipped_batches': 0, 'finite_grad_batches': 1, 'mean_loss': 5.771551132202148, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:09] TEST:  Epoch: [1] text	Prec@1 1.845 (1.845)	Prec@5 16.605 (16.605)
+[2026-03-19 10:47:09] FedMobile client 1 stats: {'total_batches': 3, 'optimized_batches': 3, 'skipped_batches': 0, 'finite_grad_batches': 3, 'mean_loss': 5.298687934875488, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:09] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 1.678 (1.678)
+[2026-03-19 10:47:11] FedMobile client 2 stats: {'total_batches': 17, 'optimized_batches': 17, 'skipped_batches': 0, 'finite_grad_batches': 17, 'mean_loss': 4.489451492533965, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:12] TEST:  Epoch: [1] text	Prec@1 47.079 (47.696)	Prec@5 60.825 (61.146)
+[2026-03-19 10:47:12] FedMobile client 3 stats: {'total_batches': 1, 'optimized_batches': 1, 'skipped_batches': 0, 'finite_grad_batches': 1, 'mean_loss': 5.647594451904297, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:12] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 50.318 (50.318)
+[2026-03-19 10:47:12] FedMobile client 4 stats: {'total_batches': 0, 'optimized_batches': 0, 'skipped_batches': 0, 'finite_grad_batches': 0, 'mean_loss': 0.0, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:12] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 10:47:13] Epoch 1
+[2026-03-19 10:47:13] FedMobile mm client 0 stats: {'total_batches': 3, 'optimized_batches': 3, 'skipped_batches': 0, 'finite_grad_batches': 3, 'mean_loss': 5080.690266927083, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:14] Epoch 1
+[2026-03-19 10:47:15] FedMobile mm client 1 stats: {'total_batches': 5, 'optimized_batches': 5, 'skipped_batches': 0, 'finite_grad_batches': 5, 'mean_loss': 5452.2330078125, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:15] Epoch 1
+[2026-03-19 10:47:17] FedMobile mm client 2 stats: {'total_batches': 6, 'optimized_batches': 6, 'skipped_batches': 0, 'finite_grad_batches': 6, 'mean_loss': 5686.8824462890625, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:17] Epoch 1
+[2026-03-19 10:47:17] FedMobile mm client 3 stats: {'total_batches': 0, 'optimized_batches': 0, 'skipped_batches': 0, 'finite_grad_batches': 0, 'mean_loss': 0.0, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}
+[2026-03-19 10:47:17] Epoch 1
+[2026-03-19 10:47:17] FedMobile mm client 4 stats: {'total_batches': 0, 'optimized_batches': 0, 'skipped_batches': 0, 'finite_grad_batches': 0, 'mean_loss': 0.0, 'skipped_nonfinite_output': 0, 'skipped_nonfinite_loss': 0, 'skipped_nonfinite_grad': 0}

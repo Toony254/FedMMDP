@@ -24,6 +24,7 @@ from src.datasets.load_FL_datasets import get_FL_trainloader
 from src.datasets.transform import collate_fn
 from src.utils.config import parse_config, apply_runtime_overrides
 from src.utils.logger import PythonLogger
+from src.utils.model_utils import is_embedding_model
 
 
 is_test = False
@@ -77,7 +78,7 @@ class MMFL(object):
             raise ValueError(f'Unsupported centroid initialization mode: {self.args.centroid_init}')
 
     def _artifact_tag(self):
-        return f'FedMMDP_secureagg_{self.args.secure_agg_mode}_{self.args.cluster_method}'
+        return f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_FedMMDP_secureagg_{self.args.secure_agg_mode}_{self.args.cluster_method}'
 
     def _initialize_global_centroids(self):
         if self.global_centroids is not None:
@@ -127,7 +128,7 @@ class MMFL(object):
         self.config = apply_runtime_overrides(self.args, self.config)
         self.config.train.model_save_path = 'model_last_no_prob.pth'
         self.config.train.best_model_save_path = 'model_best_no_prob.pth'
-        self.config.train.output_file = 'model_noprob.log'
+        self.config.train.output_file = f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_model_noprob.log'
         self.config.model.img_client = img
         self.config.model.txt_client = txt
         self.config.model.embed_dim = self.args.feature_dim
@@ -363,7 +364,7 @@ class MMFL(object):
                 local_mm_model.append(trainer.model)
 
         if self.args.aggregate is True:
-            if self.args.model == 'clip':
+            if is_embedding_model(self.args.model):
                 server_model = self.aggregate_clip_models(local_image_model, local_text_model, local_mm_model)
                 for trainer in self.cur_trainers:
                     if hasattr(trainer.model, "img_enc") and hasattr(trainer.model, "txt_enc"):
