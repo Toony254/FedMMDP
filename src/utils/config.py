@@ -174,3 +174,33 @@ def parse_config(config_fname: str,
 
     config = munch.munchify(config)
     return config
+
+
+
+def apply_runtime_overrides(args, config: munch.Munch) -> munch.Munch:
+    """Synchronize runtime CLI arguments into model/data config."""
+    if config is None:
+        return config
+
+    if not isinstance(config, munch.Munch):
+        config = munch.munchify(config)
+
+    if hasattr(config, 'model'):
+        if hasattr(args, 'feature_dim'):
+            config.model.embed_dim = args.feature_dim
+        if hasattr(args, 'model'):
+            config.model.name = args.model
+        if hasattr(args, 'use_pretrained_proj'):
+            config.model.use_pretrained_proj = bool(args.use_pretrained_proj)
+
+    if hasattr(config, 'dataloader'):
+        if hasattr(args, 'batch_size'):
+            config.dataloader.batch_size = args.batch_size
+            if hasattr(config.dataloader, 'eval_batch_size'):
+                config.dataloader.eval_batch_size = args.batch_size
+        if hasattr(args, 'alpha'):
+            config.dataloader.alpha = args.alpha
+        if hasattr(args, 'partition'):
+            config.dataloader.partition = args.partition
+
+    return config

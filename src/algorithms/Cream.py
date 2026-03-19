@@ -27,7 +27,7 @@ from src.algorithms.creamMMClientTrainer import MMClientTrainer
 from src.algorithms.eval_coco import COCOEvaluator
 from src.algorithms.retrieval_trainer import TrainerEngine
 from src.algorithms.mm_eval import MMEvaluator
-from src.utils.config import parse_config
+from src.utils.config import parse_config, apply_runtime_overrides
 from src.utils.load_datasets import prepare_coco_dataloaders
 from src.utils.logger import PythonLogger
 
@@ -91,6 +91,7 @@ class MMFL(object):
         elif self.args.dataset == 'iapr':
             yaml_name = 'iapr.yaml'
         self.config = parse_config("./src/" + yaml_name, strict_cast=False)
+        self.config = apply_runtime_overrides(self.args, self.config)
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
         self.config.train.output_file = 'model_noprob'
@@ -106,7 +107,15 @@ class MMFL(object):
     def load_dataset(self, args):
         dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
         vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
-        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(self.config.dataloader, dataset_root, vocab_path, pub_data_num=self.args.pub_data_num)
+        self.dataloaders_global, self.vocab = prepare_coco_dataloaders(
+            self.config.dataloader,
+            dataset_root,
+            vocab_path,
+            pub_data_num=self.args.pub_data_num,
+            feature_dim=self.args.feature_dim,
+            clip_model_name=getattr(self.config.model, 'clip_model', 'RN50'),
+            cache_device=str(self.device),
+        )
 
         self.engine = TrainerEngine()
         self.engine.set_logger(self.logger)
@@ -156,7 +165,7 @@ class MMFL(object):
         if args.num_img_clients > 0:
             dataset = 'image'
             self.img_trainloaders, test_loaders = get_FL_trainloader(dataset, self.args.data_root,
-                                                                 args.num_img_clients, "hetero", self.args.alpha, self.args.batch_size)
+                                                                 args.num_img_clients, self.args.partition, self.args.alpha, self.args.batch_size)
             self.img_local_trainers = []
             for i in range(args.num_img_clients):
                 self.img_local_trainers.append(
@@ -170,7 +179,7 @@ class MMFL(object):
         if args.num_txt_clients > 0:
             dataset = 'text'
             self.txt_trainloaders, test_loaders = get_FL_trainloader(dataset, self.args.data_root,
-                                                                 args.num_txt_clients, "hetero", self.args.alpha, self.args.batch_size)
+                                                                 args.num_txt_clients, self.args.partition, self.args.alpha, self.args.batch_size)
             self.txt_local_trainers = []
             for i in range(args.num_txt_clients):
                 self.txt_local_trainers.append(

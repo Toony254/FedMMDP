@@ -65,7 +65,6 @@ def build_parser():
     parser.add_argument('--data_root', type=str, default='preprocessed_imagenet/domain_datasets/')
     parser.add_argument('--batch_size', type=int, default=256, metavar='N', help='input batch size for training')
     parser.add_argument('--alpha', type=float, default=0.1)
-    parser.add_argument('--partition', type=str, default='hetero', help='data partition mode for all clients')
     parser.add_argument('--pub_data_num', type=int, default=5000, help='public dataset size for distillation-based baselines')
 
     parser.add_argument('--server_lr', type=float, default=0.0002)
@@ -95,8 +94,6 @@ def build_parser():
 
     parser.add_argument('--data_local', action='store_true', default=False, help='change data directory to ~/data_local')
     parser.add_argument('--feature_dim', type=int, default=1024)
-    parser.add_argument('--use_pretrained_proj', type=int, default=1, choices=[0, 1],
-                        help='1: load pretrained projector weights, 0: use random projector initialization')
     parser.add_argument('--cluster_method', type=str, default='finch', choices=['finch', 'spectral', 'kmeans', 'dbscan'])
     parser.add_argument('--partition_level', type=int, default=1, help='partition level for FINCH clustering')
     parser.add_argument('--n_clusters', type=int, default=5, help='number of clusters for kmeans or spectral clustering')

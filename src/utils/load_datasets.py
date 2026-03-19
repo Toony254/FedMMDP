@@ -2,6 +2,7 @@ import os
 import random
 import copy
 import sys
+import time
 
 import numpy as np
 import pickle
@@ -14,13 +15,83 @@ sys.path.append("../../..")
 
 from src.datasets._dataloader import image_to_caption_collate_fn
 from src.datasets.coco import CocoCaptionsCap
+from src.datasets.coco_preprocess import load_clip_cache, precompute_coco_clip
 
 
 #  COCO
+def _get_coco_cache_path(dataset_root, feature_dim):
+    return os.path.join(dataset_root, f'coco_emb_{feature_dim}.pt')
+
+
+def _validate_coco_cache(cache_path, feature_dim):
+    cache = load_clip_cache(cache_path, map_location='cpu')
+    image_dim = cache['image_features'].shape[-1]
+    caption_dim = cache['caption_features'].shape[-1]
+    if image_dim != feature_dim or caption_dim != feature_dim:
+        raise ValueError(
+            f"COCO cache dimension mismatch for {cache_path}: "
+            f"image_dim={image_dim}, caption_dim={caption_dim}, expected={feature_dim}"
+        )
+
+
+def ensure_coco_embedding_cache(dataset_root,
+                                image_root,
+                                train_ann,
+                                val_ann,
+                                feature_dim,
+                                clip_model_name='RN50',
+                                device=None,
+                                batch_size=256,
+                                wait_seconds=10):
+    cache_path = _get_coco_cache_path(dataset_root, feature_dim)
+    if os.path.exists(cache_path):
+        _validate_coco_cache(cache_path, feature_dim)
+        return cache_path
+
+    os.makedirs(dataset_root, exist_ok=True)
+    lock_path = cache_path + '.lock'
+
+    while os.path.exists(lock_path):
+        if os.path.exists(cache_path):
+            _validate_coco_cache(cache_path, feature_dim)
+            return cache_path
+        print(f'Waiting for COCO cache generation: {lock_path}')
+        time.sleep(wait_seconds)
+
+    try:
+        with open(lock_path, 'w', encoding='utf-8') as fout:
+            fout.write(str(os.getpid()))
+
+        if not os.path.exists(cache_path):
+            print(f'COCO cache not found, generating {cache_path}')
+            precompute_coco_clip(
+                root=image_root,
+                ann_file=train_ann,
+                extra_ann_file=val_ann,
+                output_path=cache_path,
+                clip_model_name=clip_model_name,
+                batch_size=batch_size,
+                device=device,
+            )
+
+        _validate_coco_cache(cache_path, feature_dim)
+    finally:
+        if os.path.exists(lock_path):
+            os.remove(lock_path)
+
+    return cache_path
+
+
 def prepare_coco_dataloaders(dataloader_config,
                              dataset_root,
                              vocab_path='./vocabs/coco_vocab.pkl',
-                             num_workers=0, tsne=False, client=-1, pub_data_num=50000):
+                             num_workers=0,
+                             tsne=False,
+                             client=-1,
+                             pub_data_num=50000,
+                             feature_dim=1024,
+                             clip_model_name='RN50',
+                             cache_device=None):
     """Prepare MS-COCO Caption train / val / test dataloaders
     Args:
         dataloader_config (dict): configuration file which should contain "batch_size"
@@ -38,6 +109,17 @@ def prepare_coco_dataloaders(dataloader_config,
 
     vocab = load_vocab(vocab_path)
     train_ids, train_extra_ids, val_ids, te_ids, image_root, train_ann, val_ann = _get_coco_file_paths(dataset_root)
+
+    cache_file = ensure_coco_embedding_cache(
+        dataset_root=dataset_root,
+        image_root=image_root,
+        train_ann=train_ann,
+        val_ann=val_ann,
+        feature_dim=feature_dim,
+        clip_model_name=clip_model_name,
+        device=cache_device,
+        batch_size=max(batch_size, eval_batch_size),
+    )
 
     dataloaders = {}
 
@@ -63,7 +145,8 @@ def prepare_coco_dataloaders(dataloader_config,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
             subset=False,
-            client=client
+            client=client,
+            cache_file=cache_file
         )
     else:
         dataloaders['train_subset' + f'_{pub_data_num}'] = _get_coco_loader(
@@ -75,7 +158,8 @@ def prepare_coco_dataloaders(dataloader_config,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
             subset=True,
-            pub_data_num=pub_data_num
+            pub_data_num=pub_data_num,
+            cache_file=cache_file
         )
 
         dataloaders['train_subset_eval' + f'_{pub_data_num}'] = _get_coco_loader(
@@ -87,19 +171,22 @@ def prepare_coco_dataloaders(dataloader_config,
             cutout_prob=tr_cutout_prob,
             caption_drop_prob=tr_caption_drop_prob,
             subset=True,
-            pub_data_num=pub_data_num
+            pub_data_num=pub_data_num,
+            cache_file=cache_file
         )
 
     dataloaders['val'] = _get_coco_loader(
         image_root, val_ann, val_ids, vocab,
         num_workers=num_workers, batch_size=eval_batch_size,
         train=False,
+        cache_file=cache_file,
     )
 
     dataloaders['test'] = _get_coco_loader(
         image_root, val_ann, te_ids, vocab,
         num_workers=num_workers, batch_size=eval_batch_size if not tsne else 200,
         train=False,
+        cache_file=cache_file,
     )
 
     return dataloaders, vocab
@@ -132,7 +219,8 @@ def _get_coco_loader(image_root,
                      caption_drop_prob=0.0,
                      subset=False,
                      pub_data_num=50000,
-                     client=-1):
+                     client=-1,
+                     cache_file=None):
     _image_transform = imagenet_transform(
         random_resize_crop=train,
         random_erasing_prob=cutout_prob,
@@ -142,7 +230,7 @@ def _get_coco_loader(image_root,
 
     coco_dataset = CocoCaptionsCap(image_root, annotation_path,
                                    extra_annFile=extra_annotation_path,
-                                   ids=ids, cache_file='src/datasets/coco_emb.pt',
+                                   ids=ids, cache_file=cache_file,
                                    extra_ids=extra_ids, client=client)
 
     if subset:

@@ -6,25 +6,36 @@ sys.path.append("../")
 sys.path.append("../../")
 from src.utils.tensor_utils import l2_normalize
 
+
+def _maybe_load_projector(projector, projector_key, emb_dim, use_pretrained_proj):
+    if not use_pretrained_proj:
+        return
+
+    projector_weight_path = f"saved/projector_weights/mlp+norm{emb_dim}.pth"
+    projector_weight = torch.load(projector_weight_path, map_location='cpu')
+    projector_state = projector_weight[projector_key]
+    if hasattr(projector_state, 'state_dict'):
+        projector_state = projector_state.state_dict()
+    projector.load_state_dict(projector_state)
+
+
 class ClientImageEncoder(nn.Module):
     def __init__(self, mlp_local, **kwargs):
         super(ClientImageEncoder, self).__init__()
         self.is_train = bool(kwargs['is_train'])
         emb_dim = kwargs.get('embed_dim')
-        
-        # 加载预训练的投影头
+        use_pretrained_proj = bool(kwargs.get('use_pretrained_proj', True))
+
         self.visual_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
+            nn.Linear(emb_dim, 2 * emb_dim),
             nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
+            nn.Linear(2 * emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        # projector_weight_path = f"saved/projector_weights/mlp+norm{emb_dim}.pth"
-        # projector_weight = torch.load(projector_weight_path)
-        # self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
-        
+        _maybe_load_projector(self.visual_projector, 'visual_projector', emb_dim, use_pretrained_proj)
+
         self.embed_dim = kwargs.get('embed_dim', emb_dim)
         self.relu = nn.ReLU(inplace=False)
         if self.embed_dim != emb_dim:
@@ -36,17 +47,16 @@ class ClientImageEncoder(nn.Module):
                 nn.Linear(self.embed_dim, self.embed_dim),
                 nn.BatchNorm1d(self.embed_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(self.embed_dim, self.embed_dim)
+                nn.Linear(self.embed_dim, self.embed_dim),
             )
 
     def forward(self, embeddings):
         embeddings = embeddings.float()
         x = self.visual_projector(embeddings)
-        
-        # 如果需要维度转换
+
         if hasattr(self, 'linear'):
             x = self.linear(x)
-        
+
         if self.is_train:
             fc_weight_relu = self.relu(self.class_fc_2.weight)
             self.class_fc_2.weight.data = fc_weight_relu
@@ -56,32 +66,31 @@ class ClientImageEncoder(nn.Module):
             return x1, fc_weight_relu, x
         return l2_normalize(x)
 
+
 class CLIPImageEncoder(nn.Module):
     def __init__(self, config, mlp_local):
         super(CLIPImageEncoder, self).__init__()
         self.config = config
         emb_dim = config['embed_dim']
-        
-        # 加载预训练的投影头
+        use_pretrained_proj = bool(config.get('use_pretrained_proj', True))
+
         self.visual_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
+            nn.Linear(emb_dim, 2 * emb_dim),
             nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
+            nn.Linear(2 * emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        # projector_weight_path = f"saved/projector_weights/mlp+norm{emb_dim}.pth"
-        # projector_weight = torch.load(projector_weight_path)
-        # self.visual_projector.load_state_dict(projector_weight['visual_projector'].state_dict())
-        
+        _maybe_load_projector(self.visual_projector, 'visual_projector', emb_dim, use_pretrained_proj)
+
         self.mlp_local = mlp_local
         if self.mlp_local:
             self.head_proj = nn.Sequential(
                 nn.Linear(emb_dim, emb_dim),
                 nn.BatchNorm1d(emb_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(emb_dim, emb_dim)
+                nn.Linear(emb_dim, emb_dim),
             )
 
     def forward(self, embeddings):
@@ -93,24 +102,22 @@ class CLIPImageEncoder(nn.Module):
         output = {'embedding': out}
         return output
 
+
 class ClientTextEncoder(nn.Module):
-    def __init__(self, embed_dim=1024, num_class=4, scale=128, mlp_local=False):
+    def __init__(self, embed_dim=1024, num_class=4, scale=128, mlp_local=False, use_pretrained_proj=True):
         super(ClientTextEncoder, self).__init__()
         emb_dim = embed_dim
-        
-        # 加载预训练的投影头
+
         self.text_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
+            nn.Linear(emb_dim, 2 * emb_dim),
             nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
+            nn.Linear(2 * emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        # projector_weight_path = f"saved/projector_weights/mlp+norm{emb_dim}.pth"
-        # projector_weight = torch.load(projector_weight_path)
-        # self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
-        
+        _maybe_load_projector(self.text_projector, 'text_projector', emb_dim, use_pretrained_proj)
+
         self.relu = nn.ReLU(inplace=False)
         self.class_fc_2 = nn.Linear(embed_dim, num_class)
         self.is_train = True
@@ -120,13 +127,13 @@ class ClientTextEncoder(nn.Module):
                 nn.Linear(emb_dim, emb_dim),
                 nn.BatchNorm1d(emb_dim),
                 nn.ReLU(inplace=True),
-                nn.Linear(emb_dim, emb_dim)
+                nn.Linear(emb_dim, emb_dim),
             )
 
     def forward(self, embeddings, lengths=None):
         embeddings = embeddings.float()
         out = self.text_projector(embeddings)
-        
+
         if self.is_train:
             fc_weight_relu = self.relu(self.class_fc_2.weight)
             self.class_fc_2.weight.data = fc_weight_relu
@@ -137,25 +144,24 @@ class ClientTextEncoder(nn.Module):
         out = l2_normalize(out)
         return out
 
+
 class CLIPTextEncoder(nn.Module):
     def __init__(self, config, embed_dim=1024, num_class=4, scale=128, mlp_local=False):
         super(CLIPTextEncoder, self).__init__()
         self.config = config
         emb_dim = config['embed_dim']
-        
-        # 加载预训练的投影头
+        use_pretrained_proj = bool(config.get('use_pretrained_proj', True))
+
         self.text_projector = nn.Sequential(
-            nn.Linear(emb_dim, 2*emb_dim),
+            nn.Linear(emb_dim, 2 * emb_dim),
             nn.ReLU(),
-            nn.Linear(2*emb_dim, emb_dim),
+            nn.Linear(2 * emb_dim, emb_dim),
             nn.Linear(emb_dim, emb_dim),
             nn.LayerNorm(emb_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
-        # projector_weight_path = f"saved/projector_weights/mlp+norm{emb_dim}.pth"
-        # projector_weight = torch.load(projector_weight_path)
-        # self.text_projector.load_state_dict(projector_weight['text_projector'].state_dict())
-    
+        _maybe_load_projector(self.text_projector, 'text_projector', emb_dim, use_pretrained_proj)
+
     def forward(self, embeddings):
         embeddings = embeddings.float()
         out = self.text_projector(embeddings)

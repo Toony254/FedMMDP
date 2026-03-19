@@ -22,7 +22,7 @@ try:
     from src.algorithms.retrieval_trainer import TrainerEngine
     from src.datasets.load_FL_datasets import get_FL_trainloader
     from src.datasets.transform import collate_fn
-    from src.utils.config import parse_config
+    from src.utils.config import parse_config, apply_runtime_overrides
     from src.utils.load_datasets import prepare_coco_dataloaders
     from src.utils.logger import PythonLogger
 except ImportError:
@@ -90,6 +90,7 @@ class MMFL(object):
             yaml_name = 'iapr.yaml'
 
         self.config = parse_config("./src/" + yaml_name, strict_cast=False)
+        self.config = apply_runtime_overrides(self.args, self.config)
         self.config.train.model_save_path = 'model_last_no_prob.pth'
         self.config.train.best_model_save_path = 'model_best_no_prob.pth'
         self.config.train.output_file = 'model_noprob.log'
@@ -109,6 +110,9 @@ class MMFL(object):
                 coco_root,
                 vocab_path,
                 pub_data_num=self.args.pub_data_num,
+                feature_dim=self.args.feature_dim,
+                clip_model_name=getattr(self.config.model, 'clip_model', 'RN50'),
+                cache_device=str(self.device),
             )
             proxy_key = 'train_subset_eval' + f'_{self.args.pub_data_num}'
             train_key = 'train_subset' + f'_{self.args.pub_data_num}'
@@ -235,7 +239,7 @@ class MMFL(object):
         if args.num_img_clients > 0:
             dataset = 'image'
             self.img_trainloaders, test_loaders = get_FL_trainloader(
-                dataset, self.args.data_root, args.num_img_clients, "hetero", self.args.alpha, self.args.batch_size
+                dataset, self.args.data_root, args.num_img_clients, self.args.partition, self.args.alpha, self.args.batch_size
             )
             for i in range(args.num_img_clients):
                 trainer = FedMEKTClientTrainer(
@@ -248,7 +252,7 @@ class MMFL(object):
         if args.num_txt_clients > 0:
             dataset = 'text'
             self.txt_trainloaders, test_loaders = get_FL_trainloader(
-                dataset, self.args.data_root, args.num_txt_clients, "hetero", self.args.alpha, self.args.batch_size
+                dataset, self.args.data_root, args.num_txt_clients, self.args.partition, self.args.alpha, self.args.batch_size
             )
             for i in range(args.num_txt_clients):
                 trainer = FedMEKTClientTrainer(

@@ -32,6 +32,7 @@ except ImportError:
 import munch
 
 from src.utils.serialize_utils import object_loader
+from src.utils.config import apply_runtime_overrides
 
 
 def parse_config(config_path, cache_dir=None, pretrained_resnet_model_path=None, use_fp16=False):
@@ -62,7 +63,8 @@ class EngineBase(object):
         self.dset_name = dset_name
 
         self.args = args
-        self.config = config
+        self.config = apply_runtime_overrides(args, config)
+        config = self.config
         self.wandb = wandb
         self.class_size = class_size
 

@@ -230,7 +230,8 @@ class ClientTrainer:
             self.logger.log(f'Setting model {self.client_id}')
         if self.dset_name == 'image' and self.args.model == 'clip':
             self.model = ClientImageEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, 
-                                        mlp_local=self.args.mlp_local, is_train=True)
+                                        mlp_local=self.args.mlp_local, is_train=True,
+                                        use_pretrained_proj=bool(self.args.use_pretrained_proj))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'image' and self.args.model == 'resnet':
@@ -241,7 +242,7 @@ class ClientTrainer:
             # params = [p for n, p in self.model.named_parameters() if "lora" in n and p.requires_grad]
         elif self.dset_name == 'text' and self.args.model == 'clip':
             self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim,
-                                        mlp_local=self.args.mlp_local)
+                                        mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'text' and self.args.model == 'resnet':
