@@ -151,6 +151,7 @@ def prepare_coco_dataloaders(dataloader_config,
     elif client > -1:
         dataloaders['train_client'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
+            dataset_root,
             num_workers=num_workers, batch_size=batch_size,
             train=True,
             extra_annotation_path=val_ann,
@@ -164,6 +165,7 @@ def prepare_coco_dataloaders(dataloader_config,
     else:
         dataloaders['train_subset' + f'_{pub_data_num}'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
+            dataset_root,
             num_workers=num_workers, batch_size=batch_size,
             train=True,
             extra_annotation_path=val_ann,
@@ -177,6 +179,7 @@ def prepare_coco_dataloaders(dataloader_config,
 
         dataloaders['train_subset_eval' + f'_{pub_data_num}'] = _get_coco_loader(
             image_root, train_ann, train_ids, vocab,
+            dataset_root,
             num_workers=num_workers, batch_size=batch_size * 2,
             train=False,
             extra_annotation_path=val_ann,
@@ -190,6 +193,7 @@ def prepare_coco_dataloaders(dataloader_config,
 
     dataloaders['val'] = _get_coco_loader(
         image_root, val_ann, val_ids, vocab,
+        dataset_root,
         num_workers=num_workers, batch_size=eval_batch_size,
         train=False,
         cache_file=cache_file,
@@ -197,6 +201,7 @@ def prepare_coco_dataloaders(dataloader_config,
 
     dataloaders['test'] = _get_coco_loader(
         image_root, val_ann, te_ids, vocab,
+        dataset_root,
         num_workers=num_workers, batch_size=eval_batch_size if not tsne else 200,
         train=False,
         cache_file=cache_file,
@@ -223,6 +228,7 @@ def _get_coco_file_paths(dataset_root):
 def _get_coco_loader(image_root,
                      annotation_path,
                      ids, vocab,
+                     dataset_root,
                      num_workers,
                      batch_size=64,
                      train=False,

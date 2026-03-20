@@ -32,6 +32,7 @@ from src.algorithms.mm_eval import MMEvaluator
 from src.utils.config import parse_config, apply_runtime_overrides
 from src.utils.load_datasets import prepare_coco_dataloaders
 from src.utils.logger import PythonLogger
+from src.utils.experiment_naming import projector_tag
 
 try:
     from apex import amp
@@ -96,7 +97,7 @@ class MMFL(object):
         self.config = apply_runtime_overrides(self.args, self.config)
         self.config.train.model_save_path = 'model_last_no_prob'
         self.config.train.best_model_save_path = 'model_best_no_prob'
-        self.config.train.output_file = f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_model_noprob'
+        self.config.train.output_file = f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_{projector_tag(self.args)}_model_noprob'
         self.config.model.name = self.args.model
         self.config.model.img_client = img
         self.config.model.txt_client = txt
@@ -107,7 +108,7 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim  # set global model dim
     
     def load_dataset(self, args):
-        dataset_root = '/home/bd/data/zs' + '/data/mmdata/MSCOCO/2014'
+        dataset_root = self.args.coco_root
         vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
         self.dataloaders_global, self.vocab = prepare_coco_dataloaders(
             self.config.dataloader,
@@ -345,7 +346,7 @@ class MMFL(object):
             # torch.save({'net': self.engine.model.state_dict()}, self.args.name + '-last_model.pt')
         
         os.makedirs('results', exist_ok=True)
-        mm_csv = f'results/{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_server_{self.args.FL_algorithm}.csv'
+        mm_csv = f'results/{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_server_{self.args.FL_algorithm}_{projector_tag(self.args)}.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -365,7 +366,7 @@ class MMFL(object):
         plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
+        plt.savefig(f'results/rsum_{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_{projector_tag(self.args)}.png')
         plt.close()
         print("Rsum at round {} is {}".format(round_n, self.rsum_history[-1]))
         gc.collect()

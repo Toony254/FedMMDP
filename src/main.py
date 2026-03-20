@@ -64,6 +64,8 @@ def build_parser():
 
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['imagenet', 'fashion', 'food', 'iapr'])
     parser.add_argument('--data_root', type=str, default='preprocessed_imagenet/domain_datasets/')
+    parser.add_argument('--coco_root', type=str, default='/home/bd/data/zs/data/mmdata/MSCOCO/2014',
+                        help='root directory for the public MSCOCO dataset used by distillation baselines')
     parser.add_argument('--batch_size', type=int, default=256, metavar='N', help='input batch size for training')
     parser.add_argument('--alpha', type=float, default=0.1)
     parser.add_argument('--partition', type=str, default='hetero', help='data partition mode for all clients')

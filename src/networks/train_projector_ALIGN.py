@@ -397,7 +397,7 @@ def train(hyper_dict, train_loader, val_loader=None):
                 if have_saved:
                     os.remove(have_saved)
                 now = datetime.datetime.now()
-                filename = hyper_dict.projector + str(img_feats.shape[-1]) + ".pth"
+                filename = f"{hyper_dict.projector}_align_{img_feats.shape[-1]}.pth"
                 save_path_file = os.path.join(hyper_dict.save_path, filename)
                 best_model = combined_model
                 torch.save({'visual_projector': combined_model.visual_projector,

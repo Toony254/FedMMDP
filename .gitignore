@@ -8,7 +8,6 @@
 /.cache
 /data
 /src/**/__pycache__
-/model_noprob.log
 /visualization_results
 /saved_clients
 /dataset
@@ -19,3 +18,4 @@
 /outputs
 /results
 /src/datasets/coco_emb.pt
+/*.log

@@ -9,3 +9,3938 @@
 [2026-03-19 10:47:05] Setting model 2
 [2026-03-19 10:47:05] Setting model 3
 [2026-03-19 10:47:05] Setting model 4
+[2026-03-19 21:09:04] start creating model and partition datasets
+[2026-03-19 21:09:04] Setting model 0
+[2026-03-19 21:09:04] Setting model 1
+[2026-03-19 21:09:04] Setting model 2
+[2026-03-19 21:09:04] Setting model 3
+[2026-03-19 21:09:05] Setting model 4
+[2026-03-19 21:09:05] Setting model 0
+[2026-03-19 21:09:05] Setting model 1
+[2026-03-19 21:09:05] Setting model 2
+[2026-03-19 21:09:05] Setting model 3
+[2026-03-19 21:09:05] Setting model 4
+[2026-03-19 21:09:20] Engine is created.
+[2026-03-19 21:09:20] Munch({'dataloader': Munch({'batch_size': 256, 'eval_batch_size': 256, 'num_workers': 0, 'alpha': 0.1, 'partition': 'hetero'}), 'model': Munch({'embed_dim': 1024, 'clip_model': 'RN50', 'cnn_type': 'resnet18', 'word_dim': 512, 'cache_dir': '/data/mmdata/log/MMCLIP/', 'n_samples_inference': 1, 'eval_method': 'matmul', 'use_img_client': True, 'use_txt_client': True, 'use_mm_client': True, 'client': 0.1, 'momentum': 0.9, 'name': 'clip', 'use_pretrained_proj': False, 'img_client': 'image', 'txt_client': 'text'}), 'optimizer': Munch({'name': 'adamp', 'learning_rate': 0.0002, 'weight_decay': 0.0}), 'lr_scheduler': Munch({'name': 'cosine_annealing', 'T_max': 30}), 'criterion': Munch({'name': 'pcme', 'init_negative_scale': 15, 'init_shift': 15, 'num_samples': 7, 'vib_beta': 0, 'criterion__negative_sampling_ratio': -1}), 'train': Munch({'is_client': True, 'server_dataset': 'Coco', 'model_save_path': 'model_last_no_prob.pth', 'best_model_save_path': 'model_best_no_prob.pth', 'pretrain_epochs': 0, 'finetune_epochs': 2, 'finetune_lr_decay': 0.1, 'log_step': 1000, 'grad_clip': 2, 'val_epochs': 1, 'pretrain_val_epochs': 1, 'use_fp16': True, 'output_file': 'FedMMDP-df_iapr_clip_1e-05_0.1_1x20_model_noprob.log'})})
+[2026-03-19 21:09:20] start train
+[2026-03-19 21:09:20] Train with half precision
+[2026-03-19 21:09:20] Round 1!
+[2026-03-19 21:09:20] Epoch 1
+[2026-03-19 21:09:21] Epoch: [1] image	Loss 3.3227 (3.3227)	Prec@1 12.500 (12.500)	Prec@5 17.578 (17.578)
+[2026-03-19 21:09:21] TEST:  Epoch: [1] image	Prec@1 18.121 (18.121)	Prec@5 21.812 (21.812)
+[2026-03-19 21:09:22] Epoch: [1] image	Loss 3.5104 (3.5387)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:23] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:23] Epoch 1
+[2026-03-19 21:09:24] Epoch: [1] image	Loss 3.3594 (3.3594)	Prec@1 0.000 (0.000)	Prec@5 21.094 (21.094)
+[2026-03-19 21:09:24] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 46.429 (46.429)
+[2026-03-19 21:09:25] Epoch: [1] image	Loss 3.3245 (3.3609)	Prec@1 0.000 (0.000)	Prec@5 32.812 (28.516)
+[2026-03-19 21:09:25] TEST:  Epoch: [1] image	Prec@1 0.637 (0.637)	Prec@5 49.045 (49.045)
+[2026-03-19 21:09:25] Epoch: [1] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:25] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 12.500 (12.500)
+[2026-03-19 21:09:26] Epoch: [1] image	Loss 3.3666 (3.4012)	Prec@1 0.000 (0.000)	Prec@5 0.781 (0.521)
+[2026-03-19 21:09:27] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 28.866 (26.276)
+[2026-03-19 21:09:27] Epoch: [1] text	Loss 3.5704 (3.5704)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:27] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:28] Epoch 1
+[2026-03-19 21:09:28] Epoch 1
+[2026-03-19 21:09:29] Epoch: [1] text	Loss 3.2724 (3.2864)	Prec@1 16.016 (14.453)	Prec@5 36.719 (34.245)
+[2026-03-19 21:09:29] TEST:  Epoch: [1] text	Prec@1 12.081 (12.081)	Prec@5 48.658 (48.658)
+[2026-03-19 21:09:32] Epoch: [1] text	Loss 2.0045 (2.7950)	Prec@1 54.688 (37.339)	Prec@5 94.531 (62.914)
+[2026-03-19 21:09:32] TEST:  Epoch: [1] text	Prec@1 54.296 (53.300)	Prec@5 96.220 (95.392)
+[2026-03-19 21:09:33] Epoch 1
+[2026-03-19 21:09:34] Epoch: [1] text	Loss 3.3491 (3.3491)	Prec@1 0.000 (0.000)	Prec@5 26.953 (26.953)
+[2026-03-19 21:09:34] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 26.752 (26.752)
+[2026-03-19 21:09:41] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:41] TEST:  Epoch: [1] image	Prec@1 16.000 (13.595)	Prec@5 21.333 (19.335)
+[2026-03-19 21:09:42] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 29.839 (27.691)
+[2026-03-19 21:09:42] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 37.143 (37.143)
+[2026-03-19 21:09:42] TEST:  Epoch: [1] image	Prec@1 0.000 (0.000)	Prec@5 32.258 (32.258)
+[2026-03-19 21:09:42] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:09:42] TEST:  Epoch: [1] text	Prec@1 16.000 (13.595)	Prec@5 46.667 (41.692)
+[2026-03-19 21:09:43] TEST:  Epoch: [1] text	Prec@1 60.484 (53.251)	Prec@5 95.161 (94.283)
+[2026-03-19 21:09:43] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 28.571 (28.571)
+[2026-03-19 21:09:43] TEST:  Epoch: [1] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:09:43] Evaluating test...
+[2026-03-19 21:10:13] [Eval] Report @step: 1.00 {
+    "test__rsum": 346.17940199335544,
+    "test__medr": 13.0,
+    "test__meanr": 16.78405315614618,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.3,
+    "test__n_fold_t2i_recall_1": 40.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 220.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.5,
+    "test__i2t_recall_1": 41.19601328903654,
+    "test__i2t_recall_5": 68.77076411960132,
+    "test__i2t_recall_10": 91.36212624584718,
+    "test__i2t_rsum": 201.32890365448503,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.385382059800664,
+    "test__t2i_recall_1": 41.19601328903654,
+    "test__t2i_recall_5": 41.19601328903654,
+    "test__t2i_recall_10": 62.458471760797345,
+    "test__t2i_rsum": 144.85049833887044,
+    "test__t2i_medr": 9.0,
+    "test__t2i_meanr": 12.398671096345515,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 40.0, 80.0, 100.0, 41.19601328903654, 68.77076411960132, 91.36212624584718, 41.19601328903654, 41.19601328903654, 62.458471760797345"
+}
+[2026-03-19 21:10:13] Evaluating test...
+[2026-03-19 21:10:34] [Eval] Report @step: 1.00 {
+    "test__rsum": 404.2296072507553,
+    "test__medr": 6.0,
+    "test__meanr": 11.311178247734139,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 250.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 2.0,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.1,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 92.14501510574019,
+    "test__i2t_recall_10": 93.65558912386707,
+    "test__i2t_rsum": 206.04229607250755,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 5.9395770392749245,
+    "test__t2i_recall_1": 16.61631419939577,
+    "test__t2i_recall_5": 87.91540785498489,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 198.18731117824774,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 5.371601208459214,
+    "lr": 0.0002,
+    "summary": "50.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 92.14501510574019, 93.65558912386707, 16.61631419939577, 87.91540785498489, 93.65558912386707"
+}
+[2026-03-19 21:10:34] Evaluating test...
+[2026-03-19 21:14:09] [Eval] Report @step: 1.00 {
+    "test__rsum": 348.6547085201794,
+    "test__medr": 3.0,
+    "test__meanr": 18.677130044843047,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 220.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 1.8,
+    "test__i2t_recall_1": 53.25112107623318,
+    "test__i2t_recall_5": 60.53811659192825,
+    "test__i2t_recall_10": 77.80269058295964,
+    "test__i2t_rsum": 191.5919282511211,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 11.265695067264573,
+    "test__t2i_recall_1": 21.524663677130047,
+    "test__t2i_recall_5": 60.53811659192825,
+    "test__t2i_recall_10": 75.0,
+    "test__t2i_rsum": 157.0627802690583,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 7.411434977578475,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 20.0, 100.0, 100.0, 53.25112107623318, 60.53811659192825, 77.80269058295964, 21.524663677130047, 60.53811659192825, 75.0"
+}
+[2026-03-19 21:14:09] Evaluating test...
+[2026-03-19 21:14:14] [Eval] Report @step: 1.00 {
+    "test__rsum": 339.42857142857144,
+    "test__medr": 8.0,
+    "test__meanr": 16.925714285714285,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 4.0,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 25.142857142857142,
+    "test__i2t_recall_5": 61.714285714285715,
+    "test__i2t_recall_10": 72.0,
+    "test__i2t_rsum": 158.85714285714286,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 9.28,
+    "test__t2i_recall_1": 14.285714285714286,
+    "test__t2i_recall_5": 74.28571428571429,
+    "test__t2i_recall_10": 92.0,
+    "test__t2i_rsum": 180.57142857142858,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 7.645714285714286,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 20.0, 80.0, 100.0, 25.142857142857142, 61.714285714285715, 72.0, 14.285714285714286, 74.28571428571429, 92.0"
+}
+[2026-03-19 21:14:14] Evaluating test...
+[2026-03-19 21:14:15] [Eval] Report @step: 1.00 {
+    "test__rsum": 401.61290322580646,
+    "test__medr": 2.0,
+    "test__meanr": 10.919354838709676,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 250.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 2.6,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 250.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.4,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 58.064516129032256,
+    "test__i2t_recall_10": 82.25806451612904,
+    "test__i2t_rsum": 196.7741935483871,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 5.290322580645161,
+    "test__t2i_recall_1": 50.0,
+    "test__t2i_recall_5": 74.19354838709677,
+    "test__t2i_recall_10": 80.64516129032258,
+    "test__t2i_rsum": 204.83870967741933,
+    "test__t2i_medr": 1.0,
+    "test__t2i_meanr": 5.629032258064516,
+    "lr": 0.0002,
+    "summary": "60.0, 90.0, 100.0, 60.0, 90.0, 100.0, 56.45161290322581, 58.064516129032256, 82.25806451612904, 50.0, 74.19354838709677, 80.64516129032258"
+}
+[2026-03-19 21:14:16] Round 2!
+[2026-03-19 21:14:16] Epoch: [2] image	Loss 3.3531 (3.4109)	Prec@1 0.000 (0.000)	Prec@5 36.328 (12.240)
+[2026-03-19 21:14:16] TEST:  Epoch: [2] image	Prec@1 0.000 (0.664)	Prec@5 40.000 (41.528)
+[2026-03-19 21:14:17] Epoch: [2] image	Loss 3.3193 (3.3193)	Prec@1 12.109 (12.109)	Prec@5 19.922 (19.922)
+[2026-03-19 21:14:17] TEST:  Epoch: [2] image	Prec@1 16.000 (13.595)	Prec@5 38.667 (30.211)
+[2026-03-19 21:14:17] Epoch: [2] image	Loss 3.2441 (3.2797)	Prec@1 10.547 (4.167)	Prec@5 55.469 (50.911)
+[2026-03-19 21:14:17] TEST:  Epoch: [2] image	Prec@1 18.857 (18.857)	Prec@5 49.143 (49.143)
+[2026-03-19 21:14:18] Epoch 2
+[2026-03-19 21:14:18] Epoch: [2] text	Loss 3.3427 (3.3427)	Prec@1 0.000 (0.000)	Prec@5 26.172 (26.172)
+[2026-03-19 21:14:18] TEST:  Epoch: [2] text	Prec@1 0.000 (0.000)	Prec@5 32.000 (32.000)
+[2026-03-19 21:14:19] Epoch: [2] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:14:19] TEST:  Epoch: [2] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:14:19] Epoch 2
+[2026-03-19 21:14:19] Epoch 2
+[2026-03-19 21:14:20] Epoch: [2] text	Loss 3.5496 (3.5496)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:14:20] TEST:  Epoch: [2] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:14:21] Epoch: [2] text	Loss 3.1381 (3.1791)	Prec@1 14.844 (14.844)	Prec@5 69.531 (53.255)
+[2026-03-19 21:14:21] TEST:  Epoch: [2] text	Prec@1 13.333 (12.387)	Prec@5 89.333 (87.009)
+[2026-03-19 21:14:22] Epoch: [2] image	Loss 3.3360 (3.3360)	Prec@1 0.000 (0.000)	Prec@5 42.578 (42.578)
+[2026-03-19 21:14:22] TEST:  Epoch: [2] image	Prec@1 0.000 (0.000)	Prec@5 54.839 (54.839)
+[2026-03-19 21:14:23] Epoch: [2] text	Loss 1.6486 (1.7877)	Prec@1 53.516 (53.975)	Prec@5 99.609 (98.828)
+[2026-03-19 21:14:24] TEST:  Epoch: [2] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:14:24] Epoch 2
+[2026-03-19 21:14:25] Epoch 2
+[2026-03-19 21:14:25] Epoch: [2] image	Loss 3.1264 (3.2233)	Prec@1 40.234 (13.411)	Prec@5 60.547 (45.573)
+[2026-03-19 21:14:26] TEST:  Epoch: [2] image	Prec@1 60.484 (53.251)	Prec@5 63.710 (55.157)
+[2026-03-19 21:14:29] TEST:  Epoch: [2] image	Prec@1 0.000 (0.664)	Prec@5 40.000 (41.528)
+[2026-03-19 21:14:29] TEST:  Epoch: [2] image	Prec@1 16.000 (13.595)	Prec@5 38.667 (30.211)
+[2026-03-19 21:14:30] TEST:  Epoch: [2] image	Prec@1 60.484 (53.251)	Prec@5 63.710 (55.157)
+[2026-03-19 21:14:30] TEST:  Epoch: [2] image	Prec@1 18.857 (18.857)	Prec@5 49.143 (49.143)
+[2026-03-19 21:14:30] TEST:  Epoch: [2] image	Prec@1 0.000 (0.000)	Prec@5 54.839 (54.839)
+[2026-03-19 21:14:30] TEST:  Epoch: [2] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:14:30] TEST:  Epoch: [2] text	Prec@1 13.333 (12.387)	Prec@5 89.333 (87.009)
+[2026-03-19 21:14:31] TEST:  Epoch: [2] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:14:31] TEST:  Epoch: [2] text	Prec@1 0.000 (0.000)	Prec@5 32.000 (32.000)
+[2026-03-19 21:14:31] TEST:  Epoch: [2] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:14:31] Evaluating test...
+[2026-03-19 21:14:43] [Eval] Report @step: 2.00 {
+    "test__rsum": 366.1129568106312,
+    "test__medr": 5.0,
+    "test__meanr": 9.993355481727574,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.9,
+    "test__n_fold_t2i_recall_1": 40.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 220.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 85.38205980066445,
+    "test__i2t_recall_10": 90.03322259136213,
+    "test__i2t_rsum": 193.02325581395348,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 3.963455149501661,
+    "test__t2i_recall_1": 36.21262458471761,
+    "test__t2i_recall_5": 67.77408637873754,
+    "test__t2i_recall_10": 69.1029900332226,
+    "test__t2i_rsum": 173.08970099667775,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 6.029900332225914,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 40.0, 80.0, 100.0, 17.60797342192691, 85.38205980066445, 90.03322259136213, 36.21262458471761, 67.77408637873754, 69.1029900332226"
+}
+[2026-03-19 21:14:43] Evaluating test...
+[2026-03-19 21:15:03] [Eval] Report @step: 2.00 {
+    "test__rsum": 349.84894259818736,
+    "test__medr": 11.0,
+    "test__meanr": 18.283987915407856,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 240.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 1.9,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 32.93051359516616,
+    "test__i2t_recall_5": 47.12990936555891,
+    "test__i2t_recall_10": 76.73716012084593,
+    "test__i2t_rsum": 156.79758308157102,
+    "test__i2t_medr": 7.0,
+    "test__i2t_meanr": 11.214501510574019,
+    "test__t2i_recall_1": 14.803625377643504,
+    "test__t2i_recall_5": 84.59214501510574,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 193.05135951661632,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 7.069486404833837,
+    "lr": 0.0002,
+    "summary": "40.0, 100.0, 100.0, 50.0, 90.0, 100.0, 32.93051359516616, 47.12990936555891, 76.73716012084593, 14.803625377643504, 84.59214501510574, 93.65558912386707"
+}
+[2026-03-19 21:15:03] Evaluating test...
+[2026-03-19 21:18:37] [Eval] Report @step: 2.00 {
+    "test__rsum": 371.1883408071749,
+    "test__medr": 5.0,
+    "test__meanr": 9.24103139013453,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 260.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 2.0,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 12.10762331838565,
+    "test__i2t_recall_5": 81.61434977578476,
+    "test__i2t_recall_10": 91.59192825112108,
+    "test__i2t_rsum": 185.31390134529147,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 4.457399103139013,
+    "test__t2i_recall_1": 20.96412556053812,
+    "test__t2i_recall_5": 81.50224215246637,
+    "test__t2i_recall_10": 83.40807174887892,
+    "test__t2i_rsum": 185.8744394618834,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 4.783632286995516,
+    "lr": 0.0002,
+    "summary": "80.0, 80.0, 100.0, 80.0, 100.0, 100.0, 12.10762331838565, 81.61434977578476, 91.59192825112108, 20.96412556053812, 81.50224215246637, 83.40807174887892"
+}
+[2026-03-19 21:18:37] Evaluating test...
+[2026-03-19 21:18:42] [Eval] Report @step: 2.00 {
+    "test__rsum": 321.14285714285717,
+    "test__medr": 10.0,
+    "test__meanr": 13.24,
+    "test__n_fold_i2t_recall_1": 30.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.2,
+    "test__i2t_recall_1": 27.428571428571427,
+    "test__i2t_recall_5": 68.0,
+    "test__i2t_recall_10": 86.28571428571429,
+    "test__i2t_rsum": 181.71428571428572,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 5.222857142857142,
+    "test__t2i_recall_1": 14.285714285714286,
+    "test__t2i_recall_5": 46.285714285714285,
+    "test__t2i_recall_10": 78.85714285714286,
+    "test__t2i_rsum": 139.42857142857144,
+    "test__t2i_medr": 6.0,
+    "test__t2i_meanr": 8.017142857142858,
+    "lr": 0.0002,
+    "summary": "30.0, 90.0, 100.0, 20.0, 70.0, 100.0, 27.428571428571427, 68.0, 86.28571428571429, 14.285714285714286, 46.285714285714285, 78.85714285714286"
+}
+[2026-03-19 21:18:42] Evaluating test...
+[2026-03-19 21:18:43] [Eval] Report @step: 2.00 {
+    "test__rsum": 427.41935483870964,
+    "test__medr": 4.0,
+    "test__meanr": 8.564516129032258,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 250.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 2.4,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 260.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.7,
+    "test__i2t_recall_1": 8.064516129032258,
+    "test__i2t_recall_5": 95.16129032258064,
+    "test__i2t_recall_10": 95.16129032258064,
+    "test__i2t_rsum": 198.38709677419354,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 4.161290322580645,
+    "test__t2i_recall_1": 56.45161290322581,
+    "test__t2i_recall_5": 77.41935483870968,
+    "test__t2i_recall_10": 95.16129032258064,
+    "test__t2i_rsum": 229.03225806451613,
+    "test__t2i_medr": 1.0,
+    "test__t2i_meanr": 4.403225806451613,
+    "lr": 0.0002,
+    "summary": "60.0, 90.0, 100.0, 60.0, 100.0, 100.0, 8.064516129032258, 95.16129032258064, 95.16129032258064, 56.45161290322581, 77.41935483870968, 95.16129032258064"
+}
+[2026-03-19 21:18:43] Round 3!
+[2026-03-19 21:18:43] Epoch 3
+[2026-03-19 21:18:44] Epoch 3
+[2026-03-19 21:18:44] Epoch: [3] image	Loss 3.1171 (3.2015)	Prec@1 39.062 (23.047)	Prec@5 67.578 (56.901)
+[2026-03-19 21:18:44] TEST:  Epoch: [3] image	Prec@1 37.778 (41.196)	Prec@5 71.111 (67.774)
+[2026-03-19 21:18:45] Epoch: [3] image	Loss 2.8301 (2.9328)	Prec@1 53.516 (54.818)	Prec@5 76.562 (65.365)
+[2026-03-19 21:18:46] TEST:  Epoch: [3] image	Prec@1 60.484 (53.251)	Prec@5 91.129 (84.753)
+[2026-03-19 21:18:46] Epoch: [3] text	Loss 2.9445 (3.0148)	Prec@1 19.922 (14.844)	Prec@5 95.312 (92.318)
+[2026-03-19 21:18:46] TEST:  Epoch: [3] text	Prec@1 33.333 (27.190)	Prec@5 96.000 (96.375)
+[2026-03-19 21:18:47] Epoch: [3] text	Loss 3.5198 (3.5198)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:18:47] TEST:  Epoch: [3] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:18:47] Epoch: [3] image	Loss 3.2850 (3.2850)	Prec@1 0.781 (0.781)	Prec@5 61.328 (61.328)
+[2026-03-19 21:18:47] TEST:  Epoch: [3] image	Prec@1 6.452 (6.452)	Prec@5 56.452 (56.452)
+[2026-03-19 21:18:48] Epoch 3
+[2026-03-19 21:18:48] Epoch: [3] image	Loss 3.2941 (3.2941)	Prec@1 12.891 (12.891)	Prec@5 33.203 (33.203)
+[2026-03-19 21:18:48] TEST:  Epoch: [3] image	Prec@1 16.000 (13.595)	Prec@5 48.000 (41.994)
+[2026-03-19 21:18:50] Epoch: [3] text	Loss 1.6277 (1.5472)	Prec@1 47.266 (53.631)	Prec@5 98.828 (99.058)
+[2026-03-19 21:18:51] TEST:  Epoch: [3] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:18:51] Epoch 3
+[2026-03-19 21:18:51] Epoch: [3] text	Loss 3.3222 (3.3222)	Prec@1 0.000 (0.000)	Prec@5 31.641 (31.641)
+[2026-03-19 21:18:52] TEST:  Epoch: [3] text	Prec@1 0.000 (0.000)	Prec@5 39.429 (39.429)
+[2026-03-19 21:18:52] Epoch 3
+[2026-03-19 21:18:53] Epoch: [3] image	Loss 3.0910 (3.1406)	Prec@1 26.953 (22.005)	Prec@5 59.375 (57.943)
+[2026-03-19 21:18:53] TEST:  Epoch: [3] image	Prec@1 19.429 (19.429)	Prec@5 74.857 (74.857)
+[2026-03-19 21:18:53] Epoch: [3] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:18:53] TEST:  Epoch: [3] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:18:56] TEST:  Epoch: [3] image	Prec@1 37.778 (41.196)	Prec@5 71.111 (67.774)
+[2026-03-19 21:18:56] TEST:  Epoch: [3] image	Prec@1 16.000 (13.595)	Prec@5 48.000 (41.994)
+[2026-03-19 21:18:56] TEST:  Epoch: [3] image	Prec@1 60.484 (53.251)	Prec@5 91.129 (84.753)
+[2026-03-19 21:18:57] TEST:  Epoch: [3] image	Prec@1 19.429 (19.429)	Prec@5 74.857 (74.857)
+[2026-03-19 21:18:57] TEST:  Epoch: [3] image	Prec@1 6.452 (6.452)	Prec@5 56.452 (56.452)
+[2026-03-19 21:18:57] TEST:  Epoch: [3] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:18:57] TEST:  Epoch: [3] text	Prec@1 33.333 (27.190)	Prec@5 96.000 (96.375)
+[2026-03-19 21:18:58] TEST:  Epoch: [3] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:18:58] TEST:  Epoch: [3] text	Prec@1 0.000 (0.000)	Prec@5 39.429 (39.429)
+[2026-03-19 21:18:58] TEST:  Epoch: [3] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:18:58] Evaluating test...
+[2026-03-19 21:19:12] [Eval] Report @step: 3.00 {
+    "test__rsum": 415.2823920265781,
+    "test__medr": 7.0,
+    "test__meanr": 8.491694352159469,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.5,
+    "test__n_fold_t2i_recall_1": 40.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 220.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.1,
+    "test__i2t_recall_1": 26.578073089700997,
+    "test__i2t_recall_5": 70.7641196013289,
+    "test__i2t_recall_10": 93.35548172757476,
+    "test__i2t_rsum": 190.69767441860466,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.667774086378738,
+    "test__t2i_recall_1": 41.19601328903654,
+    "test__t2i_recall_5": 87.04318936877077,
+    "test__t2i_recall_10": 96.34551495016612,
+    "test__t2i_rsum": 224.58471760797343,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 3.823920265780731,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 40.0, 80.0, 100.0, 26.578073089700997, 70.7641196013289, 93.35548172757476, 41.19601328903654, 87.04318936877077, 96.34551495016612"
+}
+[2026-03-19 21:19:12] Evaluating test...
+[2026-03-19 21:19:28] [Eval] Report @step: 3.00 {
+    "test__rsum": 413.595166163142,
+    "test__medr": 5.0,
+    "test__meanr": 17.64652567975831,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 250.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.6,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 26.58610271903323,
+    "test__i2t_recall_5": 87.00906344410876,
+    "test__i2t_recall_10": 94.5619335347432,
+    "test__i2t_rsum": 208.1570996978852,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 10.0,
+    "test__t2i_recall_1": 32.62839879154078,
+    "test__t2i_recall_5": 79.15407854984895,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 205.43806646525678,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 7.646525679758308,
+    "lr": 0.0002,
+    "summary": "50.0, 100.0, 100.0, 50.0, 90.0, 100.0, 26.58610271903323, 87.00906344410876, 94.5619335347432, 32.62839879154078, 79.15407854984895, 93.65558912386707"
+}
+[2026-03-19 21:19:28] Evaluating test...
+[2026-03-19 21:23:02] [Eval] Report @step: 3.00 {
+    "test__rsum": 395.8520179372197,
+    "test__medr": 5.0,
+    "test__meanr": 10.647982062780269,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 260.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 2.2,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 49.663677130044846,
+    "test__i2t_recall_5": 70.73991031390135,
+    "test__i2t_recall_10": 76.68161434977578,
+    "test__i2t_rsum": 197.08520179372198,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 6.387892376681615,
+    "test__t2i_recall_1": 20.96412556053812,
+    "test__t2i_recall_5": 86.32286995515695,
+    "test__t2i_recall_10": 91.4798206278027,
+    "test__t2i_rsum": 198.76681614349775,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 4.260089686098654,
+    "lr": 0.0002,
+    "summary": "80.0, 80.0, 100.0, 80.0, 100.0, 100.0, 49.663677130044846, 70.73991031390135, 76.68161434977578, 20.96412556053812, 86.32286995515695, 91.4798206278027"
+}
+[2026-03-19 21:23:02] Evaluating test...
+[2026-03-19 21:23:06] [Eval] Report @step: 3.00 {
+    "test__rsum": 270.8571428571429,
+    "test__medr": 13.0,
+    "test__meanr": 19.725714285714286,
+    "test__n_fold_i2t_recall_1": 0.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.3,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 210.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 22.285714285714285,
+    "test__i2t_recall_5": 48.0,
+    "test__i2t_recall_10": 53.142857142857146,
+    "test__i2t_rsum": 123.42857142857142,
+    "test__i2t_medr": 9.0,
+    "test__i2t_meanr": 12.325714285714286,
+    "test__t2i_recall_1": 14.285714285714286,
+    "test__t2i_recall_5": 61.714285714285715,
+    "test__t2i_recall_10": 71.42857142857143,
+    "test__t2i_rsum": 147.42857142857144,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 7.4,
+    "lr": 0.0002,
+    "summary": "0.0, 90.0, 100.0, 20.0, 90.0, 100.0, 22.285714285714285, 48.0, 53.142857142857146, 14.285714285714286, 61.714285714285715, 71.42857142857143"
+}
+[2026-03-19 21:23:06] Evaluating test...
+[2026-03-19 21:23:08] [Eval] Report @step: 3.00 {
+    "test__rsum": 396.77419354838713,
+    "test__medr": 5.0,
+    "test__meanr": 9.935483870967742,
+    "test__n_fold_i2t_recall_1": 30.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 260.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.8,
+    "test__i2t_recall_1": 8.064516129032258,
+    "test__i2t_recall_5": 90.3225806451613,
+    "test__i2t_recall_10": 95.16129032258064,
+    "test__i2t_rsum": 193.5483870967742,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.806451612903226,
+    "test__t2i_recall_1": 56.45161290322581,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 77.41935483870968,
+    "test__t2i_rsum": 203.22580645161293,
+    "test__t2i_medr": 1.0,
+    "test__t2i_meanr": 5.129032258064516,
+    "lr": 0.0002,
+    "summary": "30.0, 90.0, 100.0, 60.0, 100.0, 100.0, 8.064516129032258, 90.3225806451613, 95.16129032258064, 56.45161290322581, 69.35483870967742, 77.41935483870968"
+}
+[2026-03-19 21:23:08] Round 4!
+[2026-03-19 21:23:08] Epoch 4
+[2026-03-19 21:23:09] Epoch: [4] text	Loss 3.4772 (3.4772)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:23:09] TEST:  Epoch: [4] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.332)
+[2026-03-19 21:23:09] Epoch: [4] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:23:09] TEST:  Epoch: [4] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:23:10] Epoch: [4] image	Loss 3.2135 (3.2135)	Prec@1 11.328 (11.328)	Prec@5 61.328 (61.328)
+[2026-03-19 21:23:10] TEST:  Epoch: [4] image	Prec@1 50.000 (50.000)	Prec@5 56.452 (56.452)
+[2026-03-19 21:23:10] Epoch: [4] image	Loss 2.8084 (2.9452)	Prec@1 41.797 (38.281)	Prec@5 85.938 (72.135)
+[2026-03-19 21:23:10] TEST:  Epoch: [4] image	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.382)
+[2026-03-19 21:23:12] Epoch: [4] text	Loss 1.5682 (1.4591)	Prec@1 49.609 (53.791)	Prec@5 98.047 (99.058)
+[2026-03-19 21:23:13] TEST:  Epoch: [4] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:23:13] Epoch: [4] text	Loss 3.2810 (3.2810)	Prec@1 0.000 (0.000)	Prec@5 44.141 (44.141)
+[2026-03-19 21:23:13] TEST:  Epoch: [4] text	Prec@1 2.286 (2.286)	Prec@5 48.571 (48.571)
+[2026-03-19 21:23:14] Epoch: [4] image	Loss 3.2748 (3.2748)	Prec@1 10.156 (10.156)	Prec@5 40.234 (40.234)
+[2026-03-19 21:23:14] TEST:  Epoch: [4] image	Prec@1 16.000 (13.595)	Prec@5 48.000 (42.598)
+[2026-03-19 21:23:15] Epoch: [4] image	Loss 2.9391 (2.9763)	Prec@1 23.047 (29.167)	Prec@5 75.781 (77.995)
+[2026-03-19 21:23:15] TEST:  Epoch: [4] image	Prec@1 20.000 (20.000)	Prec@5 78.286 (78.286)
+[2026-03-19 21:23:15] Epoch 4
+[2026-03-19 21:23:15] Epoch 4
+[2026-03-19 21:23:16] Epoch: [4] image	Loss 2.4214 (2.5863)	Prec@1 58.203 (54.427)	Prec@5 90.625 (87.370)
+[2026-03-19 21:23:17] TEST:  Epoch: [4] image	Prec@1 60.484 (53.251)	Prec@5 92.742 (88.004)
+[2026-03-19 21:23:17] Epoch: [4] text	Loss 2.7428 (2.8073)	Prec@1 39.062 (31.120)	Prec@5 95.312 (96.354)
+[2026-03-19 21:23:17] TEST:  Epoch: [4] text	Prec@1 38.667 (37.160)	Prec@5 96.000 (96.375)
+[2026-03-19 21:23:18] Epoch 4
+[2026-03-19 21:23:18] Epoch 4
+[2026-03-19 21:23:21] TEST:  Epoch: [4] image	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.382)
+[2026-03-19 21:23:21] TEST:  Epoch: [4] image	Prec@1 16.000 (13.595)	Prec@5 48.000 (42.598)
+[2026-03-19 21:23:22] TEST:  Epoch: [4] image	Prec@1 60.484 (53.251)	Prec@5 92.742 (88.004)
+[2026-03-19 21:23:22] TEST:  Epoch: [4] image	Prec@1 20.000 (20.000)	Prec@5 78.286 (78.286)
+[2026-03-19 21:23:22] TEST:  Epoch: [4] image	Prec@1 50.000 (50.000)	Prec@5 56.452 (56.452)
+[2026-03-19 21:23:22] TEST:  Epoch: [4] text	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.332)
+[2026-03-19 21:23:22] TEST:  Epoch: [4] text	Prec@1 38.667 (37.160)	Prec@5 96.000 (96.375)
+[2026-03-19 21:23:23] TEST:  Epoch: [4] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:23:23] TEST:  Epoch: [4] text	Prec@1 2.286 (2.286)	Prec@5 48.571 (48.571)
+[2026-03-19 21:23:23] TEST:  Epoch: [4] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:23:23] Evaluating test...
+[2026-03-19 21:23:40] [Eval] Report @step: 4.00 {
+    "test__rsum": 386.7109634551495,
+    "test__medr": 8.0,
+    "test__meanr": 10.006644518272426,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.4,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 69.1029900332226,
+    "test__i2t_recall_10": 96.01328903654485,
+    "test__i2t_rsum": 182.72425249169436,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.953488372093023,
+    "test__t2i_recall_1": 41.19601328903654,
+    "test__t2i_recall_5": 66.44518272425249,
+    "test__t2i_recall_10": 96.34551495016612,
+    "test__t2i_rsum": 203.98671096345515,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 5.053156146179402,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 20.0, 80.0, 100.0, 17.60797342192691, 69.1029900332226, 96.01328903654485, 41.19601328903654, 66.44518272425249, 96.34551495016612"
+}
+[2026-03-19 21:23:40] Evaluating test...
+[2026-03-19 21:23:51] [Eval] Report @step: 4.00 {
+    "test__rsum": 367.97583081570997,
+    "test__medr": 5.0,
+    "test__meanr": 16.9607250755287,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 60.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 170.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.5,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.4,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 80.06042296072508,
+    "test__i2t_recall_10": 87.31117824773413,
+    "test__i2t_rsum": 187.6132930513595,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 8.350453172205437,
+    "test__t2i_recall_1": 26.58610271903323,
+    "test__t2i_recall_5": 63.74622356495468,
+    "test__t2i_recall_10": 90.03021148036254,
+    "test__t2i_rsum": 180.36253776435046,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.610271903323262,
+    "lr": 0.0002,
+    "summary": "10.0, 60.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 80.06042296072508, 87.31117824773413, 26.58610271903323, 63.74622356495468, 90.03021148036254"
+}
+[2026-03-19 21:23:51] Evaluating test...
+[2026-03-19 21:27:22] [Eval] Report @step: 4.00 {
+    "test__rsum": 355.7174887892377,
+    "test__medr": 5.0,
+    "test__meanr": 12.172645739910314,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 40.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 1.6,
+    "test__i2t_recall_1": 53.25112107623318,
+    "test__i2t_recall_5": 60.65022421524664,
+    "test__i2t_recall_10": 68.27354260089686,
+    "test__i2t_rsum": 182.1748878923767,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 6.523542600896861,
+    "test__t2i_recall_1": 15.358744394618833,
+    "test__t2i_recall_5": 66.70403587443946,
+    "test__t2i_recall_10": 91.4798206278027,
+    "test__t2i_rsum": 173.542600896861,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 5.6491031390134525,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 40.0, 100.0, 100.0, 53.25112107623318, 60.65022421524664, 68.27354260089686, 15.358744394618833, 66.70403587443946, 91.4798206278027"
+}
+[2026-03-19 21:27:22] Evaluating test...
+[2026-03-19 21:27:27] [Eval] Report @step: 4.00 {
+    "test__rsum": 357.7142857142857,
+    "test__medr": 6.0,
+    "test__meanr": 14.005714285714285,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 50.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 160.0,
+    "test__n_fold_i2t_medr": 4.0,
+    "test__n_fold_i2t_meanr": 4.0,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 4.0,
+    "test__n_fold_t2i_meanr": 4.4,
+    "test__i2t_recall_1": 28.0,
+    "test__i2t_recall_5": 72.57142857142857,
+    "test__i2t_recall_10": 82.85714285714286,
+    "test__i2t_rsum": 183.42857142857144,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 8.17142857142857,
+    "test__t2i_recall_1": 23.428571428571427,
+    "test__t2i_recall_5": 68.0,
+    "test__t2i_recall_10": 82.85714285714286,
+    "test__t2i_rsum": 174.28571428571428,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 5.8342857142857145,
+    "lr": 0.0002,
+    "summary": "10.0, 50.0, 100.0, 20.0, 70.0, 100.0, 28.0, 72.57142857142857, 82.85714285714286, 23.428571428571427, 68.0, 82.85714285714286"
+}
+[2026-03-19 21:27:27] Evaluating test...
+[2026-03-19 21:27:28] [Eval] Report @step: 4.00 {
+    "test__rsum": 379.0322580645161,
+    "test__medr": 3.0,
+    "test__meanr": 11.080645161290322,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.3,
+    "test__i2t_recall_1": 54.83870967741935,
+    "test__i2t_recall_5": 64.51612903225806,
+    "test__i2t_recall_10": 96.7741935483871,
+    "test__i2t_rsum": 216.1290322580645,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.209677419354838,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 72.58064516129032,
+    "test__t2i_recall_10": 77.41935483870968,
+    "test__t2i_rsum": 162.90322580645162,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 6.870967741935484,
+    "lr": 0.0002,
+    "summary": "20.0, 90.0, 100.0, 50.0, 90.0, 100.0, 54.83870967741935, 64.51612903225806, 96.7741935483871, 12.903225806451612, 72.58064516129032, 77.41935483870968"
+}
+[2026-03-19 21:27:28] Round 5!
+[2026-03-19 21:27:28] Epoch 5
+[2026-03-19 21:27:29] Epoch: [5] image	Loss 3.2167 (3.2167)	Prec@1 13.281 (13.281)	Prec@5 43.750 (43.750)
+[2026-03-19 21:27:29] TEST:  Epoch: [5] image	Prec@1 16.000 (14.199)	Prec@5 56.000 (50.453)
+[2026-03-19 21:27:30] Epoch: [5] image	Loss 2.5830 (2.6698)	Prec@1 38.672 (39.583)	Prec@5 84.766 (82.422)
+[2026-03-19 21:27:30] TEST:  Epoch: [5] image	Prec@1 37.778 (41.196)	Prec@5 84.444 (86.047)
+[2026-03-19 21:27:30] Epoch 5
+[2026-03-19 21:27:31] Epoch: [5] image	Loss 2.7361 (2.7969)	Prec@1 29.297 (29.036)	Prec@5 85.156 (83.594)
+[2026-03-19 21:27:31] TEST:  Epoch: [5] image	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 21:27:31] Epoch: [5] image	Loss 3.1345 (3.1345)	Prec@1 57.031 (57.031)	Prec@5 58.984 (58.984)
+[2026-03-19 21:27:31] TEST:  Epoch: [5] image	Prec@1 56.452 (56.452)	Prec@5 58.065 (58.065)
+[2026-03-19 21:27:32] Epoch 5
+[2026-03-19 21:27:32] Epoch 5
+[2026-03-19 21:27:33] Epoch: [5] text	Loss 2.5132 (2.5931)	Prec@1 31.641 (33.854)	Prec@5 95.703 (95.964)
+[2026-03-19 21:27:33] TEST:  Epoch: [5] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:27:33] Epoch 5
+[2026-03-19 21:27:35] Epoch: [5] text	Loss 1.4229 (1.4102)	Prec@1 54.688 (53.768)	Prec@5 98.047 (99.150)
+[2026-03-19 21:27:36] TEST:  Epoch: [5] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:27:36] Epoch: [5] image	Loss 2.1851 (2.2812)	Prec@1 53.906 (53.516)	Prec@5 91.016 (89.714)
+[2026-03-19 21:27:37] TEST:  Epoch: [5] image	Prec@1 60.484 (53.251)	Prec@5 96.774 (92.040)
+[2026-03-19 21:27:37] Epoch: [5] text	Loss 3.2694 (3.2694)	Prec@1 0.781 (0.781)	Prec@5 54.297 (54.297)
+[2026-03-19 21:27:38] TEST:  Epoch: [5] text	Prec@1 9.714 (9.714)	Prec@5 48.571 (48.571)
+[2026-03-19 21:27:38] Epoch: [5] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:27:38] TEST:  Epoch: [5] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:27:38] Epoch: [5] text	Loss 3.4115 (3.4115)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:27:39] TEST:  Epoch: [5] text	Prec@1 0.000 (0.000)	Prec@5 24.444 (29.900)
+[2026-03-19 21:27:41] TEST:  Epoch: [5] image	Prec@1 37.778 (41.196)	Prec@5 84.444 (86.047)
+[2026-03-19 21:27:41] TEST:  Epoch: [5] image	Prec@1 16.000 (14.199)	Prec@5 56.000 (50.453)
+[2026-03-19 21:27:42] TEST:  Epoch: [5] image	Prec@1 60.484 (53.251)	Prec@5 96.774 (92.040)
+[2026-03-19 21:27:42] TEST:  Epoch: [5] image	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 21:27:42] TEST:  Epoch: [5] image	Prec@1 56.452 (56.452)	Prec@5 58.065 (58.065)
+[2026-03-19 21:27:42] TEST:  Epoch: [5] text	Prec@1 0.000 (0.000)	Prec@5 24.444 (29.900)
+[2026-03-19 21:27:42] TEST:  Epoch: [5] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:27:43] TEST:  Epoch: [5] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:27:43] TEST:  Epoch: [5] text	Prec@1 9.714 (9.714)	Prec@5 48.571 (48.571)
+[2026-03-19 21:27:43] TEST:  Epoch: [5] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:27:43] Evaluating test...
+[2026-03-19 21:28:03] [Eval] Report @step: 5.00 {
+    "test__rsum": 365.1162790697674,
+    "test__medr": 8.0,
+    "test__meanr": 10.830564784053156,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.5,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.4,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 66.11295681063123,
+    "test__i2t_recall_10": 98.00664451827242,
+    "test__i2t_rsum": 181.72757475083057,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 4.7275747508305646,
+    "test__t2i_recall_1": 40.199335548172755,
+    "test__t2i_recall_5": 70.09966777408638,
+    "test__t2i_recall_10": 73.08970099667773,
+    "test__t2i_rsum": 183.38870431893687,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 6.102990033222591,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 90.0, 100.0, 17.60797342192691, 66.11295681063123, 98.00664451827242, 40.199335548172755, 70.09966777408638, 73.08970099667773"
+}
+[2026-03-19 21:28:03] Evaluating test...
+[2026-03-19 21:28:21] [Eval] Report @step: 5.00 {
+    "test__rsum": 399.3957703927493,
+    "test__medr": 6.0,
+    "test__meanr": 14.253776435045317,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 60.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 170.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.5,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.4,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 89.12386706948641,
+    "test__i2t_recall_10": 93.65558912386707,
+    "test__i2t_rsum": 203.0211480362538,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 7.410876132930514,
+    "test__t2i_recall_1": 26.88821752265861,
+    "test__t2i_recall_5": 80.06042296072508,
+    "test__t2i_recall_10": 89.42598187311178,
+    "test__t2i_rsum": 196.37462235649548,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 6.842900302114804,
+    "lr": 0.0002,
+    "summary": "10.0, 60.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 89.12386706948641, 93.65558912386707, 26.88821752265861, 80.06042296072508, 89.42598187311178"
+}
+[2026-03-19 21:28:21] Evaluating test...
+[2026-03-19 21:31:44] [Eval] Report @step: 5.00 {
+    "test__rsum": 339.68609865470853,
+    "test__medr": 7.0,
+    "test__meanr": 15.570627802690584,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 230.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 1.7,
+    "test__i2t_recall_1": 53.25112107623318,
+    "test__i2t_recall_5": 57.95964125560538,
+    "test__i2t_recall_10": 73.54260089686099,
+    "test__i2t_rsum": 184.75336322869956,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 9.681614349775785,
+    "test__t2i_recall_1": 15.022421524663677,
+    "test__t2i_recall_5": 48.54260089686099,
+    "test__t2i_recall_10": 91.3677130044843,
+    "test__t2i_rsum": 154.93273542600897,
+    "test__t2i_medr": 6.0,
+    "test__t2i_meanr": 5.889013452914798,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 30.0, 100.0, 100.0, 53.25112107623318, 57.95964125560538, 73.54260089686099, 15.022421524663677, 48.54260089686099, 91.3677130044843"
+}
+[2026-03-19 21:31:44] Evaluating test...
+[2026-03-19 21:31:49] [Eval] Report @step: 5.00 {
+    "test__rsum": 385.7142857142857,
+    "test__medr": 6.0,
+    "test__meanr": 10.868571428571428,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 60.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 170.0,
+    "test__n_fold_i2t_medr": 4.0,
+    "test__n_fold_i2t_meanr": 3.9,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.9,
+    "test__i2t_recall_1": 28.571428571428573,
+    "test__i2t_recall_5": 68.0,
+    "test__i2t_recall_10": 89.71428571428571,
+    "test__i2t_rsum": 186.28571428571428,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 6.817142857142857,
+    "test__t2i_recall_1": 18.857142857142858,
+    "test__t2i_recall_5": 88.57142857142857,
+    "test__t2i_recall_10": 92.0,
+    "test__t2i_rsum": 199.42857142857144,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 4.051428571428572,
+    "lr": 0.0002,
+    "summary": "10.0, 60.0, 100.0, 20.0, 80.0, 100.0, 28.571428571428573, 68.0, 89.71428571428571, 18.857142857142858, 88.57142857142857, 92.0"
+}
+[2026-03-19 21:31:49] Evaluating test...
+[2026-03-19 21:31:50] [Eval] Report @step: 5.00 {
+    "test__rsum": 377.4193548387097,
+    "test__medr": 3.0,
+    "test__meanr": 11.548387096774194,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.4,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 64.51612903225806,
+    "test__i2t_recall_10": 96.7741935483871,
+    "test__i2t_rsum": 217.74193548387098,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.112903225806452,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 70.96774193548387,
+    "test__t2i_recall_10": 75.80645161290323,
+    "test__t2i_rsum": 159.67741935483872,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 7.435483870967742,
+    "lr": 0.0002,
+    "summary": "50.0, 80.0, 100.0, 60.0, 80.0, 100.0, 56.45161290322581, 64.51612903225806, 96.7741935483871, 12.903225806451612, 70.96774193548387, 75.80645161290323"
+}
+[2026-03-19 21:31:50] Round 6!
+[2026-03-19 21:31:50] Epoch: [6] text	Loss 3.3621 (3.3621)	Prec@1 0.000 (0.000)	Prec@5 26.562 (26.562)
+[2026-03-19 21:31:51] TEST:  Epoch: [6] text	Prec@1 2.222 (0.664)	Prec@5 42.222 (42.857)
+[2026-03-19 21:31:51] Epoch 6
+[2026-03-19 21:31:52] Epoch: [6] image	Loss 2.5419 (2.6209)	Prec@1 32.422 (29.427)	Prec@5 87.109 (89.062)
+[2026-03-19 21:31:52] TEST:  Epoch: [6] image	Prec@1 20.000 (20.000)	Prec@5 90.286 (90.286)
+[2026-03-19 21:31:52] Epoch 6
+[2026-03-19 21:31:52] Epoch: [6] image	Loss 3.0392 (3.0392)	Prec@1 58.594 (58.594)	Prec@5 59.375 (59.375)
+[2026-03-19 21:31:53] TEST:  Epoch: [6] image	Prec@1 56.452 (56.452)	Prec@5 66.129 (66.129)
+[2026-03-19 21:31:53] Epoch: [6] image	Loss 3.1592 (3.1592)	Prec@1 14.062 (14.062)	Prec@5 55.078 (55.078)
+[2026-03-19 21:31:53] TEST:  Epoch: [6] image	Prec@1 16.000 (14.199)	Prec@5 80.000 (78.852)
+[2026-03-19 21:31:54] Epoch: [6] image	Loss 2.0024 (2.0255)	Prec@1 51.953 (54.427)	Prec@5 96.875 (95.312)
+[2026-03-19 21:31:54] TEST:  Epoch: [6] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (96.973)
+[2026-03-19 21:31:55] Epoch 6
+[2026-03-19 21:31:55] Epoch: [6] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:31:55] TEST:  Epoch: [6] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:31:57] Epoch: [6] text	Loss 1.3907 (1.3872)	Prec@1 52.734 (53.745)	Prec@5 99.219 (99.104)
+[2026-03-19 21:31:58] TEST:  Epoch: [6] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:31:58] Epoch 6
+[2026-03-19 21:31:58] Epoch: [6] text	Loss 3.2293 (3.2293)	Prec@1 10.547 (10.547)	Prec@5 56.250 (56.250)
+[2026-03-19 21:31:58] TEST:  Epoch: [6] text	Prec@1 18.286 (18.286)	Prec@5 48.571 (48.571)
+[2026-03-19 21:31:59] Epoch 6
+[2026-03-19 21:31:59] Epoch: [6] image	Loss 2.3216 (2.4178)	Prec@1 43.750 (39.974)	Prec@5 87.500 (87.500)
+[2026-03-19 21:32:00] TEST:  Epoch: [6] image	Prec@1 37.778 (41.196)	Prec@5 88.889 (91.030)
+[2026-03-19 21:32:00] Epoch: [6] text	Loss 2.3344 (2.3939)	Prec@1 28.516 (30.208)	Prec@5 97.266 (96.615)
+[2026-03-19 21:32:01] TEST:  Epoch: [6] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:32:03] TEST:  Epoch: [6] image	Prec@1 37.778 (41.196)	Prec@5 88.889 (91.030)
+[2026-03-19 21:32:03] TEST:  Epoch: [6] image	Prec@1 16.000 (14.199)	Prec@5 80.000 (78.852)
+[2026-03-19 21:32:04] TEST:  Epoch: [6] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (96.973)
+[2026-03-19 21:32:04] TEST:  Epoch: [6] image	Prec@1 20.000 (20.000)	Prec@5 90.286 (90.286)
+[2026-03-19 21:32:04] TEST:  Epoch: [6] image	Prec@1 56.452 (56.452)	Prec@5 66.129 (66.129)
+[2026-03-19 21:32:04] TEST:  Epoch: [6] text	Prec@1 2.222 (0.664)	Prec@5 42.222 (42.857)
+[2026-03-19 21:32:05] TEST:  Epoch: [6] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:32:05] TEST:  Epoch: [6] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:32:05] TEST:  Epoch: [6] text	Prec@1 18.286 (18.286)	Prec@5 48.571 (48.571)
+[2026-03-19 21:32:05] TEST:  Epoch: [6] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:32:05] Evaluating test...
+[2026-03-19 21:32:25] [Eval] Report @step: 6.00 {
+    "test__rsum": 344.51827242524917,
+    "test__medr": 7.0,
+    "test__meanr": 9.588039867109636,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.5,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.7,
+    "test__i2t_recall_1": 16.611295681063122,
+    "test__i2t_recall_5": 76.41196013289037,
+    "test__i2t_recall_10": 100.0,
+    "test__i2t_rsum": 193.02325581395348,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.116279069767442,
+    "test__t2i_recall_1": 7.641196013289036,
+    "test__t2i_recall_5": 52.82392026578073,
+    "test__t2i_recall_10": 91.0299003322259,
+    "test__t2i_rsum": 151.49501661129568,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 5.471760797342193,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 80.0, 100.0, 16.611295681063122, 76.41196013289037, 100.0, 7.641196013289036, 52.82392026578073, 91.0299003322259"
+}
+[2026-03-19 21:32:25] Evaluating test...
+[2026-03-19 21:32:45] [Eval] Report @step: 6.00 {
+    "test__rsum": 405.7401812688822,
+    "test__medr": 9.0,
+    "test__meanr": 13.610271903323262,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 180.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.4,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.4,
+    "test__i2t_recall_1": 25.075528700906343,
+    "test__i2t_recall_5": 91.8429003021148,
+    "test__i2t_recall_10": 93.65558912386707,
+    "test__i2t_rsum": 210.57401812688823,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 7.054380664652568,
+    "test__t2i_recall_1": 26.88821752265861,
+    "test__t2i_recall_5": 75.22658610271904,
+    "test__t2i_recall_10": 93.05135951661632,
+    "test__t2i_rsum": 195.16616314199396,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 6.555891238670695,
+    "lr": 0.0002,
+    "summary": "10.0, 70.0, 100.0, 50.0, 90.0, 100.0, 25.075528700906343, 91.8429003021148, 93.65558912386707, 26.88821752265861, 75.22658610271904, 93.05135951661632"
+}
+[2026-03-19 21:32:45] Evaluating test...
+[2026-03-19 21:36:10] [Eval] Report @step: 6.00 {
+    "test__rsum": 302.69058295964123,
+    "test__medr": 10.0,
+    "test__meanr": 18.590807174887892,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 230.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 1.7,
+    "test__i2t_recall_1": 53.25112107623318,
+    "test__i2t_recall_5": 59.64125560538117,
+    "test__i2t_recall_10": 77.91479820627802,
+    "test__i2t_rsum": 190.80717488789236,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 10.988789237668161,
+    "test__t2i_recall_1": 11.995515695067265,
+    "test__t2i_recall_5": 32.62331838565022,
+    "test__t2i_recall_10": 67.26457399103138,
+    "test__t2i_rsum": 111.88340807174887,
+    "test__t2i_medr": 9.0,
+    "test__t2i_meanr": 7.602017937219731,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 30.0, 100.0, 100.0, 53.25112107623318, 59.64125560538117, 77.91479820627802, 11.995515695067265, 32.62331838565022, 67.26457399103138"
+}
+[2026-03-19 21:36:10] Evaluating test...
+[2026-03-19 21:36:15] [Eval] Report @step: 6.00 {
+    "test__rsum": 374.85714285714283,
+    "test__medr": 9.0,
+    "test__meanr": 11.719999999999999,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 60.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 170.0,
+    "test__n_fold_i2t_medr": 4.0,
+    "test__n_fold_i2t_meanr": 3.9,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 220.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.4,
+    "test__i2t_recall_1": 21.142857142857142,
+    "test__i2t_recall_5": 68.0,
+    "test__i2t_recall_10": 89.71428571428571,
+    "test__i2t_rsum": 178.85714285714283,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 7.68,
+    "test__t2i_recall_1": 12.0,
+    "test__t2i_recall_5": 92.0,
+    "test__t2i_recall_10": 92.0,
+    "test__t2i_rsum": 196.0,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.04,
+    "lr": 0.0002,
+    "summary": "10.0, 60.0, 100.0, 30.0, 90.0, 100.0, 21.142857142857142, 68.0, 89.71428571428571, 12.0, 92.0, 92.0"
+}
+[2026-03-19 21:36:15] Evaluating test...
+[2026-03-19 21:36:16] [Eval] Report @step: 6.00 {
+    "test__rsum": 372.58064516129036,
+    "test__medr": 3.0,
+    "test__meanr": 12.20967741935484,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.6,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 64.51612903225806,
+    "test__i2t_recall_10": 98.38709677419355,
+    "test__i2t_rsum": 219.35483870967744,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.241935483870968,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 7.967741935483871,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 56.45161290322581, 64.51612903225806, 98.38709677419355, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 21:36:16] Round 7!
+[2026-03-19 21:36:16] Epoch 7
+[2026-03-19 21:36:17] Epoch 7
+[2026-03-19 21:36:17] Epoch 7
+[2026-03-19 21:36:18] Epoch: [7] image	Loss 2.2192 (2.2381)	Prec@1 38.281 (39.453)	Prec@5 90.625 (90.755)
+[2026-03-19 21:36:18] TEST:  Epoch: [7] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:36:18] Epoch: [7] image	Loss 2.4659 (2.4776)	Prec@1 27.344 (29.036)	Prec@5 91.016 (89.323)
+[2026-03-19 21:36:19] TEST:  Epoch: [7] image	Prec@1 20.000 (20.000)	Prec@5 90.286 (90.286)
+[2026-03-19 21:36:19] Epoch 7
+[2026-03-19 21:36:19] Epoch: [7] text	Loss 3.2753 (3.2753)	Prec@1 1.562 (1.562)	Prec@5 42.578 (42.578)
+[2026-03-19 21:36:20] TEST:  Epoch: [7] text	Prec@1 24.444 (30.897)	Prec@5 66.667 (64.784)
+[2026-03-19 21:36:20] Epoch: [7] text	Loss 2.1514 (2.2184)	Prec@1 34.375 (31.120)	Prec@5 95.703 (96.354)
+[2026-03-19 21:36:20] TEST:  Epoch: [7] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:36:21] Epoch: [7] image	Loss 1.9159 (1.9387)	Prec@1 52.734 (52.865)	Prec@5 98.828 (97.786)
+[2026-03-19 21:36:22] TEST:  Epoch: [7] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:36:22] Epoch: [7] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:36:22] TEST:  Epoch: [7] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:36:22] Epoch: [7] image	Loss 3.1141 (3.1141)	Prec@1 12.891 (12.891)	Prec@5 74.609 (74.609)
+[2026-03-19 21:36:23] TEST:  Epoch: [7] image	Prec@1 22.667 (17.221)	Prec@5 96.000 (94.562)
+[2026-03-19 21:36:24] Epoch: [7] text	Loss 1.3867 (1.3713)	Prec@1 50.000 (53.424)	Prec@5 98.828 (99.127)
+[2026-03-19 21:36:25] TEST:  Epoch: [7] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:36:25] Epoch: [7] text	Loss 3.1752 (3.1752)	Prec@1 27.734 (27.734)	Prec@5 57.422 (57.422)
+[2026-03-19 21:36:26] TEST:  Epoch: [7] text	Prec@1 22.857 (22.857)	Prec@5 48.571 (48.571)
+[2026-03-19 21:36:26] Epoch: [7] image	Loss 2.9246 (2.9246)	Prec@1 58.594 (58.594)	Prec@5 65.625 (65.625)
+[2026-03-19 21:36:26] TEST:  Epoch: [7] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:36:26] Epoch 7
+[2026-03-19 21:36:29] TEST:  Epoch: [7] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:36:29] TEST:  Epoch: [7] image	Prec@1 22.667 (17.221)	Prec@5 96.000 (94.562)
+[2026-03-19 21:36:30] TEST:  Epoch: [7] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:36:30] TEST:  Epoch: [7] image	Prec@1 20.000 (20.000)	Prec@5 90.286 (90.286)
+[2026-03-19 21:36:30] TEST:  Epoch: [7] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:36:30] TEST:  Epoch: [7] text	Prec@1 24.444 (30.897)	Prec@5 66.667 (64.784)
+[2026-03-19 21:36:30] TEST:  Epoch: [7] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:36:31] TEST:  Epoch: [7] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:36:31] TEST:  Epoch: [7] text	Prec@1 22.857 (22.857)	Prec@5 48.571 (48.571)
+[2026-03-19 21:36:31] TEST:  Epoch: [7] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:36:31] Evaluating test...
+[2026-03-19 21:36:51] [Eval] Report @step: 7.00 {
+    "test__rsum": 340.8637873754153,
+    "test__medr": 7.0,
+    "test__meanr": 9.830564784053156,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.4,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.8,
+    "test__i2t_recall_1": 17.940199335548172,
+    "test__i2t_recall_5": 73.08970099667773,
+    "test__i2t_recall_10": 98.67109634551495,
+    "test__i2t_rsum": 189.70099667774087,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.053156146179402,
+    "test__t2i_recall_1": 7.641196013289036,
+    "test__t2i_recall_5": 52.82392026578073,
+    "test__t2i_recall_10": 90.69767441860465,
+    "test__t2i_rsum": 151.1627906976744,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 5.777408637873754,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 70.0, 100.0, 17.940199335548172, 73.08970099667773, 98.67109634551495, 7.641196013289036, 52.82392026578073, 90.69767441860465"
+}
+[2026-03-19 21:36:51] Evaluating test...
+[2026-03-19 21:37:12] [Eval] Report @step: 7.00 {
+    "test__rsum": 405.4380664652568,
+    "test__medr": 7.0,
+    "test__meanr": 13.49546827794562,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.4,
+    "test__i2t_recall_1": 26.88821752265861,
+    "test__i2t_recall_5": 85.1963746223565,
+    "test__i2t_recall_10": 93.65558912386707,
+    "test__i2t_rsum": 205.74018126888217,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 7.0604229607250755,
+    "test__t2i_recall_1": 26.88821752265861,
+    "test__t2i_recall_5": 79.15407854984895,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 199.6978851963746,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 6.435045317220544,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 26.88821752265861, 85.1963746223565, 93.65558912386707, 26.88821752265861, 79.15407854984895, 93.65558912386707"
+}
+[2026-03-19 21:37:12] Evaluating test...
+[2026-03-19 21:40:34] [Eval] Report @step: 7.00 {
+    "test__rsum": 313.9013452914798,
+    "test__medr": 9.0,
+    "test__meanr": 19.033632286995516,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 70.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 270.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.3,
+    "test__i2t_recall_1": 53.25112107623318,
+    "test__i2t_recall_5": 59.30493273542601,
+    "test__i2t_recall_10": 78.69955156950672,
+    "test__i2t_rsum": 191.2556053811659,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 11.52017937219731,
+    "test__t2i_recall_1": 19.05829596412556,
+    "test__t2i_recall_5": 32.511210762331835,
+    "test__t2i_recall_10": 71.0762331838565,
+    "test__t2i_rsum": 122.64573991031389,
+    "test__t2i_medr": 8.0,
+    "test__t2i_meanr": 7.513452914798206,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 70.0, 100.0, 100.0, 53.25112107623318, 59.30493273542601, 78.69955156950672, 19.05829596412556, 32.511210762331835, 71.0762331838565"
+}
+[2026-03-19 21:40:34] Evaluating test...
+[2026-03-19 21:40:39] [Eval] Report @step: 7.00 {
+    "test__rsum": 374.85714285714283,
+    "test__medr": 9.0,
+    "test__meanr": 11.982857142857142,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 60.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 170.0,
+    "test__n_fold_i2t_medr": 4.0,
+    "test__n_fold_i2t_meanr": 3.9,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 24.0,
+    "test__i2t_recall_5": 68.57142857142857,
+    "test__i2t_recall_10": 88.0,
+    "test__i2t_rsum": 180.57142857142856,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 8.114285714285714,
+    "test__t2i_recall_1": 12.571428571428571,
+    "test__t2i_recall_5": 82.28571428571429,
+    "test__t2i_recall_10": 99.42857142857143,
+    "test__t2i_rsum": 194.28571428571428,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 3.8685714285714288,
+    "lr": 0.0002,
+    "summary": "10.0, 60.0, 100.0, 30.0, 70.0, 100.0, 24.0, 68.57142857142857, 88.0, 12.571428571428571, 82.28571428571429, 99.42857142857143"
+}
+[2026-03-19 21:40:39] Evaluating test...
+[2026-03-19 21:40:40] [Eval] Report @step: 7.00 {
+    "test__rsum": 370.9677419354839,
+    "test__medr": 3.0,
+    "test__meanr": 12.580645161290322,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.6,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 64.51612903225806,
+    "test__i2t_recall_10": 98.38709677419355,
+    "test__i2t_rsum": 219.35483870967744,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.17741935483871,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 69.35483870967742,
+    "test__t2i_rsum": 151.61290322580646,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.403225806451612,
+    "lr": 0.0002,
+    "summary": "50.0, 70.0, 100.0, 60.0, 80.0, 100.0, 56.45161290322581, 64.51612903225806, 98.38709677419355, 12.903225806451612, 69.35483870967742, 69.35483870967742"
+}
+[2026-03-19 21:40:41] Round 8!
+[2026-03-19 21:40:41] Epoch 8
+[2026-03-19 21:40:41] Epoch 8
+[2026-03-19 21:40:43] Epoch: [8] text	Loss 1.4699 (1.3570)	Prec@1 51.172 (53.608)	Prec@5 97.656 (99.081)
+[2026-03-19 21:40:43] TEST:  Epoch: [8] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:40:44] Epoch: [8] image	Loss 1.8934 (1.8112)	Prec@1 51.172 (55.078)	Prec@5 98.828 (98.698)
+[2026-03-19 21:40:44] TEST:  Epoch: [8] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:40:45] Epoch: [8] image	Loss 2.7972 (2.7972)	Prec@1 59.766 (59.766)	Prec@5 78.516 (78.516)
+[2026-03-19 21:40:45] TEST:  Epoch: [8] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:40:45] Epoch 8
+[2026-03-19 21:40:46] Epoch: [8] image	Loss 2.2953 (2.3514)	Prec@1 32.422 (29.167)	Prec@5 90.234 (89.453)
+[2026-03-19 21:40:46] TEST:  Epoch: [8] image	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 21:40:46] Epoch 8
+[2026-03-19 21:40:47] Epoch: [8] text	Loss 3.2024 (3.2024)	Prec@1 29.297 (29.297)	Prec@5 65.234 (65.234)
+[2026-03-19 21:40:47] TEST:  Epoch: [8] text	Prec@1 37.778 (41.196)	Prec@5 71.111 (67.774)
+[2026-03-19 21:40:47] Epoch 8
+[2026-03-19 21:40:48] Epoch: [8] text	Loss 3.1394 (3.1394)	Prec@1 26.562 (26.562)	Prec@5 54.297 (54.297)
+[2026-03-19 21:40:48] TEST:  Epoch: [8] text	Prec@1 20.000 (20.000)	Prec@5 52.000 (52.000)
+[2026-03-19 21:40:49] Epoch: [8] text	Loss 2.0499 (2.0897)	Prec@1 33.984 (31.510)	Prec@5 94.531 (96.354)
+[2026-03-19 21:40:49] TEST:  Epoch: [8] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:40:49] Epoch: [8] image	Loss 3.0479 (3.0479)	Prec@1 18.359 (18.359)	Prec@5 91.016 (91.016)
+[2026-03-19 21:40:49] TEST:  Epoch: [8] image	Prec@1 32.000 (27.492)	Prec@5 96.000 (94.864)
+[2026-03-19 21:40:50] Epoch: [8] image	Loss 2.0655 (2.1049)	Prec@1 39.062 (38.542)	Prec@5 94.922 (94.401)
+[2026-03-19 21:40:50] TEST:  Epoch: [8] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:40:51] Epoch: [8] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:40:51] TEST:  Epoch: [8] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:40:53] TEST:  Epoch: [8] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:40:53] TEST:  Epoch: [8] image	Prec@1 32.000 (27.492)	Prec@5 96.000 (94.864)
+[2026-03-19 21:40:54] TEST:  Epoch: [8] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:40:54] TEST:  Epoch: [8] image	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 21:40:54] TEST:  Epoch: [8] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:40:54] TEST:  Epoch: [8] text	Prec@1 37.778 (41.196)	Prec@5 71.111 (67.774)
+[2026-03-19 21:40:54] TEST:  Epoch: [8] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:40:55] TEST:  Epoch: [8] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:40:55] TEST:  Epoch: [8] text	Prec@1 20.000 (20.000)	Prec@5 52.000 (52.000)
+[2026-03-19 21:40:55] TEST:  Epoch: [8] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:40:55] Evaluating test...
+[2026-03-19 21:41:15] [Eval] Report @step: 8.00 {
+    "test__rsum": 322.5913621262458,
+    "test__medr": 7.0,
+    "test__meanr": 11.305647840531561,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.2,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.8,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 64.78405315614619,
+    "test__i2t_recall_10": 98.33887043189368,
+    "test__i2t_rsum": 180.73089700996678,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 4.970099667774086,
+    "test__t2i_recall_1": 7.641196013289036,
+    "test__t2i_recall_5": 53.15614617940199,
+    "test__t2i_recall_10": 81.06312292358804,
+    "test__t2i_rsum": 141.86046511627907,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 6.335548172757475,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 70.0, 100.0, 17.60797342192691, 64.78405315614619, 98.33887043189368, 7.641196013289036, 53.15614617940199, 81.06312292358804"
+}
+[2026-03-19 21:41:15] Evaluating test...
+[2026-03-19 21:41:36] [Eval] Report @step: 8.00 {
+    "test__rsum": 393.65558912386706,
+    "test__medr": 6.0,
+    "test__meanr": 13.401812688821753,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 22.356495468277945,
+    "test__i2t_recall_5": 78.85196374622356,
+    "test__i2t_recall_10": 93.65558912386707,
+    "test__i2t_rsum": 194.86404833836858,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 7.580060422960725,
+    "test__t2i_recall_1": 26.88821752265861,
+    "test__t2i_recall_5": 80.06042296072508,
+    "test__t2i_recall_10": 91.8429003021148,
+    "test__t2i_rsum": 198.79154078549848,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.8217522658610275,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 22.356495468277945, 78.85196374622356, 93.65558912386707, 26.88821752265861, 80.06042296072508, 91.8429003021148"
+}
+[2026-03-19 21:41:36] Evaluating test...
+[2026-03-19 21:44:59] [Eval] Report @step: 8.00 {
+    "test__rsum": 366.25560538116594,
+    "test__medr": 6.0,
+    "test__meanr": 17.161434977578477,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 53.25112107623318,
+    "test__i2t_recall_5": 61.88340807174888,
+    "test__i2t_recall_10": 77.69058295964126,
+    "test__i2t_rsum": 192.82511210762334,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 11.781390134529149,
+    "test__t2i_recall_1": 20.515695067264573,
+    "test__t2i_recall_5": 62.10762331838565,
+    "test__t2i_recall_10": 90.80717488789237,
+    "test__t2i_rsum": 173.4304932735426,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.380044843049327,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 53.25112107623318, 61.88340807174888, 77.69058295964126, 20.515695067264573, 62.10762331838565, 90.80717488789237"
+}
+[2026-03-19 21:44:59] Evaluating test...
+[2026-03-19 21:45:04] [Eval] Report @step: 8.00 {
+    "test__rsum": 347.42857142857144,
+    "test__medr": 9.0,
+    "test__meanr": 12.651428571428571,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 180.0,
+    "test__n_fold_i2t_medr": 4.0,
+    "test__n_fold_i2t_meanr": 3.8,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.2,
+    "test__i2t_recall_1": 24.571428571428573,
+    "test__i2t_recall_5": 72.0,
+    "test__i2t_recall_10": 78.28571428571429,
+    "test__i2t_rsum": 174.85714285714286,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.165714285714285,
+    "test__t2i_recall_1": 9.142857142857142,
+    "test__t2i_recall_5": 64.0,
+    "test__t2i_recall_10": 99.42857142857143,
+    "test__t2i_rsum": 172.57142857142856,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 4.485714285714286,
+    "lr": 0.0002,
+    "summary": "10.0, 70.0, 100.0, 30.0, 60.0, 100.0, 24.571428571428573, 72.0, 78.28571428571429, 9.142857142857142, 64.0, 99.42857142857143"
+}
+[2026-03-19 21:45:04] Evaluating test...
+[2026-03-19 21:45:05] [Eval] Report @step: 8.00 {
+    "test__rsum": 369.35483870967744,
+    "test__medr": 3.0,
+    "test__meanr": 12.983870967741934,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 250.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.5,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 62.903225806451616,
+    "test__i2t_recall_10": 98.38709677419355,
+    "test__i2t_rsum": 217.74193548387098,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.32258064516129,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 69.35483870967742,
+    "test__t2i_rsum": 151.61290322580646,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.661290322580644,
+    "lr": 0.0002,
+    "summary": "50.0, 70.0, 100.0, 60.0, 90.0, 100.0, 56.45161290322581, 62.903225806451616, 98.38709677419355, 12.903225806451612, 69.35483870967742, 69.35483870967742"
+}
+[2026-03-19 21:45:06] Round 9!
+[2026-03-19 21:45:06] Epoch: [9] text	Loss 3.0797 (3.0797)	Prec@1 26.562 (26.562)	Prec@5 59.375 (59.375)
+[2026-03-19 21:45:06] TEST:  Epoch: [9] text	Prec@1 20.000 (20.000)	Prec@5 72.000 (72.000)
+[2026-03-19 21:45:08] Epoch: [9] text	Loss 1.2857 (1.3466)	Prec@1 56.250 (53.470)	Prec@5 99.609 (99.081)
+[2026-03-19 21:45:08] TEST:  Epoch: [9] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:45:09] Epoch: [9] image	Loss 2.9688 (2.9688)	Prec@1 31.250 (31.250)	Prec@5 93.359 (93.359)
+[2026-03-19 21:45:09] TEST:  Epoch: [9] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (94.864)
+[2026-03-19 21:45:10] Epoch: [9] image	Loss 1.8981 (1.9870)	Prec@1 41.016 (40.365)	Prec@5 95.312 (95.312)
+[2026-03-19 21:45:10] TEST:  Epoch: [9] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:45:10] Epoch 9
+[2026-03-19 21:45:11] Epoch: [9] image	Loss 1.8490 (1.8303)	Prec@1 51.953 (53.125)	Prec@5 98.047 (98.698)
+[2026-03-19 21:45:11] TEST:  Epoch: [9] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:45:12] Epoch: [9] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:45:12] TEST:  Epoch: [9] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:45:12] Epoch: [9] text	Loss 1.9874 (1.9932)	Prec@1 28.906 (31.510)	Prec@5 96.094 (96.354)
+[2026-03-19 21:45:13] TEST:  Epoch: [9] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:45:13] Epoch: [9] image	Loss 2.6719 (2.6719)	Prec@1 58.984 (58.984)	Prec@5 81.250 (81.250)
+[2026-03-19 21:45:13] TEST:  Epoch: [9] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:45:14] Epoch 9
+[2026-03-19 21:45:14] Epoch: [9] image	Loss 2.2303 (2.2561)	Prec@1 28.516 (29.167)	Prec@5 92.188 (90.365)
+[2026-03-19 21:45:14] TEST:  Epoch: [9] image	Prec@1 20.000 (20.000)	Prec@5 90.286 (90.286)
+[2026-03-19 21:45:15] Epoch 9
+[2026-03-19 21:45:15] Epoch 9
+[2026-03-19 21:45:15] Epoch 9
+[2026-03-19 21:45:16] Epoch: [9] text	Loss 3.1113 (3.1113)	Prec@1 41.016 (41.016)	Prec@5 66.797 (66.797)
+[2026-03-19 21:45:16] TEST:  Epoch: [9] text	Prec@1 37.778 (41.196)	Prec@5 71.111 (67.774)
+[2026-03-19 21:45:19] TEST:  Epoch: [9] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:45:19] TEST:  Epoch: [9] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (94.864)
+[2026-03-19 21:45:19] TEST:  Epoch: [9] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:45:20] TEST:  Epoch: [9] image	Prec@1 20.000 (20.000)	Prec@5 90.286 (90.286)
+[2026-03-19 21:45:20] TEST:  Epoch: [9] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:45:20] TEST:  Epoch: [9] text	Prec@1 37.778 (41.196)	Prec@5 71.111 (67.774)
+[2026-03-19 21:45:20] TEST:  Epoch: [9] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:45:21] TEST:  Epoch: [9] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:45:21] TEST:  Epoch: [9] text	Prec@1 20.000 (20.000)	Prec@5 72.000 (72.000)
+[2026-03-19 21:45:21] TEST:  Epoch: [9] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:45:21] Evaluating test...
+[2026-03-19 21:45:41] [Eval] Report @step: 9.00 {
+    "test__rsum": 320.93023255813955,
+    "test__medr": 10.0,
+    "test__meanr": 10.46843853820598,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.2,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 34.21926910299003,
+    "test__i2t_recall_10": 94.35215946843854,
+    "test__i2t_rsum": 146.1794019933555,
+    "test__i2t_medr": 7.0,
+    "test__i2t_meanr": 6.239202657807309,
+    "test__t2i_recall_1": 7.641196013289036,
+    "test__t2i_recall_5": 69.43521594684385,
+    "test__t2i_recall_10": 97.67441860465117,
+    "test__t2i_rsum": 174.75083056478405,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 4.2292358803986705,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 70.0, 100.0, 17.60797342192691, 34.21926910299003, 94.35215946843854, 7.641196013289036, 69.43521594684385, 97.67441860465117"
+}
+[2026-03-19 21:45:41] Evaluating test...
+[2026-03-19 21:46:01] [Eval] Report @step: 9.00 {
+    "test__rsum": 387.00906344410873,
+    "test__medr": 6.0,
+    "test__meanr": 14.217522658610273,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 21.148036253776436,
+    "test__i2t_recall_5": 76.73716012084593,
+    "test__i2t_recall_10": 80.06042296072508,
+    "test__i2t_rsum": 177.94561933534743,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.40785498489426,
+    "test__t2i_recall_1": 35.64954682779456,
+    "test__t2i_recall_5": 80.06042296072508,
+    "test__t2i_recall_10": 93.35347432024169,
+    "test__t2i_rsum": 209.0634441087613,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.809667673716012,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 21.148036253776436, 76.73716012084593, 80.06042296072508, 35.64954682779456, 80.06042296072508, 93.35347432024169"
+}
+[2026-03-19 21:46:01] Evaluating test...
+[2026-03-19 21:49:21] [Eval] Report @step: 9.00 {
+    "test__rsum": 358.8565022421525,
+    "test__medr": 6.0,
+    "test__meanr": 17.206278026905828,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 51.233183856502244,
+    "test__i2t_recall_5": 61.09865470852018,
+    "test__i2t_recall_10": 76.00896860986548,
+    "test__i2t_rsum": 188.3408071748879,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 12.060538116591928,
+    "test__t2i_recall_1": 20.96412556053812,
+    "test__t2i_recall_5": 54.7085201793722,
+    "test__t2i_recall_10": 94.84304932735427,
+    "test__t2i_rsum": 170.51569506726457,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.145739910313901,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 51.233183856502244, 61.09865470852018, 76.00896860986548, 20.96412556053812, 54.7085201793722, 94.84304932735427"
+}
+[2026-03-19 21:49:21] Evaluating test...
+[2026-03-19 21:49:25] [Eval] Report @step: 9.00 {
+    "test__rsum": 334.2857142857143,
+    "test__medr": 9.0,
+    "test__meanr": 13.794285714285715,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 180.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.7,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.3,
+    "test__i2t_recall_1": 21.714285714285715,
+    "test__i2t_recall_5": 72.57142857142857,
+    "test__i2t_recall_10": 76.57142857142857,
+    "test__i2t_rsum": 170.85714285714283,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.714285714285715,
+    "test__t2i_recall_1": 8.571428571428571,
+    "test__t2i_recall_5": 58.285714285714285,
+    "test__t2i_recall_10": 96.57142857142857,
+    "test__t2i_rsum": 163.42857142857144,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.08,
+    "lr": 0.0002,
+    "summary": "10.0, 70.0, 100.0, 30.0, 60.0, 100.0, 21.714285714285715, 72.57142857142857, 76.57142857142857, 8.571428571428571, 58.285714285714285, 96.57142857142857"
+}
+[2026-03-19 21:49:25] Evaluating test...
+[2026-03-19 21:49:27] [Eval] Report @step: 9.00 {
+    "test__rsum": 370.9677419354839,
+    "test__medr": 3.0,
+    "test__meanr": 13.080645161290324,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 250.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.5,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 64.51612903225806,
+    "test__i2t_recall_10": 98.38709677419355,
+    "test__i2t_rsum": 219.35483870967744,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.225806451612903,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 69.35483870967742,
+    "test__t2i_rsum": 151.61290322580646,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.85483870967742,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 90.0, 100.0, 56.45161290322581, 64.51612903225806, 98.38709677419355, 12.903225806451612, 69.35483870967742, 69.35483870967742"
+}
+[2026-03-19 21:49:27] Round 10!
+[2026-03-19 21:49:27] Epoch: [10] text	Loss 3.0229 (3.0229)	Prec@1 29.297 (29.297)	Prec@5 73.047 (73.047)
+[2026-03-19 21:49:27] TEST:  Epoch: [10] text	Prec@1 20.000 (20.000)	Prec@5 77.143 (77.143)
+[2026-03-19 21:49:28] Epoch 10
+[2026-03-19 21:49:28] Epoch: [10] image	Loss 1.9845 (1.9655)	Prec@1 40.625 (38.802)	Prec@5 92.188 (94.922)
+[2026-03-19 21:49:28] TEST:  Epoch: [10] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:49:29] Epoch 10
+[2026-03-19 21:49:29] Epoch: [10] image	Loss 2.8939 (2.8939)	Prec@1 30.859 (30.859)	Prec@5 93.359 (93.359)
+[2026-03-19 21:49:30] TEST:  Epoch: [10] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.468)
+[2026-03-19 21:49:30] Epoch 10
+[2026-03-19 21:49:30] Epoch: [10] image	Loss 2.5395 (2.5395)	Prec@1 59.766 (59.766)	Prec@5 80.469 (80.469)
+[2026-03-19 21:49:30] TEST:  Epoch: [10] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:49:31] Epoch: [10] text	Loss 3.0304 (3.0304)	Prec@1 37.891 (37.891)	Prec@5 67.188 (67.188)
+[2026-03-19 21:49:31] TEST:  Epoch: [10] text	Prec@1 37.778 (41.196)	Prec@5 71.111 (70.100)
+[2026-03-19 21:49:31] Epoch 10
+[2026-03-19 21:49:32] Epoch: [10] image	Loss 1.5719 (1.7104)	Prec@1 57.812 (55.208)	Prec@5 100.000 (98.828)
+[2026-03-19 21:49:33] TEST:  Epoch: [10] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:49:33] Epoch: [10] image	Loss 2.0840 (2.1766)	Prec@1 30.078 (29.297)	Prec@5 94.922 (91.016)
+[2026-03-19 21:49:33] TEST:  Epoch: [10] image	Prec@1 20.000 (20.000)	Prec@5 92.000 (92.000)
+[2026-03-19 21:49:34] Epoch 10
+[2026-03-19 21:49:34] Epoch: [10] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:49:34] TEST:  Epoch: [10] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:49:35] Epoch: [10] text	Loss 1.9048 (1.9324)	Prec@1 26.953 (30.599)	Prec@5 97.656 (96.094)
+[2026-03-19 21:49:35] TEST:  Epoch: [10] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:49:37] Epoch: [10] text	Loss 1.3013 (1.3362)	Prec@1 52.344 (53.768)	Prec@5 99.219 (99.081)
+[2026-03-19 21:49:37] TEST:  Epoch: [10] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:49:39] TEST:  Epoch: [10] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:49:40] TEST:  Epoch: [10] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.468)
+[2026-03-19 21:49:40] TEST:  Epoch: [10] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:49:40] TEST:  Epoch: [10] image	Prec@1 20.000 (20.000)	Prec@5 92.000 (92.000)
+[2026-03-19 21:49:40] TEST:  Epoch: [10] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:49:41] TEST:  Epoch: [10] text	Prec@1 37.778 (41.196)	Prec@5 71.111 (70.100)
+[2026-03-19 21:49:41] TEST:  Epoch: [10] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:49:41] TEST:  Epoch: [10] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:49:41] TEST:  Epoch: [10] text	Prec@1 20.000 (20.000)	Prec@5 77.143 (77.143)
+[2026-03-19 21:49:42] TEST:  Epoch: [10] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:49:42] Evaluating test...
+[2026-03-19 21:50:01] [Eval] Report @step: 10.00 {
+    "test__rsum": 306.9767441860465,
+    "test__medr": 11.0,
+    "test__meanr": 10.990033222591363,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 31.229235880398672,
+    "test__i2t_recall_10": 90.03322259136213,
+    "test__i2t_rsum": 138.8704318936877,
+    "test__i2t_medr": 7.0,
+    "test__i2t_meanr": 6.408637873754153,
+    "test__t2i_recall_1": 7.973421926910299,
+    "test__t2i_recall_5": 64.11960132890366,
+    "test__t2i_recall_10": 96.01328903654485,
+    "test__t2i_rsum": 168.1063122923588,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.5813953488372094,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 70.0, 100.0, 17.60797342192691, 31.229235880398672, 90.03322259136213, 7.973421926910299, 64.11960132890366, 96.01328903654485"
+}
+[2026-03-19 21:50:01] Evaluating test...
+[2026-03-19 21:50:22] [Eval] Report @step: 10.00 {
+    "test__rsum": 370.392749244713,
+    "test__medr": 7.0,
+    "test__meanr": 14.371601208459214,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 27.794561933534744,
+    "test__i2t_recall_5": 53.47432024169184,
+    "test__i2t_recall_10": 79.45619335347432,
+    "test__i2t_rsum": 160.72507552870093,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 9.039274924471298,
+    "test__t2i_recall_1": 32.62839879154078,
+    "test__t2i_recall_5": 83.38368580060423,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 209.66767371601208,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.332326283987915,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 27.794561933534744, 53.47432024169184, 79.45619335347432, 32.62839879154078, 83.38368580060423, 93.65558912386707"
+}
+[2026-03-19 21:50:22] Evaluating test...
+[2026-03-19 21:53:46] [Eval] Report @step: 10.00 {
+    "test__rsum": 332.7354260089686,
+    "test__medr": 8.0,
+    "test__meanr": 17.559417040358746,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 35.65022421524664,
+    "test__i2t_recall_5": 60.08968609865471,
+    "test__i2t_recall_10": 77.3542600896861,
+    "test__i2t_rsum": 173.09417040358744,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 12.480941704035875,
+    "test__t2i_recall_1": 18.946188340807176,
+    "test__t2i_recall_5": 44.05829596412556,
+    "test__t2i_recall_10": 96.63677130044843,
+    "test__t2i_rsum": 159.64125560538116,
+    "test__t2i_medr": 6.0,
+    "test__t2i_meanr": 5.07847533632287,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 35.65022421524664, 60.08968609865471, 77.3542600896861, 18.946188340807176, 44.05829596412556, 96.63677130044843"
+}
+[2026-03-19 21:53:46] Evaluating test...
+[2026-03-19 21:53:51] [Eval] Report @step: 10.00 {
+    "test__rsum": 337.1428571428571,
+    "test__medr": 9.0,
+    "test__meanr": 13.725714285714286,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 180.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.6,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 4.1,
+    "test__i2t_recall_1": 20.0,
+    "test__i2t_recall_5": 72.0,
+    "test__i2t_recall_10": 80.0,
+    "test__i2t_rsum": 172.0,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.674285714285714,
+    "test__t2i_recall_1": 13.714285714285714,
+    "test__t2i_recall_5": 56.0,
+    "test__t2i_recall_10": 95.42857142857143,
+    "test__t2i_rsum": 165.14285714285714,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.051428571428572,
+    "lr": 0.0002,
+    "summary": "10.0, 70.0, 100.0, 20.0, 60.0, 100.0, 20.0, 72.0, 80.0, 13.714285714285714, 56.0, 95.42857142857143"
+}
+[2026-03-19 21:53:51] Evaluating test...
+[2026-03-19 21:53:52] [Eval] Report @step: 10.00 {
+    "test__rsum": 377.4193548387097,
+    "test__medr": 3.0,
+    "test__meanr": 13.790322580645162,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 250.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.6,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 70.96774193548387,
+    "test__i2t_recall_10": 98.38709677419355,
+    "test__i2t_rsum": 225.80645161290323,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.17741935483871,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 69.35483870967742,
+    "test__t2i_rsum": 151.61290322580646,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 9.612903225806452,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 90.0, 100.0, 56.45161290322581, 70.96774193548387, 98.38709677419355, 12.903225806451612, 69.35483870967742, 69.35483870967742"
+}
+[2026-03-19 21:53:52] Round 11!
+[2026-03-19 21:53:52] Epoch: [11] text	Loss 2.9806 (2.9806)	Prec@1 27.344 (27.344)	Prec@5 75.781 (75.781)
+[2026-03-19 21:53:53] TEST:  Epoch: [11] text	Prec@1 20.000 (20.000)	Prec@5 77.143 (77.143)
+[2026-03-19 21:53:53] Epoch 11
+[2026-03-19 21:53:54] Epoch: [11] image	Loss 1.6436 (1.6913)	Prec@1 53.516 (53.516)	Prec@5 98.047 (98.958)
+[2026-03-19 21:53:54] TEST:  Epoch: [11] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:53:54] Epoch 11
+[2026-03-19 21:53:55] Epoch: [11] image	Loss 2.8328 (2.8328)	Prec@1 29.688 (29.688)	Prec@5 93.750 (93.750)
+[2026-03-19 21:53:55] TEST:  Epoch: [11] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 21:53:56] Epoch: [11] image	Loss 2.4254 (2.4254)	Prec@1 58.984 (58.984)	Prec@5 80.078 (80.078)
+[2026-03-19 21:53:56] TEST:  Epoch: [11] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:53:56] Epoch 11
+[2026-03-19 21:53:57] Epoch: [11] image	Loss 2.0633 (2.1213)	Prec@1 33.203 (29.036)	Prec@5 92.188 (92.057)
+[2026-03-19 21:53:57] TEST:  Epoch: [11] image	Prec@1 20.000 (20.000)	Prec@5 96.571 (96.571)
+[2026-03-19 21:53:57] Epoch 11
+[2026-03-19 21:53:57] Epoch 11
+[2026-03-19 21:53:58] Epoch: [11] text	Loss 1.8685 (1.8763)	Prec@1 30.078 (30.729)	Prec@5 97.266 (96.224)
+[2026-03-19 21:53:58] TEST:  Epoch: [11] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:53:59] Epoch: [11] image	Loss 1.7981 (1.9171)	Prec@1 42.578 (38.672)	Prec@5 95.312 (95.312)
+[2026-03-19 21:53:59] TEST:  Epoch: [11] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:53:59] Epoch: [11] text	Loss 2.9070 (2.9070)	Prec@1 41.016 (41.016)	Prec@5 73.828 (73.828)
+[2026-03-19 21:54:00] TEST:  Epoch: [11] text	Prec@1 37.778 (41.196)	Prec@5 80.000 (81.395)
+[2026-03-19 21:54:00] Epoch: [11] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:54:00] TEST:  Epoch: [11] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:54:02] Epoch: [11] text	Loss 1.2921 (1.3306)	Prec@1 52.734 (53.539)	Prec@5 99.609 (99.104)
+[2026-03-19 21:54:02] TEST:  Epoch: [11] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:54:05] TEST:  Epoch: [11] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:54:05] TEST:  Epoch: [11] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 21:54:05] TEST:  Epoch: [11] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:54:06] TEST:  Epoch: [11] image	Prec@1 20.000 (20.000)	Prec@5 96.571 (96.571)
+[2026-03-19 21:54:06] TEST:  Epoch: [11] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:54:06] TEST:  Epoch: [11] text	Prec@1 37.778 (41.196)	Prec@5 80.000 (81.395)
+[2026-03-19 21:54:06] TEST:  Epoch: [11] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:54:07] TEST:  Epoch: [11] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:54:07] TEST:  Epoch: [11] text	Prec@1 20.000 (20.000)	Prec@5 77.143 (77.143)
+[2026-03-19 21:54:07] TEST:  Epoch: [11] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:54:07] Evaluating test...
+[2026-03-19 21:54:27] [Eval] Report @step: 11.00 {
+    "test__rsum": 308.9700996677741,
+    "test__medr": 9.0,
+    "test__meanr": 10.993355481727574,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.3,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.1,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 28.903654485049834,
+    "test__i2t_recall_10": 86.7109634551495,
+    "test__i2t_rsum": 133.22259136212625,
+    "test__i2t_medr": 7.0,
+    "test__i2t_meanr": 6.704318936877076,
+    "test__t2i_recall_1": 13.289036544850498,
+    "test__t2i_recall_5": 67.44186046511628,
+    "test__t2i_recall_10": 95.01661129568106,
+    "test__t2i_rsum": 175.74750830564784,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 4.289036544850498,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 70.0, 100.0, 17.60797342192691, 28.903654485049834, 86.7109634551495, 13.289036544850498, 67.44186046511628, 95.01661129568106"
+}
+[2026-03-19 21:54:27] Evaluating test...
+[2026-03-19 21:54:47] [Eval] Report @step: 11.00 {
+    "test__rsum": 375.8308157099698,
+    "test__medr": 8.0,
+    "test__meanr": 14.9607250755287,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 27.794561933534744,
+    "test__i2t_recall_5": 49.546827794561935,
+    "test__i2t_recall_10": 79.15407854984895,
+    "test__i2t_rsum": 156.49546827794563,
+    "test__i2t_medr": 6.0,
+    "test__i2t_meanr": 9.43202416918429,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 92.74924471299094,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 219.33534743202418,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.528700906344411,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 27.794561933534744, 49.546827794561935, 79.15407854984895, 32.93051359516616, 92.74924471299094, 93.65558912386707"
+}
+[2026-03-19 21:54:47] Evaluating test...
+[2026-03-19 21:58:05] [Eval] Report @step: 11.00 {
+    "test__rsum": 360.8744394618834,
+    "test__medr": 7.0,
+    "test__meanr": 17.479820627802688,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 27.57847533632287,
+    "test__i2t_recall_5": 63.67713004484305,
+    "test__i2t_recall_10": 74.2152466367713,
+    "test__i2t_rsum": 165.4708520179372,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 12.958520179372197,
+    "test__t2i_recall_1": 18.721973094170405,
+    "test__t2i_recall_5": 78.69955156950672,
+    "test__t2i_recall_10": 97.98206278026906,
+    "test__t2i_rsum": 195.4035874439462,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 4.521300448430493,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 27.57847533632287, 63.67713004484305, 74.2152466367713, 18.721973094170405, 78.69955156950672, 97.98206278026906"
+}
+[2026-03-19 21:58:05] Evaluating test...
+[2026-03-19 21:58:09] [Eval] Report @step: 11.00 {
+    "test__rsum": 328.0,
+    "test__medr": 10.0,
+    "test__meanr": 14.245714285714286,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.6,
+    "test__n_fold_t2i_recall_1": 40.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.9,
+    "test__i2t_recall_1": 18.857142857142858,
+    "test__i2t_recall_5": 70.85714285714286,
+    "test__i2t_recall_10": 78.28571428571429,
+    "test__i2t_rsum": 168.0,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.725714285714286,
+    "test__t2i_recall_1": 13.142857142857142,
+    "test__t2i_recall_5": 49.714285714285715,
+    "test__t2i_recall_10": 97.14285714285714,
+    "test__t2i_rsum": 160.0,
+    "test__t2i_medr": 6.0,
+    "test__t2i_meanr": 5.52,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 40.0, 60.0, 100.0, 18.857142857142858, 70.85714285714286, 78.28571428571429, 13.142857142857142, 49.714285714285715, 97.14285714285714"
+}
+[2026-03-19 21:58:09] Evaluating test...
+[2026-03-19 21:58:11] [Eval] Report @step: 11.00 {
+    "test__rsum": 375.80645161290323,
+    "test__medr": 3.0,
+    "test__meanr": 13.983870967741936,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.7,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 70.96774193548387,
+    "test__i2t_recall_10": 95.16129032258064,
+    "test__i2t_rsum": 222.5806451612903,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.241935483870968,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 9.741935483870968,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 56.45161290322581, 70.96774193548387, 95.16129032258064, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 21:58:11] Round 12!
+[2026-03-19 21:58:11] Epoch: [12] image	Loss 1.8750 (1.8229)	Prec@1 38.672 (39.844)	Prec@5 94.531 (95.443)
+[2026-03-19 21:58:12] TEST:  Epoch: [12] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:58:12] Epoch: [12] image	Loss 2.7593 (2.7593)	Prec@1 26.953 (26.953)	Prec@5 94.922 (94.922)
+[2026-03-19 21:58:12] TEST:  Epoch: [12] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 21:58:13] Epoch: [12] text	Loss 2.8409 (2.8409)	Prec@1 41.797 (41.797)	Prec@5 76.953 (76.953)
+[2026-03-19 21:58:13] TEST:  Epoch: [12] text	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.382)
+[2026-03-19 21:58:13] Epoch: [12] image	Loss 2.2679 (2.2679)	Prec@1 60.547 (60.547)	Prec@5 82.031 (82.031)
+[2026-03-19 21:58:13] TEST:  Epoch: [12] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:58:14] Epoch: [12] image	Loss 2.0619 (2.0741)	Prec@1 31.641 (28.906)	Prec@5 92.969 (92.708)
+[2026-03-19 21:58:14] TEST:  Epoch: [12] image	Prec@1 20.000 (20.000)	Prec@5 93.714 (93.714)
+[2026-03-19 21:58:14] Epoch 12
+[2026-03-19 21:58:15] Epoch 12
+[2026-03-19 21:58:15] Epoch 12
+[2026-03-19 21:58:16] Epoch: [12] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 21:58:16] TEST:  Epoch: [12] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:58:16] Epoch 12
+[2026-03-19 21:58:16] Epoch: [12] text	Loss 2.8872 (2.8872)	Prec@1 30.469 (30.469)	Prec@5 82.031 (82.031)
+[2026-03-19 21:58:16] TEST:  Epoch: [12] text	Prec@1 20.000 (20.000)	Prec@5 81.143 (81.143)
+[2026-03-19 21:58:17] Epoch: [12] text	Loss 1.7392 (1.8306)	Prec@1 33.203 (29.948)	Prec@5 97.266 (96.354)
+[2026-03-19 21:58:17] TEST:  Epoch: [12] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:58:18] Epoch: [12] image	Loss 1.6213 (1.6275)	Prec@1 53.906 (53.776)	Prec@5 99.219 (98.958)
+[2026-03-19 21:58:18] TEST:  Epoch: [12] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:58:19] Epoch 12
+[2026-03-19 21:58:21] Epoch: [12] text	Loss 1.3026 (1.3227)	Prec@1 55.469 (53.837)	Prec@5 98.828 (99.081)
+[2026-03-19 21:58:21] TEST:  Epoch: [12] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:58:23] TEST:  Epoch: [12] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 21:58:24] TEST:  Epoch: [12] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 21:58:24] TEST:  Epoch: [12] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:58:24] TEST:  Epoch: [12] image	Prec@1 20.000 (20.000)	Prec@5 93.714 (93.714)
+[2026-03-19 21:58:24] TEST:  Epoch: [12] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 21:58:25] TEST:  Epoch: [12] text	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.382)
+[2026-03-19 21:58:25] TEST:  Epoch: [12] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 21:58:25] TEST:  Epoch: [12] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 21:58:25] TEST:  Epoch: [12] text	Prec@1 20.000 (20.000)	Prec@5 81.143 (81.143)
+[2026-03-19 21:58:25] TEST:  Epoch: [12] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 21:58:25] Evaluating test...
+[2026-03-19 21:58:45] [Eval] Report @step: 12.00 {
+    "test__rsum": 328.23920265780725,
+    "test__medr": 9.0,
+    "test__meanr": 11.036544850498338,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.3,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.1,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 26.910299003322258,
+    "test__i2t_recall_10": 85.38205980066445,
+    "test__i2t_rsum": 129.90033222591362,
+    "test__i2t_medr": 7.0,
+    "test__i2t_meanr": 6.95016611295681,
+    "test__t2i_recall_1": 39.53488372093023,
+    "test__t2i_recall_5": 69.1029900332226,
+    "test__t2i_recall_10": 89.70099667774086,
+    "test__t2i_rsum": 198.33887043189367,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 4.086378737541528,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 70.0, 100.0, 17.60797342192691, 26.910299003322258, 85.38205980066445, 39.53488372093023, 69.1029900332226, 89.70099667774086"
+}
+[2026-03-19 21:58:45] Evaluating test...
+[2026-03-19 21:59:06] [Eval] Report @step: 12.00 {
+    "test__rsum": 371.6012084592145,
+    "test__medr": 8.0,
+    "test__meanr": 15.126888217522659,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 2.9,
+    "test__i2t_recall_1": 26.283987915407856,
+    "test__i2t_recall_5": 48.6404833836858,
+    "test__i2t_recall_10": 76.43504531722054,
+    "test__i2t_rsum": 151.35951661631418,
+    "test__i2t_medr": 6.0,
+    "test__i2t_meanr": 9.474320241691842,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 93.65558912386707,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 220.2416918429003,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.652567975830816,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 26.283987915407856, 48.6404833836858, 76.43504531722054, 32.93051359516616, 93.65558912386707, 93.65558912386707"
+}
+[2026-03-19 21:59:06] Evaluating test...
+[2026-03-19 22:02:29] [Eval] Report @step: 12.00 {
+    "test__rsum": 371.5246636771301,
+    "test__medr": 6.0,
+    "test__meanr": 18.031390134529147,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 39.01345291479821,
+    "test__i2t_recall_5": 63.228699551569505,
+    "test__i2t_recall_10": 73.54260089686099,
+    "test__i2t_rsum": 175.7847533632287,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 13.600896860986547,
+    "test__t2i_recall_1": 17.82511210762332,
+    "test__t2i_recall_5": 81.50224215246637,
+    "test__t2i_recall_10": 96.41255605381166,
+    "test__t2i_rsum": 195.73991031390136,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.4304932735426,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 39.01345291479821, 63.228699551569505, 73.54260089686099, 17.82511210762332, 81.50224215246637, 96.41255605381166"
+}
+[2026-03-19 22:02:29] Evaluating test...
+[2026-03-19 22:02:34] [Eval] Report @step: 12.00 {
+    "test__rsum": 318.2857142857143,
+    "test__medr": 10.0,
+    "test__meanr": 14.30857142857143,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.7,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 4.1,
+    "test__i2t_recall_1": 20.0,
+    "test__i2t_recall_5": 68.57142857142857,
+    "test__i2t_recall_10": 79.42857142857143,
+    "test__i2t_rsum": 168.0,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.428571428571429,
+    "test__t2i_recall_1": 12.0,
+    "test__t2i_recall_5": 41.714285714285715,
+    "test__t2i_recall_10": 96.57142857142857,
+    "test__t2i_rsum": 150.28571428571428,
+    "test__t2i_medr": 6.0,
+    "test__t2i_meanr": 5.88,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 20.0, 60.0, 100.0, 20.0, 68.57142857142857, 79.42857142857143, 12.0, 41.714285714285715, 96.57142857142857"
+}
+[2026-03-19 22:02:34] Evaluating test...
+[2026-03-19 22:02:35] [Eval] Report @step: 12.00 {
+    "test__rsum": 369.35483870967744,
+    "test__medr": 3.0,
+    "test__meanr": 14.03225806451613,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 2.9,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 90.3225806451613,
+    "test__i2t_rsum": 216.1290322580645,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.241935483870968,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 9.790322580645162,
+    "lr": 0.0002,
+    "summary": "50.0, 70.0, 100.0, 60.0, 80.0, 100.0, 56.45161290322581, 69.35483870967742, 90.3225806451613, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 22:02:36] Round 13!
+[2026-03-19 22:02:36] Epoch 13
+[2026-03-19 22:02:38] Epoch: [13] text	Loss 1.3465 (1.3146)	Prec@1 53.906 (53.952)	Prec@5 98.828 (99.035)
+[2026-03-19 22:02:38] TEST:  Epoch: [13] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:02:39] Epoch: [13] text	Loss 2.8430 (2.8430)	Prec@1 30.078 (30.078)	Prec@5 83.594 (83.594)
+[2026-03-19 22:02:39] TEST:  Epoch: [13] text	Prec@1 20.000 (20.000)	Prec@5 86.857 (86.857)
+[2026-03-19 22:02:39] Epoch: [13] image	Loss 1.7167 (1.5967)	Prec@1 48.828 (53.385)	Prec@5 98.438 (98.698)
+[2026-03-19 22:02:40] TEST:  Epoch: [13] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:02:40] Epoch: [13] image	Loss 2.1527 (2.1527)	Prec@1 60.938 (60.938)	Prec@5 81.641 (81.641)
+[2026-03-19 22:02:40] TEST:  Epoch: [13] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 22:02:41] Epoch 13
+[2026-03-19 22:02:41] Epoch: [13] text	Loss 1.7830 (1.7976)	Prec@1 31.641 (31.901)	Prec@5 97.266 (96.094)
+[2026-03-19 22:02:41] TEST:  Epoch: [13] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 22:02:42] Epoch: [13] image	Loss 2.0331 (2.0266)	Prec@1 27.734 (29.167)	Prec@5 93.359 (92.708)
+[2026-03-19 22:02:42] TEST:  Epoch: [13] image	Prec@1 20.000 (20.000)	Prec@5 93.143 (93.143)
+[2026-03-19 22:02:43] Epoch 13
+[2026-03-19 22:02:43] Epoch: [13] text	Loss 2.7647 (2.7647)	Prec@1 39.062 (39.062)	Prec@5 80.469 (80.469)
+[2026-03-19 22:02:43] TEST:  Epoch: [13] text	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.382)
+[2026-03-19 22:02:44] Epoch: [13] image	Loss 2.6908 (2.6908)	Prec@1 28.516 (28.516)	Prec@5 94.531 (94.531)
+[2026-03-19 22:02:44] TEST:  Epoch: [13] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 22:02:44] Epoch 13
+[2026-03-19 22:02:45] Epoch: [13] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:02:45] TEST:  Epoch: [13] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:02:45] Epoch 13
+[2026-03-19 22:02:46] Epoch: [13] image	Loss 1.7800 (1.8022)	Prec@1 40.625 (39.453)	Prec@5 94.531 (95.573)
+[2026-03-19 22:02:46] TEST:  Epoch: [13] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:02:48] TEST:  Epoch: [13] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:02:48] TEST:  Epoch: [13] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 22:02:49] TEST:  Epoch: [13] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:02:49] TEST:  Epoch: [13] image	Prec@1 20.000 (20.000)	Prec@5 93.143 (93.143)
+[2026-03-19 22:02:49] TEST:  Epoch: [13] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 22:02:49] TEST:  Epoch: [13] text	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.382)
+[2026-03-19 22:02:49] TEST:  Epoch: [13] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 22:02:50] TEST:  Epoch: [13] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:02:50] TEST:  Epoch: [13] text	Prec@1 20.000 (20.000)	Prec@5 86.857 (86.857)
+[2026-03-19 22:02:50] TEST:  Epoch: [13] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:02:50] Evaluating test...
+[2026-03-19 22:03:10] [Eval] Report @step: 13.00 {
+    "test__rsum": 315.61461794019937,
+    "test__medr": 10.0,
+    "test__meanr": 11.837209302325583,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.4,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 27.906976744186046,
+    "test__i2t_recall_10": 77.40863787375416,
+    "test__i2t_rsum": 122.92358803986711,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 7.588039867109635,
+    "test__t2i_recall_1": 36.21262458471761,
+    "test__t2i_recall_5": 69.1029900332226,
+    "test__t2i_recall_10": 87.37541528239203,
+    "test__t2i_rsum": 192.69102990033224,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 4.249169435215947,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 20.0, 70.0, 100.0, 17.60797342192691, 27.906976744186046, 77.40863787375416, 36.21262458471761, 69.1029900332226, 87.37541528239203"
+}
+[2026-03-19 22:03:10] Evaluating test...
+[2026-03-19 22:03:30] [Eval] Report @step: 13.00 {
+    "test__rsum": 362.5377643504532,
+    "test__medr": 8.0,
+    "test__meanr": 15.154078549848943,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 20.54380664652568,
+    "test__i2t_recall_5": 48.338368580060425,
+    "test__i2t_recall_10": 75.52870090634441,
+    "test__i2t_rsum": 144.41087613293053,
+    "test__i2t_medr": 6.0,
+    "test__i2t_meanr": 9.55287009063444,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 91.54078549848943,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 218.12688821752266,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.601208459214502,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.54380664652568, 48.338368580060425, 75.52870090634441, 32.93051359516616, 91.54078549848943, 93.65558912386707"
+}
+[2026-03-19 22:03:30] Evaluating test...
+[2026-03-19 22:06:53] [Eval] Report @step: 13.00 {
+    "test__rsum": 367.37668161434976,
+    "test__medr": 7.0,
+    "test__meanr": 18.390134529147982,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 35.426008968609864,
+    "test__i2t_recall_5": 66.4798206278027,
+    "test__i2t_recall_10": 72.42152466367713,
+    "test__i2t_rsum": 174.3273542600897,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 13.689461883408072,
+    "test__t2i_recall_1": 18.946188340807176,
+    "test__t2i_recall_5": 79.5964125560538,
+    "test__t2i_recall_10": 94.5067264573991,
+    "test__t2i_rsum": 193.04932735426007,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 4.70067264573991,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 35.426008968609864, 66.4798206278027, 72.42152466367713, 18.946188340807176, 79.5964125560538, 94.5067264573991"
+}
+[2026-03-19 22:06:53] Evaluating test...
+[2026-03-19 22:06:58] [Eval] Report @step: 13.00 {
+    "test__rsum": 324.0,
+    "test__medr": 9.0,
+    "test__meanr": 13.971428571428572,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.7,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 4.1,
+    "test__i2t_recall_1": 20.0,
+    "test__i2t_recall_5": 68.0,
+    "test__i2t_recall_10": 77.14285714285714,
+    "test__i2t_rsum": 165.14285714285714,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 8.451428571428572,
+    "test__t2i_recall_1": 13.714285714285714,
+    "test__t2i_recall_5": 48.57142857142857,
+    "test__t2i_recall_10": 96.57142857142857,
+    "test__t2i_rsum": 158.85714285714286,
+    "test__t2i_medr": 6.0,
+    "test__t2i_meanr": 5.52,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 20.0, 60.0, 100.0, 20.0, 68.0, 77.14285714285714, 13.714285714285714, 48.57142857142857, 96.57142857142857"
+}
+[2026-03-19 22:06:58] Evaluating test...
+[2026-03-19 22:06:59] [Eval] Report @step: 13.00 {
+    "test__rsum": 364.5161290322581,
+    "test__medr": 3.0,
+    "test__meanr": 14.03225806451613,
+    "test__n_fold_i2t_recall_1": 50.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 56.45161290322581,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 85.48387096774194,
+    "test__i2t_rsum": 211.29032258064518,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.419354838709678,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 9.612903225806452,
+    "lr": 0.0002,
+    "summary": "50.0, 70.0, 100.0, 60.0, 80.0, 100.0, 56.45161290322581, 69.35483870967742, 85.48387096774194, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 22:07:00] Round 14!
+[2026-03-19 22:07:00] Epoch 14
+[2026-03-19 22:07:00] Epoch: [14] text	Loss 2.7973 (2.7973)	Prec@1 29.688 (29.688)	Prec@5 85.156 (85.156)
+[2026-03-19 22:07:00] TEST:  Epoch: [14] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:07:02] Epoch: [14] text	Loss 1.3801 (1.3118)	Prec@1 48.047 (53.653)	Prec@5 98.828 (99.058)
+[2026-03-19 22:07:03] TEST:  Epoch: [14] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:07:03] Epoch: [14] image	Loss 2.6192 (2.6192)	Prec@1 29.297 (29.297)	Prec@5 94.922 (94.922)
+[2026-03-19 22:07:03] TEST:  Epoch: [14] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 22:07:04] Epoch: [14] image	Loss 1.9689 (1.9958)	Prec@1 28.906 (28.906)	Prec@5 94.141 (92.839)
+[2026-03-19 22:07:04] TEST:  Epoch: [14] image	Prec@1 20.000 (20.000)	Prec@5 92.571 (92.571)
+[2026-03-19 22:07:04] Epoch 14
+[2026-03-19 22:07:05] Epoch 14
+[2026-03-19 22:07:05] Epoch: [14] text	Loss 2.6918 (2.6918)	Prec@1 36.328 (36.328)	Prec@5 81.250 (81.250)
+[2026-03-19 22:07:05] TEST:  Epoch: [14] text	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.714)
+[2026-03-19 22:07:06] Epoch: [14] image	Loss 1.7986 (1.7951)	Prec@1 35.547 (38.542)	Prec@5 94.141 (95.312)
+[2026-03-19 22:07:06] TEST:  Epoch: [14] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:07:06] Epoch: [14] image	Loss 2.0867 (2.0867)	Prec@1 58.984 (58.984)	Prec@5 81.250 (81.250)
+[2026-03-19 22:07:06] TEST:  Epoch: [14] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 22:07:07] Epoch 14
+[2026-03-19 22:07:07] Epoch 14
+[2026-03-19 22:07:08] Epoch: [14] image	Loss 1.4614 (1.5260)	Prec@1 54.688 (54.818)	Prec@5 99.609 (99.089)
+[2026-03-19 22:07:08] TEST:  Epoch: [14] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:07:09] Epoch: [14] text	Loss 1.7280 (1.7621)	Prec@1 32.422 (30.990)	Prec@5 98.047 (96.484)
+[2026-03-19 22:07:09] TEST:  Epoch: [14] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 22:07:10] Epoch: [14] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:07:10] TEST:  Epoch: [14] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:07:12] TEST:  Epoch: [14] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:07:12] TEST:  Epoch: [14] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (95.770)
+[2026-03-19 22:07:13] TEST:  Epoch: [14] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:07:13] TEST:  Epoch: [14] image	Prec@1 20.000 (20.000)	Prec@5 92.571 (92.571)
+[2026-03-19 22:07:13] TEST:  Epoch: [14] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 22:07:13] TEST:  Epoch: [14] text	Prec@1 37.778 (41.196)	Prec@5 84.444 (85.714)
+[2026-03-19 22:07:13] TEST:  Epoch: [14] text	Prec@1 30.667 (32.931)	Prec@5 96.000 (96.375)
+[2026-03-19 22:07:14] TEST:  Epoch: [14] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:07:14] TEST:  Epoch: [14] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:07:14] TEST:  Epoch: [14] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:07:14] Evaluating test...
+[2026-03-19 22:07:34] [Eval] Report @step: 14.00 {
+    "test__rsum": 301.32890365448503,
+    "test__medr": 10.0,
+    "test__meanr": 12.20265780730897,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.4,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 29.900332225913623,
+    "test__i2t_recall_10": 77.07641196013289,
+    "test__i2t_rsum": 124.58471760797342,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 7.342192691029901,
+    "test__t2i_recall_1": 27.242524916943523,
+    "test__t2i_recall_5": 67.77408637873754,
+    "test__t2i_recall_10": 81.72757475083057,
+    "test__t2i_rsum": 176.74418604651163,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 4.8604651162790695,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 20.0, 70.0, 100.0, 17.60797342192691, 29.900332225913623, 77.07641196013289, 27.242524916943523, 67.77408637873754, 81.72757475083057"
+}
+[2026-03-19 22:07:34] Evaluating test...
+[2026-03-19 22:07:55] [Eval] Report @step: 14.00 {
+    "test__rsum": 358.6102719033233,
+    "test__medr": 9.0,
+    "test__meanr": 15.003021148036254,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 47.73413897280967,
+    "test__i2t_recall_10": 76.13293051359517,
+    "test__i2t_rsum": 144.10876132930514,
+    "test__i2t_medr": 7.0,
+    "test__i2t_meanr": 9.498489425981873,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 87.91540785498489,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 214.50151057401814,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.504531722054381,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 47.73413897280967, 76.13293051359517, 32.93051359516616, 87.91540785498489, 93.65558912386707"
+}
+[2026-03-19 22:07:55] Evaluating test...
+[2026-03-19 22:11:15] [Eval] Report @step: 14.00 {
+    "test__rsum": 368.3856502242153,
+    "test__medr": 6.0,
+    "test__meanr": 19.006726457399104,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 34.64125560538117,
+    "test__i2t_recall_5": 69.5067264573991,
+    "test__i2t_recall_10": 71.74887892376681,
+    "test__i2t_rsum": 175.8968609865471,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 14.149103139013453,
+    "test__t2i_recall_1": 18.946188340807176,
+    "test__t2i_recall_5": 83.6322869955157,
+    "test__t2i_recall_10": 89.91031390134529,
+    "test__t2i_rsum": 192.48878923766816,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.8576233183856505,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 34.64125560538117, 69.5067264573991, 71.74887892376681, 18.946188340807176, 83.6322869955157, 89.91031390134529"
+}
+[2026-03-19 22:11:15] Evaluating test...
+[2026-03-19 22:11:20] [Eval] Report @step: 14.00 {
+    "test__rsum": 328.0,
+    "test__medr": 8.0,
+    "test__meanr": 13.64,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.7,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 20.571428571428573,
+    "test__i2t_recall_5": 68.0,
+    "test__i2t_recall_10": 77.14285714285714,
+    "test__i2t_rsum": 165.71428571428572,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 8.36,
+    "test__t2i_recall_1": 13.714285714285714,
+    "test__t2i_recall_5": 53.714285714285715,
+    "test__t2i_recall_10": 94.85714285714286,
+    "test__t2i_rsum": 162.28571428571428,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.28,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 30.0, 60.0, 100.0, 20.571428571428573, 68.0, 77.14285714285714, 13.714285714285714, 53.714285714285715, 94.85714285714286"
+}
+[2026-03-19 22:11:20] Evaluating test...
+[2026-03-19 22:11:21] [Eval] Report @step: 14.00 {
+    "test__rsum": 354.8387096774194,
+    "test__medr": 3.0,
+    "test__meanr": 13.548387096774192,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.0,
+    "test__i2t_recall_1": 51.61290322580645,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 80.64516129032258,
+    "test__i2t_rsum": 201.61290322580646,
+    "test__i2t_medr": 1.0,
+    "test__i2t_meanr": 4.629032258064516,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.919354838709676,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 51.61290322580645, 69.35483870967742, 80.64516129032258, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 22:11:22] Round 15!
+[2026-03-19 22:11:22] Epoch: [15] image	Loss 2.5169 (2.5169)	Prec@1 32.422 (32.422)	Prec@5 96.094 (96.094)
+[2026-03-19 22:11:22] TEST:  Epoch: [15] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.073)
+[2026-03-19 22:11:22] Epoch 15
+[2026-03-19 22:11:23] Epoch 15
+[2026-03-19 22:11:23] Epoch: [15] image	Loss 1.8625 (1.7586)	Prec@1 37.500 (40.495)	Prec@5 93.750 (95.182)
+[2026-03-19 22:11:24] TEST:  Epoch: [15] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:11:24] Epoch: [15] image	Loss 1.9700 (1.9643)	Prec@1 27.734 (29.036)	Prec@5 92.188 (92.448)
+[2026-03-19 22:11:24] TEST:  Epoch: [15] image	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:11:25] Epoch 15
+[2026-03-19 22:11:25] Epoch 15
+[2026-03-19 22:11:26] Epoch: [15] text	Loss 2.5667 (2.5667)	Prec@1 39.453 (39.453)	Prec@5 82.422 (82.422)
+[2026-03-19 22:11:26] TEST:  Epoch: [15] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (86.711)
+[2026-03-19 22:11:26] Epoch: [15] text	Loss 2.7459 (2.7459)	Prec@1 27.344 (27.344)	Prec@5 89.453 (89.453)
+[2026-03-19 22:11:26] TEST:  Epoch: [15] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:11:27] Epoch: [15] image	Loss 1.9846 (1.9846)	Prec@1 59.766 (59.766)	Prec@5 81.250 (81.250)
+[2026-03-19 22:11:27] TEST:  Epoch: [15] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 22:11:27] Epoch: [15] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:11:27] TEST:  Epoch: [15] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:11:28] Epoch: [15] image	Loss 1.5165 (1.5328)	Prec@1 53.516 (53.646)	Prec@5 98.438 (98.828)
+[2026-03-19 22:11:28] TEST:  Epoch: [15] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:11:29] Epoch 15
+[2026-03-19 22:11:31] Epoch: [15] text	Loss 1.3412 (1.3045)	Prec@1 51.953 (53.676)	Prec@5 98.828 (99.127)
+[2026-03-19 22:11:31] TEST:  Epoch: [15] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:11:32] Epoch: [15] text	Loss 1.7363 (1.7616)	Prec@1 33.984 (30.729)	Prec@5 96.875 (96.094)
+[2026-03-19 22:11:32] TEST:  Epoch: [15] text	Prec@1 32.000 (33.535)	Prec@5 96.000 (96.375)
+[2026-03-19 22:11:35] TEST:  Epoch: [15] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:11:35] TEST:  Epoch: [15] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.073)
+[2026-03-19 22:11:35] TEST:  Epoch: [15] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:11:35] TEST:  Epoch: [15] image	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:11:36] TEST:  Epoch: [15] image	Prec@1 56.452 (56.452)	Prec@5 74.194 (74.194)
+[2026-03-19 22:11:36] TEST:  Epoch: [15] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (86.711)
+[2026-03-19 22:11:36] TEST:  Epoch: [15] text	Prec@1 32.000 (33.535)	Prec@5 96.000 (96.375)
+[2026-03-19 22:11:37] TEST:  Epoch: [15] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:11:37] TEST:  Epoch: [15] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:11:37] TEST:  Epoch: [15] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:11:37] Evaluating test...
+[2026-03-19 22:11:56] [Eval] Report @step: 15.00 {
+    "test__rsum": 327.2425249169435,
+    "test__medr": 8.0,
+    "test__meanr": 10.847176079734218,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.3,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.9,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 35.880398671096344,
+    "test__i2t_recall_10": 83.38870431893687,
+    "test__i2t_rsum": 136.87707641196013,
+    "test__i2t_medr": 6.0,
+    "test__i2t_meanr": 6.501661129568106,
+    "test__t2i_recall_1": 36.54485049833887,
+    "test__t2i_recall_5": 68.43853820598007,
+    "test__t2i_recall_10": 85.38205980066445,
+    "test__t2i_rsum": 190.3654485049834,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 4.3455149501661126,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 20.0, 80.0, 100.0, 17.60797342192691, 35.880398671096344, 83.38870431893687, 36.54485049833887, 68.43853820598007, 85.38205980066445"
+}
+[2026-03-19 22:11:56] Evaluating test...
+[2026-03-19 22:12:17] [Eval] Report @step: 15.00 {
+    "test__rsum": 361.02719033232626,
+    "test__medr": 10.0,
+    "test__meanr": 14.531722054380664,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.7,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 47.43202416918429,
+    "test__i2t_recall_10": 73.71601208459215,
+    "test__i2t_rsum": 141.38972809667672,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 9.293051359516616,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 93.05135951661632,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 219.63746223564954,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.238670694864048,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 47.43202416918429, 73.71601208459215, 32.93051359516616, 93.05135951661632, 93.65558912386707"
+}
+[2026-03-19 22:12:17] Evaluating test...
+[2026-03-19 22:15:40] [Eval] Report @step: 15.00 {
+    "test__rsum": 362.21973094170403,
+    "test__medr": 7.0,
+    "test__meanr": 19.00896860986547,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 27.80269058295964,
+    "test__i2t_recall_5": 70.06726457399103,
+    "test__i2t_recall_10": 71.8609865470852,
+    "test__i2t_rsum": 169.73094170403587,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 14.283632286995516,
+    "test__t2i_recall_1": 19.618834080717487,
+    "test__t2i_recall_5": 85.42600896860986,
+    "test__t2i_recall_10": 87.4439461883408,
+    "test__t2i_rsum": 192.48878923766816,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.725336322869955,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 27.80269058295964, 70.06726457399103, 71.8609865470852, 19.618834080717487, 85.42600896860986, 87.4439461883408"
+}
+[2026-03-19 22:15:40] Evaluating test...
+[2026-03-19 22:15:45] [Eval] Report @step: 15.00 {
+    "test__rsum": 311.42857142857144,
+    "test__medr": 9.0,
+    "test__meanr": 13.891428571428571,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.8,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 180.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 4.1,
+    "test__i2t_recall_1": 20.571428571428573,
+    "test__i2t_recall_5": 65.14285714285714,
+    "test__i2t_recall_10": 77.71428571428571,
+    "test__i2t_rsum": 163.42857142857142,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 8.32,
+    "test__t2i_recall_1": 13.714285714285714,
+    "test__t2i_recall_5": 52.0,
+    "test__t2i_recall_10": 82.28571428571429,
+    "test__t2i_rsum": 148.0,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.571428571428571,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 20.0, 60.0, 100.0, 20.571428571428573, 65.14285714285714, 77.71428571428571, 13.714285714285714, 52.0, 82.28571428571429"
+}
+[2026-03-19 22:15:45] Evaluating test...
+[2026-03-19 22:15:46] [Eval] Report @step: 15.00 {
+    "test__rsum": 350.00000000000006,
+    "test__medr": 4.0,
+    "test__meanr": 13.612903225806452,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.3,
+    "test__i2t_recall_1": 45.16129032258065,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 82.25806451612904,
+    "test__i2t_rsum": 196.77419354838713,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 4.661290322580645,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.951612903225806,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 45.16129032258065, 69.35483870967742, 82.25806451612904, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 22:15:47] Round 16!
+[2026-03-19 22:15:47] Epoch: [16] text	Loss 2.6747 (2.6747)	Prec@1 28.516 (28.516)	Prec@5 91.797 (91.797)
+[2026-03-19 22:15:47] TEST:  Epoch: [16] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:15:47] Epoch: [16] image	Loss 1.4905 (1.4984)	Prec@1 56.641 (54.557)	Prec@5 98.438 (99.089)
+[2026-03-19 22:15:48] TEST:  Epoch: [16] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:15:48] Epoch 16
+[2026-03-19 22:15:49] Epoch: [16] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:15:49] TEST:  Epoch: [16] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:15:49] Epoch 16
+[2026-03-19 22:15:51] Epoch: [16] text	Loss 1.3098 (1.3001)	Prec@1 54.297 (53.929)	Prec@5 98.438 (99.058)
+[2026-03-19 22:15:51] TEST:  Epoch: [16] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:15:52] Epoch: [16] image	Loss 1.9538 (1.9394)	Prec@1 28.516 (29.167)	Prec@5 91.797 (91.276)
+[2026-03-19 22:15:52] TEST:  Epoch: [16] image	Prec@1 20.000 (20.000)	Prec@5 88.571 (88.571)
+[2026-03-19 22:15:52] Epoch 16
+[2026-03-19 22:15:53] Epoch: [16] text	Loss 1.7435 (1.7272)	Prec@1 32.812 (33.464)	Prec@5 96.094 (96.354)
+[2026-03-19 22:15:53] TEST:  Epoch: [16] text	Prec@1 37.333 (35.650)	Prec@5 96.000 (96.375)
+[2026-03-19 22:15:54] Epoch 16
+[2026-03-19 22:15:54] Epoch: [16] image	Loss 2.4663 (2.4663)	Prec@1 29.297 (29.297)	Prec@5 95.312 (95.312)
+[2026-03-19 22:15:54] TEST:  Epoch: [16] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:15:55] Epoch: [16] image	Loss 1.8026 (1.7626)	Prec@1 37.500 (39.583)	Prec@5 94.141 (94.922)
+[2026-03-19 22:15:55] TEST:  Epoch: [16] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:15:55] Epoch: [16] text	Loss 2.4947 (2.4947)	Prec@1 37.891 (37.891)	Prec@5 85.156 (85.156)
+[2026-03-19 22:15:56] TEST:  Epoch: [16] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (89.701)
+[2026-03-19 22:15:56] Epoch: [16] image	Loss 1.8878 (1.8878)	Prec@1 60.156 (60.156)	Prec@5 82.812 (82.812)
+[2026-03-19 22:15:56] TEST:  Epoch: [16] image	Prec@1 56.452 (56.452)	Prec@5 75.806 (75.806)
+[2026-03-19 22:15:56] Epoch 16
+[2026-03-19 22:15:59] TEST:  Epoch: [16] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:15:59] TEST:  Epoch: [16] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:16:00] TEST:  Epoch: [16] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:16:00] TEST:  Epoch: [16] image	Prec@1 20.000 (20.000)	Prec@5 88.571 (88.571)
+[2026-03-19 22:16:00] TEST:  Epoch: [16] image	Prec@1 56.452 (56.452)	Prec@5 75.806 (75.806)
+[2026-03-19 22:16:00] TEST:  Epoch: [16] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (89.701)
+[2026-03-19 22:16:00] TEST:  Epoch: [16] text	Prec@1 37.333 (35.650)	Prec@5 96.000 (96.375)
+[2026-03-19 22:16:01] TEST:  Epoch: [16] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:16:01] TEST:  Epoch: [16] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:16:01] TEST:  Epoch: [16] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:16:01] Evaluating test...
+[2026-03-19 22:16:21] [Eval] Report @step: 16.00 {
+    "test__rsum": 307.641196013289,
+    "test__medr": 8.0,
+    "test__meanr": 11.461794019933555,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.3,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 41.86046511627907,
+    "test__i2t_recall_10": 81.3953488372093,
+    "test__i2t_rsum": 140.86378737541528,
+    "test__i2t_medr": 6.0,
+    "test__i2t_meanr": 6.382059800664452,
+    "test__t2i_recall_1": 22.259136212624586,
+    "test__t2i_recall_5": 67.44186046511628,
+    "test__t2i_recall_10": 77.07641196013289,
+    "test__t2i_rsum": 166.77740863787375,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.079734219269103,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 80.0, 100.0, 17.60797342192691, 41.86046511627907, 81.3953488372093, 22.259136212624586, 67.44186046511628, 77.07641196013289"
+}
+[2026-03-19 22:16:21] Evaluating test...
+[2026-03-19 22:16:42] [Eval] Report @step: 16.00 {
+    "test__rsum": 349.8489425981873,
+    "test__medr": 10.0,
+    "test__meanr": 15.151057401812688,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.6,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 2.9,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 47.12990936555891,
+    "test__i2t_recall_10": 62.53776435045317,
+    "test__i2t_rsum": 129.90936555891238,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 9.6012084592145,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 93.35347432024169,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 219.93957703927492,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.549848942598187,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 47.12990936555891, 62.53776435045317, 32.93051359516616, 93.35347432024169, 93.65558912386707"
+}
+[2026-03-19 22:16:42] Evaluating test...
+[2026-03-19 22:20:01] [Eval] Report @step: 16.00 {
+    "test__rsum": 364.3497757847534,
+    "test__medr": 7.0,
+    "test__meanr": 18.8609865470852,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 27.80269058295964,
+    "test__i2t_recall_5": 68.60986547085201,
+    "test__i2t_recall_10": 71.8609865470852,
+    "test__i2t_rsum": 168.27354260089686,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 14.218609865470851,
+    "test__t2i_recall_1": 19.955156950672645,
+    "test__t2i_recall_5": 85.08968609865471,
+    "test__t2i_recall_10": 91.03139013452915,
+    "test__t2i_rsum": 196.07623318385652,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.6423766816143495,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 27.80269058295964, 68.60986547085201, 71.8609865470852, 19.955156950672645, 85.08968609865471, 91.03139013452915"
+}
+[2026-03-19 22:20:01] Evaluating test...
+[2026-03-19 22:20:06] [Eval] Report @step: 16.00 {
+    "test__rsum": 321.14285714285717,
+    "test__medr": 9.0,
+    "test__meanr": 13.662857142857142,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 3.8,
+    "test__n_fold_t2i_recall_1": 40.0,
+    "test__n_fold_t2i_recall_5": 60.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 2.0,
+    "test__n_fold_t2i_meanr": 3.9,
+    "test__i2t_recall_1": 20.571428571428573,
+    "test__i2t_recall_5": 65.71428571428571,
+    "test__i2t_recall_10": 83.42857142857143,
+    "test__i2t_rsum": 169.71428571428572,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 7.788571428571428,
+    "test__t2i_recall_1": 15.428571428571429,
+    "test__t2i_recall_5": 59.42857142857143,
+    "test__t2i_recall_10": 76.57142857142857,
+    "test__t2i_rsum": 151.42857142857144,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.8742857142857146,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 40.0, 60.0, 100.0, 20.571428571428573, 65.71428571428571, 83.42857142857143, 15.428571428571429, 59.42857142857143, 76.57142857142857"
+}
+[2026-03-19 22:20:06] Evaluating test...
+[2026-03-19 22:20:07] [Eval] Report @step: 16.00 {
+    "test__rsum": 316.1290322580645,
+    "test__medr": 4.0,
+    "test__meanr": 13.758064516129032,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.3,
+    "test__i2t_recall_1": 17.741935483870968,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 77.41935483870968,
+    "test__i2t_rsum": 164.51612903225805,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 5.032258064516129,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 69.35483870967742,
+    "test__t2i_rsum": 151.61290322580646,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.725806451612904,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 17.741935483870968, 69.35483870967742, 77.41935483870968, 12.903225806451612, 69.35483870967742, 69.35483870967742"
+}
+[2026-03-19 22:20:08] Round 17!
+[2026-03-19 22:20:08] Epoch: [17] text	Loss 1.6884 (1.7194)	Prec@1 33.203 (32.031)	Prec@5 95.703 (96.224)
+[2026-03-19 22:20:08] TEST:  Epoch: [17] text	Prec@1 37.333 (35.650)	Prec@5 96.000 (96.375)
+[2026-03-19 22:20:09] Epoch 17
+[2026-03-19 22:20:10] Epoch: [17] text	Loss 1.3388 (1.2934)	Prec@1 48.828 (53.883)	Prec@5 99.609 (99.035)
+[2026-03-19 22:20:11] TEST:  Epoch: [17] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:20:11] Epoch 17
+[2026-03-19 22:20:12] Epoch: [17] image	Loss 1.7559 (1.7450)	Prec@1 37.109 (38.542)	Prec@5 95.312 (95.443)
+[2026-03-19 22:20:12] TEST:  Epoch: [17] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:20:13] Epoch: [17] image	Loss 2.4311 (2.4311)	Prec@1 27.734 (27.734)	Prec@5 94.141 (94.141)
+[2026-03-19 22:20:13] TEST:  Epoch: [17] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:20:13] Epoch 17
+[2026-03-19 22:20:14] Epoch 17
+[2026-03-19 22:20:14] Epoch: [17] text	Loss 2.3983 (2.3983)	Prec@1 39.453 (39.453)	Prec@5 87.500 (87.500)
+[2026-03-19 22:20:14] TEST:  Epoch: [17] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (91.030)
+[2026-03-19 22:20:15] Epoch: [17] image	Loss 1.5297 (1.4976)	Prec@1 53.906 (54.167)	Prec@5 98.438 (98.958)
+[2026-03-19 22:20:15] TEST:  Epoch: [17] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:20:16] Epoch: [17] text	Loss 2.6418 (2.6418)	Prec@1 27.734 (27.734)	Prec@5 89.453 (89.453)
+[2026-03-19 22:20:16] TEST:  Epoch: [17] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:20:16] Epoch: [17] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:20:16] TEST:  Epoch: [17] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:20:17] Epoch: [17] image	Loss 1.8760 (1.8760)	Prec@1 58.984 (58.984)	Prec@5 82.812 (82.812)
+[2026-03-19 22:20:17] TEST:  Epoch: [17] image	Prec@1 56.452 (56.452)	Prec@5 79.032 (79.032)
+[2026-03-19 22:20:17] Epoch 17
+[2026-03-19 22:20:18] Epoch: [17] image	Loss 1.9088 (1.9198)	Prec@1 27.344 (29.036)	Prec@5 92.188 (91.016)
+[2026-03-19 22:20:18] TEST:  Epoch: [17] image	Prec@1 20.000 (20.000)	Prec@5 88.571 (88.571)
+[2026-03-19 22:20:20] TEST:  Epoch: [17] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:20:21] TEST:  Epoch: [17] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:20:21] TEST:  Epoch: [17] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:20:21] TEST:  Epoch: [17] image	Prec@1 20.000 (20.000)	Prec@5 88.571 (88.571)
+[2026-03-19 22:20:21] TEST:  Epoch: [17] image	Prec@1 56.452 (56.452)	Prec@5 79.032 (79.032)
+[2026-03-19 22:20:22] TEST:  Epoch: [17] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (91.030)
+[2026-03-19 22:20:22] TEST:  Epoch: [17] text	Prec@1 37.333 (35.650)	Prec@5 96.000 (96.375)
+[2026-03-19 22:20:22] TEST:  Epoch: [17] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:20:22] TEST:  Epoch: [17] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:20:22] TEST:  Epoch: [17] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:20:22] Evaluating test...
+[2026-03-19 22:20:42] [Eval] Report @step: 17.00 {
+    "test__rsum": 316.27906976744185,
+    "test__medr": 9.0,
+    "test__meanr": 11.275747508305647,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.7,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 47.50830564784053,
+    "test__i2t_recall_10": 94.6843853820598,
+    "test__i2t_rsum": 159.80066445182723,
+    "test__i2t_medr": 6.0,
+    "test__i2t_meanr": 5.415282392026578,
+    "test__t2i_recall_1": 17.940199335548172,
+    "test__t2i_recall_5": 65.4485049833887,
+    "test__t2i_recall_10": 73.08970099667773,
+    "test__t2i_rsum": 156.47840531561462,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 5.8604651162790695,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 80.0, 100.0, 17.60797342192691, 47.50830564784053, 94.6843853820598, 17.940199335548172, 65.4485049833887, 73.08970099667773"
+}
+[2026-03-19 22:20:42] Evaluating test...
+[2026-03-19 22:21:03] [Eval] Report @step: 17.00 {
+    "test__rsum": 351.3595166163142,
+    "test__medr": 10.0,
+    "test__meanr": 15.220543806646525,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.6,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 47.12990936555891,
+    "test__i2t_recall_10": 67.97583081570997,
+    "test__i2t_rsum": 135.34743202416917,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 9.283987915407854,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 89.42598187311178,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 216.01208459214502,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.936555891238671,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 47.12990936555891, 67.97583081570997, 32.93051359516616, 89.42598187311178, 93.65558912386707"
+}
+[2026-03-19 22:21:03] Evaluating test...
+[2026-03-19 22:24:27] [Eval] Report @step: 17.00 {
+    "test__rsum": 354.4843049327354,
+    "test__medr": 6.0,
+    "test__meanr": 19.08744394618834,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 18.83408071748879,
+    "test__i2t_recall_5": 68.83408071748879,
+    "test__i2t_recall_10": 71.52466367713005,
+    "test__i2t_rsum": 159.19282511210764,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 14.64237668161435,
+    "test__t2i_recall_1": 20.85201793721973,
+    "test__t2i_recall_5": 85.65022421524664,
+    "test__t2i_recall_10": 88.78923766816143,
+    "test__t2i_rsum": 195.29147982062779,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 4.445067264573991,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 18.83408071748879, 68.83408071748879, 71.52466367713005, 20.85201793721973, 85.65022421524664, 88.78923766816143"
+}
+[2026-03-19 22:24:27] Evaluating test...
+[2026-03-19 22:24:32] [Eval] Report @step: 17.00 {
+    "test__rsum": 333.71428571428567,
+    "test__medr": 9.0,
+    "test__meanr": 13.234285714285715,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 4.0,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.3,
+    "test__i2t_recall_1": 21.714285714285715,
+    "test__i2t_recall_5": 61.714285714285715,
+    "test__i2t_recall_10": 85.14285714285714,
+    "test__i2t_rsum": 168.57142857142856,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 7.674285714285714,
+    "test__t2i_recall_1": 10.857142857142858,
+    "test__t2i_recall_5": 64.57142857142857,
+    "test__t2i_recall_10": 89.71428571428571,
+    "test__t2i_rsum": 165.14285714285714,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.56,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 20.0, 70.0, 100.0, 21.714285714285715, 61.714285714285715, 85.14285714285714, 10.857142857142858, 64.57142857142857, 89.71428571428571"
+}
+[2026-03-19 22:24:32] Evaluating test...
+[2026-03-19 22:24:33] [Eval] Report @step: 17.00 {
+    "test__rsum": 311.2903225806452,
+    "test__medr": 4.0,
+    "test__meanr": 13.822580645161292,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.1,
+    "test__i2t_recall_1": 14.516129032258064,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 75.80645161290323,
+    "test__i2t_rsum": 159.67741935483872,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 5.225806451612903,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 69.35483870967742,
+    "test__t2i_rsum": 151.61290322580646,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.596774193548388,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 14.516129032258064, 69.35483870967742, 75.80645161290323, 12.903225806451612, 69.35483870967742, 69.35483870967742"
+}
+[2026-03-19 22:24:34] Round 18!
+[2026-03-19 22:24:34] Epoch: [18] image	Loss 1.4289 (1.4681)	Prec@1 56.250 (55.729)	Prec@5 99.219 (99.219)
+[2026-03-19 22:24:35] TEST:  Epoch: [18] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:24:35] Epoch: [18] text	Loss 1.7374 (1.7172)	Prec@1 36.328 (32.943)	Prec@5 94.922 (96.094)
+[2026-03-19 22:24:35] TEST:  Epoch: [18] text	Prec@1 37.333 (36.254)	Prec@5 96.000 (96.375)
+[2026-03-19 22:24:36] Epoch 18
+[2026-03-19 22:24:36] Epoch: [18] image	Loss 1.8229 (1.8229)	Prec@1 58.594 (58.594)	Prec@5 87.500 (87.500)
+[2026-03-19 22:24:36] TEST:  Epoch: [18] image	Prec@1 56.452 (56.452)	Prec@5 79.032 (79.032)
+[2026-03-19 22:24:38] Epoch: [18] text	Loss 1.2979 (1.2952)	Prec@1 55.469 (53.768)	Prec@5 99.219 (99.035)
+[2026-03-19 22:24:39] TEST:  Epoch: [18] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:24:39] Epoch: [18] image	Loss 1.9044 (1.8945)	Prec@1 30.469 (29.427)	Prec@5 92.969 (90.885)
+[2026-03-19 22:24:39] TEST:  Epoch: [18] image	Prec@1 20.000 (20.000)	Prec@5 88.000 (88.000)
+[2026-03-19 22:24:40] Epoch: [18] image	Loss 2.3456 (2.3456)	Prec@1 31.250 (31.250)	Prec@5 94.531 (94.531)
+[2026-03-19 22:24:40] TEST:  Epoch: [18] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:24:40] Epoch 18
+[2026-03-19 22:24:41] Epoch 18
+[2026-03-19 22:24:41] Epoch 18
+[2026-03-19 22:24:42] Epoch: [18] image	Loss 1.7044 (1.7134)	Prec@1 40.625 (39.062)	Prec@5 94.141 (95.312)
+[2026-03-19 22:24:42] TEST:  Epoch: [18] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:24:42] Epoch: [18] text	Loss 2.3521 (2.3521)	Prec@1 36.719 (36.719)	Prec@5 91.406 (91.406)
+[2026-03-19 22:24:43] TEST:  Epoch: [18] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (91.694)
+[2026-03-19 22:24:43] Epoch 18
+[2026-03-19 22:24:43] Epoch: [18] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:24:43] TEST:  Epoch: [18] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:24:44] Epoch: [18] text	Loss 2.5812 (2.5812)	Prec@1 28.906 (28.906)	Prec@5 90.625 (90.625)
+[2026-03-19 22:24:44] TEST:  Epoch: [18] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:24:47] TEST:  Epoch: [18] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:24:47] TEST:  Epoch: [18] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:24:47] TEST:  Epoch: [18] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:24:48] TEST:  Epoch: [18] image	Prec@1 20.000 (20.000)	Prec@5 88.000 (88.000)
+[2026-03-19 22:24:48] TEST:  Epoch: [18] image	Prec@1 56.452 (56.452)	Prec@5 79.032 (79.032)
+[2026-03-19 22:24:48] TEST:  Epoch: [18] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (91.694)
+[2026-03-19 22:24:48] TEST:  Epoch: [18] text	Prec@1 37.333 (36.254)	Prec@5 96.000 (96.375)
+[2026-03-19 22:24:49] TEST:  Epoch: [18] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:24:49] TEST:  Epoch: [18] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:24:49] TEST:  Epoch: [18] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:24:49] Evaluating test...
+[2026-03-19 22:25:09] [Eval] Report @step: 18.00 {
+    "test__rsum": 317.6079734219269,
+    "test__medr": 9.0,
+    "test__meanr": 11.372093023255815,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 10.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 190.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.7,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 50.16611295681063,
+    "test__i2t_recall_10": 97.00996677740864,
+    "test__i2t_rsum": 164.78405315614617,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 5.142857142857143,
+    "test__t2i_recall_1": 16.943521594684384,
+    "test__t2i_recall_5": 65.11627906976744,
+    "test__t2i_recall_10": 70.7641196013289,
+    "test__t2i_rsum": 152.8239202657807,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 6.229235880398671,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 10.0, 80.0, 100.0, 17.60797342192691, 50.16611295681063, 97.00996677740864, 16.943521594684384, 65.11627906976744, 70.7641196013289"
+}
+[2026-03-19 22:25:09] Evaluating test...
+[2026-03-19 22:25:29] [Eval] Report @step: 18.00 {
+    "test__rsum": 342.9003021148036,
+    "test__medr": 10.0,
+    "test__meanr": 15.374622356495468,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.4,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 47.12990936555891,
+    "test__i2t_recall_10": 61.631419939577036,
+    "test__i2t_rsum": 129.00302114803625,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 9.592145015105741,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 87.31117824773413,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 213.89728096676737,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.782477341389728,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 47.12990936555891, 61.631419939577036, 32.93051359516616, 87.31117824773413, 93.65558912386707"
+}
+[2026-03-19 22:25:29] Evaluating test...
+[2026-03-19 22:28:50] [Eval] Report @step: 18.00 {
+    "test__rsum": 352.9147982062781,
+    "test__medr": 7.0,
+    "test__meanr": 19.862107623318387,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 17.937219730941703,
+    "test__i2t_recall_5": 69.28251121076234,
+    "test__i2t_recall_10": 71.52466367713005,
+    "test__i2t_rsum": 158.7443946188341,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 15.27578475336323,
+    "test__t2i_recall_1": 20.067264573991032,
+    "test__t2i_recall_5": 85.65022421524664,
+    "test__t2i_recall_10": 88.45291479820628,
+    "test__t2i_rsum": 194.17040358744396,
+    "test__t2i_medr": 4.0,
+    "test__t2i_meanr": 4.586322869955157,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 17.937219730941703, 69.28251121076234, 71.52466367713005, 20.067264573991032, 85.65022421524664, 88.45291479820628"
+}
+[2026-03-19 22:28:50] Evaluating test...
+[2026-03-19 22:28:55] [Eval] Report @step: 18.00 {
+    "test__rsum": 336.0,
+    "test__medr": 10.0,
+    "test__meanr": 12.737142857142857,
+    "test__n_fold_i2t_recall_1": 20.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 190.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 4.1,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 70.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 4.0,
+    "test__i2t_recall_1": 20.571428571428573,
+    "test__i2t_recall_5": 62.285714285714285,
+    "test__i2t_recall_10": 85.14285714285714,
+    "test__i2t_rsum": 168.0,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 7.405714285714286,
+    "test__t2i_recall_1": 11.428571428571429,
+    "test__t2i_recall_5": 65.14285714285714,
+    "test__t2i_recall_10": 91.42857142857143,
+    "test__t2i_rsum": 168.0,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.331428571428572,
+    "lr": 0.0002,
+    "summary": "20.0, 70.0, 100.0, 30.0, 70.0, 100.0, 20.571428571428573, 62.285714285714285, 85.14285714285714, 11.428571428571429, 65.14285714285714, 91.42857142857143"
+}
+[2026-03-19 22:28:55] Evaluating test...
+[2026-03-19 22:28:56] [Eval] Report @step: 18.00 {
+    "test__rsum": 311.2903225806452,
+    "test__medr": 4.0,
+    "test__meanr": 13.983870967741936,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.1,
+    "test__i2t_recall_1": 12.903225806451612,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 75.80645161290323,
+    "test__i2t_rsum": 158.06451612903226,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 5.274193548387097,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 8.70967741935484,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 12.903225806451612, 69.35483870967742, 75.80645161290323, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 22:28:56] Round 19!
+[2026-03-19 22:28:56] Epoch 19
+[2026-03-19 22:28:57] Epoch 19
+[2026-03-19 22:28:57] Epoch: [19] image	Loss 1.9195 (1.8817)	Prec@1 26.562 (29.036)	Prec@5 90.234 (91.146)
+[2026-03-19 22:28:57] TEST:  Epoch: [19] image	Prec@1 20.000 (20.000)	Prec@5 88.000 (88.000)
+[2026-03-19 22:28:58] Epoch: [19] image	Loss 1.4369 (1.4562)	Prec@1 54.688 (54.167)	Prec@5 98.438 (98.958)
+[2026-03-19 22:28:59] TEST:  Epoch: [19] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:28:59] Epoch: [19] text	Loss 1.7051 (1.6964)	Prec@1 30.078 (32.552)	Prec@5 96.484 (96.224)
+[2026-03-19 22:28:59] TEST:  Epoch: [19] text	Prec@1 34.667 (34.743)	Prec@5 96.000 (96.375)
+[2026-03-19 22:29:01] Epoch: [19] text	Loss 1.3236 (1.2875)	Prec@1 52.344 (53.585)	Prec@5 98.438 (99.104)
+[2026-03-19 22:29:02] TEST:  Epoch: [19] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:29:02] Epoch: [19] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:29:02] TEST:  Epoch: [19] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:29:03] Epoch 19
+[2026-03-19 22:29:03] Epoch 19
+[2026-03-19 22:29:03] Epoch: [19] text	Loss 2.5458 (2.5458)	Prec@1 27.344 (27.344)	Prec@5 87.891 (87.891)
+[2026-03-19 22:29:03] TEST:  Epoch: [19] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:29:04] Epoch: [19] image	Loss 1.6463 (1.6923)	Prec@1 39.844 (38.542)	Prec@5 95.312 (95.182)
+[2026-03-19 22:29:04] TEST:  Epoch: [19] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:29:05] Epoch: [19] image	Loss 2.2993 (2.2993)	Prec@1 31.641 (31.641)	Prec@5 94.531 (94.531)
+[2026-03-19 22:29:05] TEST:  Epoch: [19] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:29:05] Epoch: [19] text	Loss 2.2697 (2.2697)	Prec@1 39.453 (39.453)	Prec@5 90.234 (90.234)
+[2026-03-19 22:29:05] TEST:  Epoch: [19] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (92.027)
+[2026-03-19 22:29:06] Epoch: [19] image	Loss 1.7684 (1.7684)	Prec@1 59.766 (59.766)	Prec@5 90.234 (90.234)
+[2026-03-19 22:29:06] TEST:  Epoch: [19] image	Prec@1 56.452 (56.452)	Prec@5 85.484 (85.484)
+[2026-03-19 22:29:06] Epoch 19
+[2026-03-19 22:29:09] TEST:  Epoch: [19] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:29:09] TEST:  Epoch: [19] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:29:10] TEST:  Epoch: [19] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:29:10] TEST:  Epoch: [19] image	Prec@1 20.000 (20.000)	Prec@5 88.000 (88.000)
+[2026-03-19 22:29:10] TEST:  Epoch: [19] image	Prec@1 56.452 (56.452)	Prec@5 85.484 (85.484)
+[2026-03-19 22:29:10] TEST:  Epoch: [19] text	Prec@1 37.778 (41.196)	Prec@5 86.667 (92.027)
+[2026-03-19 22:29:10] TEST:  Epoch: [19] text	Prec@1 34.667 (34.743)	Prec@5 96.000 (96.375)
+[2026-03-19 22:29:11] TEST:  Epoch: [19] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:29:11] TEST:  Epoch: [19] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:29:11] TEST:  Epoch: [19] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:29:11] Evaluating test...
+[2026-03-19 22:29:31] [Eval] Report @step: 19.00 {
+    "test__rsum": 335.8803986710964,
+    "test__medr": 7.0,
+    "test__meanr": 10.644518272425248,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 90.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.9,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.6,
+    "test__i2t_recall_1": 18.6046511627907,
+    "test__i2t_recall_5": 61.794019933554814,
+    "test__i2t_recall_10": 95.01661129568106,
+    "test__i2t_rsum": 175.41528239202657,
+    "test__i2t_medr": 4.0,
+    "test__i2t_meanr": 5.0,
+    "test__t2i_recall_1": 16.943521594684384,
+    "test__t2i_recall_5": 66.44518272425249,
+    "test__t2i_recall_10": 77.07641196013289,
+    "test__t2i_rsum": 160.46511627906978,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 5.644518272425249,
+    "lr": 0.0002,
+    "summary": "40.0, 90.0, 100.0, 20.0, 80.0, 100.0, 18.6046511627907, 61.794019933554814, 95.01661129568106, 16.943521594684384, 66.44518272425249, 77.07641196013289"
+}
+[2026-03-19 22:29:31] Evaluating test...
+[2026-03-19 22:29:51] [Eval] Report @step: 19.00 {
+    "test__rsum": 336.5558912386707,
+    "test__medr": 11.0,
+    "test__meanr": 15.716012084592144,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.6,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 20.241691842900302,
+    "test__i2t_recall_5": 47.12990936555891,
+    "test__i2t_recall_10": 55.58912386706949,
+    "test__i2t_rsum": 122.9607250755287,
+    "test__i2t_medr": 9.0,
+    "test__i2t_meanr": 10.386706948640484,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 87.00906344410876,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 213.59516616314198,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.329305135951661,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 20.241691842900302, 47.12990936555891, 55.58912386706949, 32.93051359516616, 87.00906344410876, 93.65558912386707"
+}
+[2026-03-19 22:29:51] Evaluating test...
+[2026-03-19 22:33:16] [Eval] Report @step: 19.00 {
+    "test__rsum": 383.29596412556054,
+    "test__medr": 5.0,
+    "test__meanr": 19.44730941704036,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 80.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 280.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.2,
+    "test__i2t_recall_1": 41.81614349775785,
+    "test__i2t_recall_5": 71.18834080717488,
+    "test__i2t_recall_10": 71.74887892376681,
+    "test__i2t_rsum": 184.75336322869953,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 15.39237668161435,
+    "test__t2i_recall_1": 23.430493273542602,
+    "test__t2i_recall_5": 85.65022421524664,
+    "test__t2i_recall_10": 89.46188340807174,
+    "test__t2i_rsum": 198.542600896861,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 4.054932735426009,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 80.0, 100.0, 100.0, 41.81614349775785, 71.18834080717488, 71.74887892376681, 23.430493273542602, 85.65022421524664, 89.46188340807174"
+}
+[2026-03-19 22:33:16] Evaluating test...
+[2026-03-19 22:33:20] [Eval] Report @step: 19.00 {
+    "test__rsum": 336.57142857142856,
+    "test__medr": 10.0,
+    "test__meanr": 11.84,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 180.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 4.3,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 210.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.7,
+    "test__i2t_recall_1": 22.285714285714285,
+    "test__i2t_recall_5": 58.285714285714285,
+    "test__i2t_recall_10": 87.42857142857143,
+    "test__i2t_rsum": 168.0,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 6.68,
+    "test__t2i_recall_1": 13.142857142857142,
+    "test__t2i_recall_5": 64.0,
+    "test__t2i_recall_10": 91.42857142857143,
+    "test__t2i_rsum": 168.57142857142856,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.16,
+    "lr": 0.0002,
+    "summary": "10.0, 70.0, 100.0, 30.0, 80.0, 100.0, 22.285714285714285, 58.285714285714285, 87.42857142857143, 13.142857142857142, 64.0, 91.42857142857143"
+}
+[2026-03-19 22:33:20] Evaluating test...
+[2026-03-19 22:33:21] [Eval] Report @step: 19.00 {
+    "test__rsum": 309.6774193548387,
+    "test__medr": 4.0,
+    "test__meanr": 14.64516129032258,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.1,
+    "test__i2t_recall_1": 12.903225806451612,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 74.19354838709677,
+    "test__i2t_rsum": 156.4516129032258,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 5.516129032258065,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 9.129032258064516,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 12.903225806451612, 69.35483870967742, 74.19354838709677, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}
+[2026-03-19 22:33:22] Round 20!
+[2026-03-19 22:33:22] Epoch: [20] image	Loss 1.7367 (1.7367)	Prec@1 60.156 (60.156)	Prec@5 94.922 (94.922)
+[2026-03-19 22:33:22] TEST:  Epoch: [20] image	Prec@1 56.452 (56.452)	Prec@5 93.548 (93.548)
+[2026-03-19 22:33:22] Epoch 20
+[2026-03-19 22:33:23] Epoch 20
+[2026-03-19 22:33:24] Epoch: [20] text	Loss 1.2806 (1.2818)	Prec@1 53.516 (53.791)	Prec@5 98.828 (99.081)
+[2026-03-19 22:33:25] TEST:  Epoch: [20] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:33:25] Epoch 20
+[2026-03-19 22:33:26] Epoch: [20] text	Loss 1.6599 (1.7048)	Prec@1 29.297 (31.641)	Prec@5 97.266 (96.224)
+[2026-03-19 22:33:26] TEST:  Epoch: [20] text	Prec@1 33.333 (34.441)	Prec@5 96.000 (96.375)
+[2026-03-19 22:33:27] Epoch: [20] text	Loss 2.4801 (2.4801)	Prec@1 29.297 (29.297)	Prec@5 90.234 (90.234)
+[2026-03-19 22:33:27] TEST:  Epoch: [20] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:33:27] Epoch 20
+[2026-03-19 22:33:27] Epoch: [20] image	Loss 2.2796 (2.2796)	Prec@1 26.172 (26.172)	Prec@5 94.922 (94.922)
+[2026-03-19 22:33:28] TEST:  Epoch: [20] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:33:28] Epoch: [20] text	Loss 0.0000 (0.0000)	Prec@1 0.000 (0.000)	Prec@5 0.000 (0.000)
+[2026-03-19 22:33:28] TEST:  Epoch: [20] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:33:29] Epoch: [20] image	Loss 1.5019 (1.4552)	Prec@1 53.125 (55.078)	Prec@5 99.609 (98.958)
+[2026-03-19 22:33:29] TEST:  Epoch: [20] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:33:30] Epoch: [20] text	Loss 2.1700 (2.1700)	Prec@1 40.234 (40.234)	Prec@5 93.359 (93.359)
+[2026-03-19 22:33:30] TEST:  Epoch: [20] text	Prec@1 37.778 (41.196)	Prec@5 88.889 (93.023)
+[2026-03-19 22:33:30] Epoch: [20] image	Loss 1.7482 (1.6894)	Prec@1 30.469 (38.542)	Prec@5 95.312 (95.443)
+[2026-03-19 22:33:31] TEST:  Epoch: [20] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:33:31] Epoch 20
+[2026-03-19 22:33:32] Epoch: [20] image	Loss 1.8680 (1.8646)	Prec@1 27.344 (29.427)	Prec@5 90.234 (91.016)
+[2026-03-19 22:33:32] TEST:  Epoch: [20] image	Prec@1 20.000 (20.000)	Prec@5 88.571 (88.571)
+[2026-03-19 22:33:34] TEST:  Epoch: [20] image	Prec@1 37.778 (41.196)	Prec@5 95.556 (96.013)
+[2026-03-19 22:33:35] TEST:  Epoch: [20] image	Prec@1 30.667 (26.888)	Prec@5 96.000 (96.375)
+[2026-03-19 22:33:35] TEST:  Epoch: [20] image	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:33:35] TEST:  Epoch: [20] image	Prec@1 20.000 (20.000)	Prec@5 88.571 (88.571)
+[2026-03-19 22:33:35] TEST:  Epoch: [20] image	Prec@1 56.452 (56.452)	Prec@5 93.548 (93.548)
+[2026-03-19 22:33:35] TEST:  Epoch: [20] text	Prec@1 37.778 (41.196)	Prec@5 88.889 (93.023)
+[2026-03-19 22:33:36] TEST:  Epoch: [20] text	Prec@1 33.333 (34.441)	Prec@5 96.000 (96.375)
+[2026-03-19 22:33:36] TEST:  Epoch: [20] text	Prec@1 60.484 (53.251)	Prec@5 98.387 (98.767)
+[2026-03-19 22:33:36] TEST:  Epoch: [20] text	Prec@1 20.000 (20.000)	Prec@5 89.714 (89.714)
+[2026-03-19 22:33:36] TEST:  Epoch: [20] text	Prec@1 0.000 (0.000)	Prec@5 8.065 (8.065)
+[2026-03-19 22:33:36] Evaluating test...
+[2026-03-19 22:33:56] [Eval] Report @step: 20.00 {
+    "test__rsum": 344.85049833887047,
+    "test__medr": 8.0,
+    "test__meanr": 10.006644518272424,
+    "test__n_fold_i2t_recall_1": 40.0,
+    "test__n_fold_i2t_recall_5": 80.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 220.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 3.1,
+    "test__n_fold_t2i_recall_1": 20.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 200.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.3,
+    "test__i2t_recall_1": 17.60797342192691,
+    "test__i2t_recall_5": 63.12292358803987,
+    "test__i2t_recall_10": 95.68106312292359,
+    "test__i2t_rsum": 176.41196013289039,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 4.750830564784053,
+    "test__t2i_recall_1": 23.25581395348837,
+    "test__t2i_recall_5": 66.77740863787375,
+    "test__t2i_recall_10": 78.40531561461793,
+    "test__t2i_rsum": 168.43853820598005,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 5.255813953488372,
+    "lr": 0.0002,
+    "summary": "40.0, 80.0, 100.0, 20.0, 80.0, 100.0, 17.60797342192691, 63.12292358803987, 95.68106312292359, 23.25581395348837, 66.77740863787375, 78.40531561461793"
+}
+[2026-03-19 22:33:56] Evaluating test...
+[2026-03-19 22:34:17] [Eval] Report @step: 20.00 {
+    "test__rsum": 348.33836858006043,
+    "test__medr": 10.0,
+    "test__meanr": 14.283987915407856,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 210.0,
+    "test__n_fold_i2t_medr": 2.0,
+    "test__n_fold_i2t_meanr": 2.4,
+    "test__n_fold_t2i_recall_1": 50.0,
+    "test__n_fold_t2i_recall_5": 90.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 19.637462235649547,
+    "test__i2t_recall_5": 47.12990936555891,
+    "test__i2t_recall_10": 67.6737160120846,
+    "test__i2t_rsum": 134.44108761329306,
+    "test__i2t_medr": 8.0,
+    "test__i2t_meanr": 9.132930513595166,
+    "test__t2i_recall_1": 32.93051359516616,
+    "test__t2i_recall_5": 87.31117824773413,
+    "test__t2i_recall_10": 93.65558912386707,
+    "test__t2i_rsum": 213.89728096676737,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 5.151057401812689,
+    "lr": 0.0002,
+    "summary": "10.0, 100.0, 100.0, 50.0, 90.0, 100.0, 19.637462235649547, 47.12990936555891, 67.6737160120846, 32.93051359516616, 87.31117824773413, 93.65558912386707"
+}
+[2026-03-19 22:34:17] Evaluating test...
+[2026-03-19 22:37:40] [Eval] Report @step: 20.00 {
+    "test__rsum": 373.31838565022423,
+    "test__medr": 6.0,
+    "test__meanr": 15.169282511210762,
+    "test__n_fold_i2t_recall_1": 80.0,
+    "test__n_fold_i2t_recall_5": 100.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 280.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 1.4,
+    "test__n_fold_t2i_recall_1": 70.0,
+    "test__n_fold_t2i_recall_5": 100.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 270.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 1.3,
+    "test__i2t_recall_1": 31.053811659192824,
+    "test__i2t_recall_5": 70.2914798206278,
+    "test__i2t_recall_10": 71.74887892376681,
+    "test__i2t_rsum": 173.09417040358744,
+    "test__i2t_medr": 3.0,
+    "test__i2t_meanr": 11.532511210762332,
+    "test__t2i_recall_1": 22.533632286995516,
+    "test__t2i_recall_5": 85.65022421524664,
+    "test__t2i_recall_10": 92.04035874439462,
+    "test__t2i_rsum": 200.2242152466368,
+    "test__t2i_medr": 3.0,
+    "test__t2i_meanr": 3.6367713004484306,
+    "lr": 0.0002,
+    "summary": "80.0, 100.0, 100.0, 70.0, 100.0, 100.0, 31.053811659192824, 70.2914798206278, 71.74887892376681, 22.533632286995516, 85.65022421524664, 92.04035874439462"
+}
+[2026-03-19 22:37:40] Evaluating test...
+[2026-03-19 22:37:45] [Eval] Report @step: 20.00 {
+    "test__rsum": 312.57142857142856,
+    "test__medr": 10.0,
+    "test__meanr": 12.69142857142857,
+    "test__n_fold_i2t_recall_1": 10.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 180.0,
+    "test__n_fold_i2t_medr": 3.0,
+    "test__n_fold_i2t_meanr": 4.2,
+    "test__n_fold_t2i_recall_1": 30.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 210.0,
+    "test__n_fold_t2i_medr": 3.0,
+    "test__n_fold_t2i_meanr": 3.9,
+    "test__i2t_recall_1": 20.571428571428573,
+    "test__i2t_recall_5": 60.0,
+    "test__i2t_recall_10": 80.57142857142857,
+    "test__i2t_rsum": 161.14285714285714,
+    "test__i2t_medr": 5.0,
+    "test__i2t_meanr": 6.742857142857143,
+    "test__t2i_recall_1": 9.142857142857142,
+    "test__t2i_recall_5": 63.42857142857143,
+    "test__t2i_recall_10": 78.85714285714286,
+    "test__t2i_rsum": 151.42857142857144,
+    "test__t2i_medr": 5.0,
+    "test__t2i_meanr": 5.948571428571428,
+    "lr": 0.0002,
+    "summary": "10.0, 70.0, 100.0, 30.0, 80.0, 100.0, 20.571428571428573, 60.0, 80.57142857142857, 9.142857142857142, 63.42857142857143, 78.85714285714286"
+}
+[2026-03-19 22:37:45] Evaluating test...
+[2026-03-19 22:37:46] [Eval] Report @step: 20.00 {
+    "test__rsum": 316.1290322580645,
+    "test__medr": 4.0,
+    "test__meanr": 14.951612903225808,
+    "test__n_fold_i2t_recall_1": 60.0,
+    "test__n_fold_i2t_recall_5": 70.0,
+    "test__n_fold_i2t_recall_10": 100.0,
+    "test__n_fold_i2t_rsum": 230.0,
+    "test__n_fold_i2t_medr": 1.0,
+    "test__n_fold_i2t_meanr": 3.0,
+    "test__n_fold_t2i_recall_1": 60.0,
+    "test__n_fold_t2i_recall_5": 80.0,
+    "test__n_fold_t2i_recall_10": 100.0,
+    "test__n_fold_t2i_rsum": 240.0,
+    "test__n_fold_t2i_medr": 1.0,
+    "test__n_fold_t2i_meanr": 3.2,
+    "test__i2t_recall_1": 14.516129032258064,
+    "test__i2t_recall_5": 69.35483870967742,
+    "test__i2t_recall_10": 79.03225806451613,
+    "test__i2t_rsum": 162.90322580645162,
+    "test__i2t_medr": 2.0,
+    "test__i2t_meanr": 5.403225806451613,
+    "test__t2i_recall_1": 12.903225806451612,
+    "test__t2i_recall_5": 69.35483870967742,
+    "test__t2i_recall_10": 70.96774193548387,
+    "test__t2i_rsum": 153.22580645161293,
+    "test__t2i_medr": 2.0,
+    "test__t2i_meanr": 9.548387096774194,
+    "lr": 0.0002,
+    "summary": "60.0, 70.0, 100.0, 60.0, 80.0, 100.0, 14.516129032258064, 69.35483870967742, 79.03225806451613, 12.903225806451612, 69.35483870967742, 70.96774193548387"
+}

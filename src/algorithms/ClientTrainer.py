@@ -254,6 +254,9 @@ class ClientTrainer:
         gc.collect()
     def run(self):
         self.model.to(self.gpuid)
+        if getattr(self.args, 'FL_algorithm', '') == 'MASA':
+            self._ensure_masa_modules()
+            self._move_masa_modules(self.gpuid)
         self.old_model = copy.deepcopy(self.model)
         self.old_model.eval()
         self.old_model.cuda()
@@ -262,7 +265,10 @@ class ClientTrainer:
 
         for i in range(self.local_epochs):
             self.local_epoch += 1
-            self.tra()
+            if getattr(self.args, 'FL_algorithm', '') == 'MASA':
+                self.train_masa_epoch()
+            else:
+                self.tra()
 
         self.test()
 
@@ -271,13 +277,166 @@ class ClientTrainer:
 
         self.model.cpu()
         self.old_model.cpu()
+        if getattr(self.args, 'FL_algorithm', '') == 'MASA':
+            self._move_masa_modules('cpu')
 
         del self.old_model
         import gc
         gc.collect()
-        
+
     def set_global_anchor(self, anchor):
         self.global_anchor = anchor
+
+    def _ensure_masa_modules(self):
+        if getattr(self, '_masa_modules_ready', False):
+            return
+        feature_dim = self.args.feature_dim
+        self.masa_decoder = nn.Sequential(nn.Linear(feature_dim, feature_dim), nn.ReLU(inplace=True), nn.Linear(feature_dim, feature_dim))
+        self.optimizer.add_param_group({'params': self.masa_decoder.parameters()})
+        self._masa_modules_ready = True
+
+    def _move_masa_modules(self, device):
+        masa_decoder = self.__dict__.get('masa_decoder', None)
+        if masa_decoder is not None:
+            masa_decoder.to(device)
+
+    def _masa_prepare_batch(self, data):
+        if self.dset_name == 'image':
+            inputs_bt = data['processed_img']
+            labels_bt = data['class_id']
+            if isinstance(labels_bt, list):
+                labels_bt = torch.tensor(labels_bt, dtype=torch.long)
+            inputs_var = torch.autograd.Variable(inputs_bt).to(self.gpuid)
+            labels_var = torch.autograd.Variable(labels_bt).to(self.gpuid)
+        else:
+            inputs_bt = data['cap_tokens']
+            labels_bt = data['class_id']
+            if isinstance(labels_bt, list):
+                labels_bt = torch.tensor(labels_bt, dtype=torch.long)
+            inputs_bt, labels_bt = map(lambda t: torch.cat(t) if type(t) != torch.Tensor else t, (inputs_bt, labels_bt))
+            inputs_var, labels_var = map(lambda t: t.to(self.gpuid).contiguous(), (inputs_bt, labels_bt))
+        if is_embedding_model(self.args.model):
+            logits, _, features = self.model(inputs_var)
+        elif self.args.model == 'resnet':
+            logits, features, _, _ = self.model(inputs_var)
+        else:
+            raise ValueError(f'Unsupported model for MASA single-modal training: {self.args.model}')
+        return inputs_var.float(), labels_var, logits, features
+
+    def _masa_reconstruction_target(self, inputs, features):
+        target = inputs.float().view(inputs.size(0), -1)
+        feat = features.view(features.size(0), -1)
+        if target.size(-1) != feat.size(-1):
+            common_dim = min(target.size(-1), feat.size(-1))
+            target = target[..., :common_dim]
+            feat = feat[..., :common_dim]
+        return target, feat
+
+    def train_masa_epoch(self, prefix='MASA_', log_metrics=True):
+        self._ensure_masa_modules()
+        self.model.train()
+        self.masa_decoder.train()
+        rec_weight = float(getattr(self.args, 'masa_rec_weight', 0.1))
+        for _, data in enumerate(self.train_loader):
+            self.optimizer.zero_grad()
+            inputs_var, labels_var, logits, features = self._masa_prepare_batch(data)
+            recon_target, feature_vec = self._masa_reconstruction_target(inputs_var, features)
+            total_loss = self.criterion(logits, labels_var) + rec_weight * F.mse_loss(self.masa_decoder(feature_vec), recon_target)
+            prec1, prec5 = accuracy(logits.data, labels_var, topk=(1, 5))
+            self.top1.update(prec1[0], inputs_var.size(0))
+            self.top5.update(prec5[0], inputs_var.size(0))
+            self.losses.update(total_loss.item(), inputs_var.size(0))
+            total_loss.backward()
+            self.optimizer.step()
+            if is_test:
+                break
+        if log_metrics and self.logger is not None:
+            self.logger.log('Epoch: [{0}] {1}	Loss {loss.val:.4f} ({loss.avg:.4f})	Prec@1 {top1.val:.3f} ({top1.avg:.3f})	Prec@5 {top5.val:.3f} ({top5.avg:.3f})'.format(self.local_epoch, f'{prefix}{self.dset_name}', loss=self.losses, top1=self.top1, top5=self.top5))
+            self.losses = AverageMeter(); self.top1 = AverageMeter(); self.top5 = AverageMeter()
+
+    def get_masa_encoder_state(self):
+        return {key: value.detach().cpu().clone() for key, value in self.model.state_dict().items() if not key.startswith('class_fc')}
+
+    def load_masa_encoder_state(self, state_dict):
+        self.model.load_state_dict(state_dict, strict=False)
+
+    def _masa_temp_model(self, state_dict):
+        temp_model = copy.deepcopy(self.model)
+        temp_model.load_state_dict(state_dict, strict=False)
+        temp_model.to(self.gpuid)
+        temp_model.eval()
+        for param in temp_model.parameters():
+            param.requires_grad_(False)
+        return temp_model
+
+    def _masa_extract_features(self, model, inputs):
+        with torch.no_grad():
+            if is_embedding_model(self.args.model):
+                _, _, features = model(inputs)
+            elif self.args.model == 'resnet':
+                _, features, _, _ = model(inputs)
+            else:
+                raise ValueError(f'Unsupported model for MASA personalization: {self.args.model}')
+        return features
+
+    def _masa_classify_features(self, features):
+        if hasattr(self.model, 'class_fc_2'):
+            weight = self.model.relu(self.model.class_fc_2.weight) if hasattr(self.model, 'relu') else self.model.class_fc_2.weight
+            return F.linear(features, weight, self.model.class_fc_2.bias)
+        if hasattr(self.model, 'class_fc'):
+            return self.model.class_fc(features)
+        raise AttributeError('No classifier head found for MASA single-modal personalization')
+
+    def _masa_query_batches(self, ratio=None):
+        ratio = float(getattr(self.args, 'ascc_query_ratio', 0.2) if ratio is None else ratio)
+        query_batches = []
+        for batch in self.train_loader:
+            inputs = batch['processed_img'] if self.dset_name == 'image' else batch['cap_tokens']
+            labels = batch['class_id']
+            if isinstance(labels, list):
+                labels = torch.tensor(labels, dtype=torch.long)
+            if type(inputs) != torch.Tensor:
+                inputs = torch.cat(inputs)
+            n_query = max(1, int(len(inputs) * ratio))
+            idx = torch.randperm(len(inputs))[:n_query]
+            query_batches.append((inputs[idx].to(self.gpuid).float(), labels[idx].to(self.gpuid)))
+            if is_test:
+                break
+        return query_batches
+
+    def masa_personalize_from_clusters(self, cluster_states, cluster_labels=None):
+        if not cluster_states:
+            return
+        self.model.to(self.gpuid)
+        self._ensure_masa_modules(); self._move_masa_modules(self.gpuid)
+        cluster_labels = list(range(len(cluster_states))) if cluster_labels is None else cluster_labels
+        query_batches = self._masa_query_batches()
+        if not query_batches:
+            self.load_masa_encoder_state(cluster_states[0]); self.selected_cluster = int(cluster_labels[0]); return
+        temp_models = [self._masa_temp_model(state) for state in cluster_states]
+        attn_logits = nn.Parameter(torch.zeros(len(cluster_states), device=self.gpuid))
+        optimizer = optim.Adam([attn_logits], lr=float(getattr(self.args, 'ascc_lr', 5e-2)))
+        for _ in range(int(getattr(self.args, 'ascc_attn_epoch', 3))):
+            optimizer.zero_grad(); weights = torch.softmax(attn_logits, dim=0); total_loss = 0.0
+            for inputs, labels in query_batches:
+                features = [self._masa_extract_features(model, inputs) for model in temp_models]
+                mixed_feature = sum(weights[idx] * feat for idx, feat in enumerate(features))
+                total_loss = total_loss + F.cross_entropy(self._masa_classify_features(mixed_feature), labels)
+            total_loss.backward(); optimizer.step()
+        final_weights = torch.softmax(attn_logits.detach(), dim=0).cpu(); personalized_state = {}
+        for key in cluster_states[0].keys():
+            personalized_state[key] = sum(state[key].detach().cpu() * float(final_weights[idx].item()) for idx, state in enumerate(cluster_states))
+        self.load_masa_encoder_state(personalized_state)
+        self.selected_cluster = int(cluster_labels[int(torch.argmax(final_weights).item())])
+        for model in temp_models:
+            model.cpu()
+        del temp_models; gc.collect()
+
+    def masa_finetune_local(self, ft_epochs=1):
+        self.model.to(self.gpuid); self._ensure_masa_modules(); self._move_masa_modules(self.gpuid)
+        for _ in range(int(ft_epochs)):
+            self.train_masa_epoch(log_metrics=False)
+        self.model.cpu(); self._move_masa_modules('cpu')
 
     def train_with_anchor(self):
         self.model.to(self.gpuid)
@@ -465,7 +624,7 @@ class ClientTrainer:
         if self.dset_name == 'image' and is_embedding_model(self.args.model):
             self.model = ClientImageEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, 
                                         mlp_local=self.args.mlp_local, is_train=True,
-                                        use_pretrained_proj=bool(self.args.use_pretrained_proj))
+                                        use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model)
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'image' and self.args.model == 'resnet':
@@ -476,7 +635,7 @@ class ClientTrainer:
             # params = [p for n, p in self.model.named_parameters() if "lora" in n and p.requires_grad]
         elif self.dset_name == 'text' and is_embedding_model(self.args.model):
             self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim,
-                                        mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj))
+                                        mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model)
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'text' and self.args.model == 'resnet':

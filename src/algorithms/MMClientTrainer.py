@@ -15,6 +15,7 @@ torch.multiprocessing.set_sharing_strategy('file_system')
 import torch.nn as nn
 import torch.nn.functional as F
 from sklearn.cluster import KMeans
+from sklearn.metrics import normalized_mutual_info_score
 
 from src.algorithms.base import EngineBase
 from tqdm import tqdm
@@ -136,6 +137,9 @@ class MMClientTrainer(EngineBase):
         self.old_model = copy.deepcopy(self.model)
         self.old_model.eval().cuda()
         self.model.cuda()
+        if getattr(self.args, 'FL_algorithm', '') == 'MASA':
+            self._ensure_masa_modules()
+            self._move_masa_modules(self.device)
         if self.local_epoch == 0:
             _, self.optimizer = amp.initialize([], self.optimizer,
                                                         opt_level='O2')
@@ -157,6 +161,7 @@ class MMClientTrainer(EngineBase):
 
         self.old_model.cpu()
         self.model.cpu()
+        self._move_masa_modules('cpu')
 
         del self.old_model
         import gc
@@ -266,99 +271,143 @@ class MMClientTrainer(EngineBase):
                 loss = loss_cls + loss_con_img + loss_con_txt
                 loss.backward()
                 self.optimizer.step()
-    def train_gcmd_epoch(self, prefix=''):
-        # 1. 收集有标签样本特征
-        self.model.eval()
-        img_features, img_labels = [], []
-        txt_features, txt_labels = [], []
-        for idx, data in enumerate(self.train_loader):
-            if idx > 10: break
-            images = data["processed_img"].to(self.device)
-            captions = data["cap_tokens"].to(self.device)
-            labels = data["class_id"]
-            if isinstance(labels, list):
-                labels = torch.tensor(labels, dtype=torch.long)
-            # 提取特征
-            img_feat = self.model.img_enc(images)["embedding"].detach().cpu().numpy()
-            txt_feat = self.model.txt_enc(captions).detach().cpu().numpy()
-            img_features.append(img_feat)
-            txt_features.append(txt_feat)
-            img_labels.append(labels.numpy())
-            txt_labels.append(labels.numpy())
-        if not img_features or not txt_features:
-            if self.logger is not None:
-                self.logger.log(f"Skip MASA local epoch for client {self.client}: train loader has no full batch")
-            self.model.train()
+    def _ensure_masa_modules(self):
+        if getattr(self, '_masa_modules_ready', False):
             return
+        feature_dim = self.args.feature_dim
+        self.masa_img_decoder = nn.Sequential(nn.Linear(feature_dim, feature_dim), nn.ReLU(inplace=True), nn.Linear(feature_dim, feature_dim))
+        self.masa_txt_decoder = nn.Sequential(nn.Linear(feature_dim, feature_dim), nn.ReLU(inplace=True), nn.Linear(feature_dim, feature_dim))
+        self.masa_img_classifier = nn.Linear(feature_dim, self.class_size)
+        self.masa_txt_classifier = nn.Linear(feature_dim, self.class_size)
+        self.optimizer.add_param_group({'params': self.masa_img_decoder.parameters()})
+        self.optimizer.add_param_group({'params': self.masa_txt_decoder.parameters()})
+        self.optimizer.add_param_group({'params': self.masa_img_classifier.parameters()})
+        self.optimizer.add_param_group({'params': self.masa_txt_classifier.parameters()})
+        default_cluster = getattr(self, 'client_idx', self.client) % max(int(getattr(self.args, 'num_clusters', 1)), 1)
+        if not hasattr(self, 'selected_clusters'):
+            self.selected_clusters = {'img': int(default_cluster), 'txt': int(default_cluster)}
+        self._masa_modules_ready = True
 
-        img_features = np.concatenate(img_features, axis=0)
-        txt_features = np.concatenate(txt_features, axis=0)
-        img_labels = np.concatenate(img_labels, axis=0)
-        txt_labels = np.concatenate(txt_labels, axis=0)
+    def _move_masa_modules(self, device):
+        for name in ['masa_img_decoder', 'masa_txt_decoder', 'masa_img_classifier', 'masa_txt_classifier']:
+            if hasattr(self, name):
+                getattr(self, name).to(device)
 
-        # 2. 计算互信息分数MIS
-        def compute_mis(features, labels):
-            features = np.nan_to_num(features, nan=0.0, posinf=0.0, neginf=0.0)
-            unique_labels, labels_mapped = np.unique(labels, return_inverse=True)
-            kmeans = KMeans(n_clusters=len(unique_labels))
-            cluster_labels = kmeans.fit_predict(features)
-            # 互信息分数
-            from scipy.stats import entropy
-            C = len(unique_labels)
-            joint_pmf = np.zeros((C, C))
-            for y_true, y_pred in zip(labels_mapped, cluster_labels):
-                joint_pmf[y_true, y_pred] += 1
-            joint_pmf /= len(labels_mapped)
-            marginal_pmf_true = np.sum(joint_pmf, axis=1)
-            marginal_pmf_pred = np.sum(joint_pmf, axis=0)
-            mi = 0.0
-            for c in range(C):
-                for c_tilde in range(C):
-                    if joint_pmf[c, c_tilde] > 0:
-                        mi += joint_pmf[c, c_tilde] * np.log2(
-                            joint_pmf[c, c_tilde] / (marginal_pmf_true[c] * marginal_pmf_pred[c_tilde])
-                        )
-            H_true = entropy(marginal_pmf_true, base=2)
-            H_pred = entropy(marginal_pmf_pred, base=2)
-            mis = mi / (H_true + H_pred + 1e-8)
-            return mis
+    def _compute_masa_mis(self, features, labels):
+        labels = labels.tolist() if hasattr(labels, 'tolist') else labels
+        if len(features) == 0 or len(set(labels)) <= 1:
+            return 0.0
+        n_clusters = min(len(set(labels)), len(features))
+        if n_clusters <= 1:
+            return 0.0
+        return float(normalized_mutual_info_score(labels, KMeans(n_clusters=n_clusters, n_init=10, random_state=0).fit_predict(features)))
 
-        mis_img = compute_mis(img_features, img_labels)
-        mis_txt = compute_mis(txt_features, txt_labels)
-        superior = 'img' if mis_img >= mis_txt else 'txt'
-        inferior = 'txt' if superior == 'img' else 'img'
+    def _compute_scm(self, features):
+        return torch.matmul(F.normalize(features, dim=-1), F.normalize(features, dim=-1).t())
 
-        # 3. 采样无标签数据，计算SCM
-        def compute_scm(features):
-            return torch.matmul(features, features.T)
-        
+    def _collect_masa_support(self, max_batches=8):
+        self.model.eval(); img_features = []; txt_features = []; labels_all = []
+        with torch.no_grad():
+            for idx, data in enumerate(self.train_loader):
+                images = data['processed_img'].to(self.device).float(); captions = data['cap_tokens'].to(self.device).float(); labels = data['class_id']
+                if isinstance(labels, list): labels = torch.tensor(labels, dtype=torch.long)
+                labels = labels.to(self.device); output = self.model(images, captions)
+                img_features.append(output['image_features'].detach().cpu()); txt_features.append(output['caption_features'].detach().cpu()); labels_all.append(labels.detach().cpu())
+                if idx + 1 >= max_batches or is_test: break
         self.model.train()
-        for idx, data in enumerate(self.train_loader):
-            if idx <= 10: continue
-            images = data["processed_img"].to(self.device)
-            captions = data["cap_tokens"].to(self.device)
-            # 提取特征
-            img_feat = self.model.img_enc(images)["embedding"]
-            txt_feat = self.model.txt_enc(captions)
-            scm_img = compute_scm(img_feat)
-            scm_txt = compute_scm(txt_feat)
+        if not img_features or not txt_features: return None
+        return {'img': torch.cat(img_features, dim=0).numpy(), 'txt': torch.cat(txt_features, dim=0).numpy(), 'labels': torch.cat(labels_all, dim=0).numpy()}
 
-            # 4. 损失计算
-            loss = 0
-            if superior == 'img':
-                rec_loss_img = F.mse_loss(img_feat, img_feat)
-                rec_loss_txt = F.mse_loss(txt_feat, txt_feat)
-                distill_loss = F.mse_loss(scm_img, scm_txt)
-                loss = rec_loss_img + rec_loss_txt + distill_loss
-            else:
-                rec_loss_txt = F.mse_loss(txt_feat, txt_feat)
-                rec_loss_img = F.mse_loss(img_feat, img_feat)
-                distill_loss = F.mse_loss(scm_txt, scm_img)
-                loss = rec_loss_txt + rec_loss_img + distill_loss
+    def get_masa_encoder_state(self, modality):
+        module = self.model.img_enc if modality == 'img' else self.model.txt_enc
+        return {key: value.detach().cpu().clone() for key, value in module.state_dict().items()}
 
+    def load_masa_encoder_state(self, modality, state_dict):
+        (self.model.img_enc if modality == 'img' else self.model.txt_enc).load_state_dict(state_dict, strict=False)
+
+    def _masa_temp_encoder(self, modality, state_dict):
+        module = copy.deepcopy(self.model.img_enc if modality == 'img' else self.model.txt_enc)
+        module.load_state_dict(state_dict, strict=False); module.to(self.device); module.eval()
+        for param in module.parameters(): param.requires_grad_(False)
+        return module
+
+    def _masa_forward_modality(self, module, modality, inputs):
+        with torch.no_grad(): output = module(inputs)
+        return output['embedding'] if modality == 'img' else output
+
+    def _masa_query_batches(self, modality, ratio=None):
+        ratio = float(getattr(self.args, 'ascc_query_ratio', 0.2) if ratio is None else ratio)
+        query_batches = []
+        for batch in self.train_loader:
+            labels = batch['class_id']
+            if isinstance(labels, list): labels = torch.tensor(labels, dtype=torch.long)
+            inputs = batch['processed_img'] if modality == 'img' else batch['cap_tokens']
+            n_query = max(1, int(len(inputs) * ratio)); idx = torch.randperm(len(inputs))[:n_query]
+            query_batches.append((inputs[idx].to(self.device).float(), labels[idx].to(self.device)))
+            if is_test: break
+        return query_batches
+
+    def masa_personalize_from_clusters(self, modality, cluster_states, cluster_labels=None):
+        if not cluster_states: return
+        self.model.cuda(); self._ensure_masa_modules(); self._move_masa_modules(self.device)
+        cluster_labels = list(range(len(cluster_states))) if cluster_labels is None else cluster_labels
+        query_batches = self._masa_query_batches(modality)
+        if not query_batches:
+            self.load_masa_encoder_state(modality, cluster_states[0]); self.selected_clusters[modality] = int(cluster_labels[0]); return
+        temp_encoders = [self._masa_temp_encoder(modality, state) for state in cluster_states]
+        classifier = self.masa_img_classifier if modality == 'img' else self.masa_txt_classifier
+        attn_logits = nn.Parameter(torch.zeros(len(cluster_states), device=self.device))
+        optimizer = torch.optim.Adam([attn_logits], lr=float(getattr(self.args, 'ascc_lr', 5e-2)))
+        for _ in range(int(getattr(self.args, 'ascc_attn_epoch', 3))):
+            optimizer.zero_grad(); weights = torch.softmax(attn_logits, dim=0); total_loss = 0.0
+            for inputs, labels in query_batches:
+                feats = [self._masa_forward_modality(enc, modality, inputs) for enc in temp_encoders]
+                mixed_feature = sum(weights[idx] * feat for idx, feat in enumerate(feats))
+                total_loss = total_loss + F.cross_entropy(classifier(mixed_feature), labels)
+            total_loss.backward(); optimizer.step()
+        final_weights = torch.softmax(attn_logits.detach(), dim=0).cpu(); personalized_state = {}
+        for key in cluster_states[0].keys():
+            personalized_state[key] = sum(state[key].detach().cpu() * float(final_weights[idx].item()) for idx, state in enumerate(cluster_states))
+        self.load_masa_encoder_state(modality, personalized_state); self.selected_clusters[modality] = int(cluster_labels[int(torch.argmax(final_weights).item())])
+        for enc in temp_encoders: enc.cpu()
+        del temp_encoders; gc.collect()
+
+    def masa_finetune_local(self, ft_epochs=1):
+        self.model.cuda(); self._ensure_masa_modules(); self._move_masa_modules(self.device)
+        for _ in range(int(ft_epochs)):
+            self.train_gcmd_epoch(log_metrics=False, recompute_superior=False)
+        self.model.cpu(); self._move_masa_modules('cpu')
+
+    def train_gcmd_epoch(self, prefix='', log_metrics=True, recompute_superior=True):
+        self._ensure_masa_modules(); self.model.train(); self._move_masa_modules(self.device)
+        if recompute_superior or not hasattr(self, 'masa_superior_modality'):
+            support = self._collect_masa_support()
+            if support is None:
+                if self.logger is not None: self.logger.log(f'Skip MASA local epoch for client {self.client}: train loader has no full batch')
+                return
+            mis_img = self._compute_masa_mis(support['img'], support['labels']); mis_txt = self._compute_masa_mis(support['txt'], support['labels'])
+            self.masa_superior_modality = 'img' if mis_img >= mis_txt else 'txt'
+            if self.logger is not None: self.logger.log(f'MASA client {self.client}: superior modality={self.masa_superior_modality}, MIS(img)={mis_img:.4f}, MIS(txt)={mis_txt:.4f}')
+        cls_weight = float(getattr(self.args, 'masa_cls_weight', 0.2)); rec_weight = float(getattr(self.args, 'masa_rec_weight', 0.1)); distill_weight = float(getattr(self.args, 'masa_distill_weight', 0.1)); last_loss = None
+        for _, data in enumerate(self.train_loader):
+            images = data['processed_img'].to(self.device).float(); captions = data['cap_tokens'].to(self.device).float(); labels = data['class_id']
+            if isinstance(labels, list): labels = torch.tensor(labels, dtype=torch.long)
+            labels = labels.to(self.device); output = self.model(images, captions); retrieval_loss, _ = self.criterion(**output)
+            img_feat = output['image_features']; txt_feat = output['caption_features']
+            img_cls_loss = F.cross_entropy(self.masa_img_classifier(img_feat), labels); txt_cls_loss = F.cross_entropy(self.masa_txt_classifier(txt_feat), labels)
+            img_rec_loss = F.mse_loss(self.masa_img_decoder(img_feat), images); txt_rec_loss = F.mse_loss(self.masa_txt_decoder(txt_feat), captions)
+            scm_img = self._compute_scm(img_feat); scm_txt = self._compute_scm(txt_feat)
+            distill_loss = F.mse_loss(scm_txt, scm_img.detach()) if self.masa_superior_modality == 'img' else F.mse_loss(scm_img, scm_txt.detach())
+            loss = retrieval_loss + cls_weight * (img_cls_loss + txt_cls_loss) + rec_weight * (img_rec_loss + txt_rec_loss) + distill_weight * distill_loss
             self.optimizer.zero_grad()
-            loss.backward()
-            self.optimizer.step()
+            if self.config.train.get('use_fp16'):
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss: scaled_loss.backward()
+            else:
+                loss.backward()
+            if self.config.train.grad_clip > 0: nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), self.config.train.grad_clip)
+            self.optimizer.step(); last_loss = float(loss.item())
+            if is_test: break
+        if log_metrics and self.logger is not None and last_loss is not None: self.logger.log(f'{prefix}client {self.client} loss={last_loss:.6f}')
 
     def train_epoch(self, prefix=''):
         loss_dict = {}

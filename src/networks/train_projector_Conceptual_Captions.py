@@ -382,7 +382,7 @@ def train(hyper_dict, train_loader, val_loader=None):
                     os.remove(have_saved)
                 
                 now = datetime.datetime.now()
-                filename = hyper_dict.projector + str(clip_model.visual.output_dim) + ".pth"
+                filename = f"{hyper_dict.projector}_clip_{clip_model.visual.output_dim}.pth"
                 save_path_file = os.path.join(hyper_dict.save_path, filename)
                 best_model = combined_model
                 torch.save({'visual_projector': combined_model.visual_projector,

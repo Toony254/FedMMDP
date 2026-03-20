@@ -27,6 +27,7 @@ try:
     from src.utils.config import parse_config, apply_runtime_overrides
     from src.utils.load_datasets import prepare_coco_dataloaders
     from src.utils.logger import PythonLogger
+    from src.utils.experiment_naming import projector_tag
 except ImportError:
     from algorithms.fedmektClientTrainer import FedMEKTClientTrainer
     from algorithms.fedmektMMClientTrainer import FedMEKTMMClientTrainer
@@ -38,6 +39,7 @@ except ImportError:
     from utils.config import parse_config
     from utils.load_datasets import prepare_coco_dataloaders
     from utils.logger import PythonLogger
+    from utils.experiment_naming import projector_tag
 
 
 class MMFL(object):
@@ -95,7 +97,7 @@ class MMFL(object):
         self.config = apply_runtime_overrides(self.args, self.config)
         self.config.train.model_save_path = 'model_last_no_prob.pth'
         self.config.train.best_model_save_path = 'model_best_no_prob.pth'
-        self.config.train.output_file = f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_model_noprob.log'
+        self.config.train.output_file = f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_{projector_tag(self.args)}_model_noprob.log'
         self.config.train.use_fp16 = False
         self.config.model.name = self.args.model
         self.config.model.img_client = img
@@ -103,7 +105,7 @@ class MMFL(object):
         self.config.model.embed_dim = self.args.feature_dim
 
     def _build_proxy_loader(self):
-        coco_root = '/home/bd/data/zs/data/mmdata/MSCOCO/2014'
+        coco_root = self.args.coco_root
         vocab_path = './src/datasets/vocabs/coco_vocab.pkl'
         self.proxy_index_lookup = None
         if os.path.exists(coco_root) and os.path.exists(vocab_path):
@@ -415,7 +417,7 @@ class MMFL(object):
             self.best_score = rsum
 
         os.makedirs('results', exist_ok=True)
-        mm_csv = f'results/{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_server_{self.args.FL_algorithm}.csv'
+        mm_csv = f'results/{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_server_{self.args.FL_algorithm}_{projector_tag(self.args)}.csv'
         if mm_rows:
             write_header = not os.path.exists(mm_csv)
             with open(mm_csv, 'a', newline='') as f:
@@ -436,7 +438,7 @@ class MMFL(object):
             plt.title(f'rsum Curve (Best: {self.best_score} at epoch {self.best_metadata["best_epoch"]})')
         plt.grid(True)
         plt.tight_layout()
-        plt.savefig(f'results/rsum_{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}.png')
+        plt.savefig(f'results/rsum_{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_{projector_tag(self.args)}.png')
         plt.close()
 
     def train(self, round_n):

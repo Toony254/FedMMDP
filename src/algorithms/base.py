@@ -78,7 +78,9 @@ class EngineBase(object):
                                        verbose=False,
                                        eval_device='cuda',
                                        n_crossfolds=1,
-                                       class_size=self.class_size)
+                                       class_size=self.class_size,
+                                       feature_dim=self.args.feature_dim,
+                                       data_root=self.args.data_root)
 
         self.logger = logger
         self.metadata = {}
