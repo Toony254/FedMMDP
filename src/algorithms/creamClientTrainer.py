@@ -231,7 +231,9 @@ class ClientTrainer:
         if self.dset_name == 'image' and is_embedding_model(self.args.model):
             self.model = ClientImageEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, 
                                         mlp_local=self.args.mlp_local, is_train=True,
-                                        use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model)
+                                        use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model,
+                                        pretrained_proj_variant=getattr(self.args, 'pretrained_proj_variant', ''),
+                                        pretrained_proj_path=getattr(self.args, 'pretrained_proj_path', ''))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'image' and self.args.model == 'resnet':
@@ -242,7 +244,9 @@ class ClientTrainer:
             # params = [p for n, p in self.model.named_parameters() if "lora" in n and p.requires_grad]
         elif self.dset_name == 'text' and is_embedding_model(self.args.model):
             self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim,
-                                        mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model)
+                                        mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model,
+                                        pretrained_proj_variant=getattr(self.args, 'pretrained_proj_variant', ''),
+                                        pretrained_proj_path=getattr(self.args, 'pretrained_proj_path', ''))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'text' and self.args.model == 'resnet':

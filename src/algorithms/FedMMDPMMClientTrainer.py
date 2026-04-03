@@ -99,6 +99,13 @@ class MMClientTrainer(EngineBase):
         targets = [self.cached_domain_labels[sample_id] for sample_id in sample_ids]
         return torch.tensor(targets, dtype=torch.long, device=self.device)
 
+    def _match_base_scale(self, aux_loss, base_loss):
+        if not bool(self.args.fedmmdp_adaptive_aux_norm):
+            return aux_loss
+        base_scale = base_loss.detach().abs()
+        aux_scale = aux_loss.detach().abs().clamp_min(self.args.fedmmdp_aux_norm_eps)
+        return aux_loss * (base_scale / aux_scale)
+
     def run(self, global_centroids):
         self.old_model = copy.deepcopy(self.model)
         self.old_model.eval().cuda()
@@ -180,6 +187,17 @@ class MMClientTrainer(EngineBase):
         self.train_loader.generator.manual_seed(self.cur_epoch)
         loss_dict = {}
         last_idx = -1
+        metric_sums = {
+            'base_loss': 0.0,
+            'cluster_img_loss': 0.0,
+            'cluster_txt_loss': 0.0,
+            'rmg_loss': 0.0,
+            'cluster_img_loss_used': 0.0,
+            'cluster_txt_loss_used': 0.0,
+            'rmg_loss_used': 0.0,
+            'total_loss': 0.0,
+        }
+        metric_count = 0
 
         for idx, data in enumerate(self.train_loader):
             last_idx = idx
@@ -208,11 +226,30 @@ class MMClientTrainer(EngineBase):
             loss_cluster_image = F.cross_entropy(image_logits, domain_targets)
             loss_cluster_caption = F.cross_entropy(caption_logits, domain_targets)
             loss_rmg = compute_rmg(image_features, caption_features)
+            if bool(self.args.fedmmdp_disable_cluster_loss):
+                loss_cluster_image = torch.zeros_like(loss_cluster_image)
+                loss_cluster_caption = torch.zeros_like(loss_cluster_caption)
+            if bool(self.args.fedmmdp_disable_rmg_loss):
+                loss_rmg = torch.zeros_like(loss_rmg)
+            base_loss = loss / 10
+            loss_cluster_image_used = self._match_base_scale(loss_cluster_image, base_loss)
+            loss_cluster_caption_used = self._match_base_scale(loss_cluster_caption, base_loss)
+            loss_rmg_used = self._match_base_scale(loss_rmg, base_loss)
             total_loss = (
-                loss / 10 +
-                self.args.cluster_weight * (loss_cluster_image + loss_cluster_caption) / 2 +
-                loss_rmg * self.args.rmg_weight
+                base_loss +
+                self.args.cluster_weight * (loss_cluster_image_used + loss_cluster_caption_used) / 2 +
+                loss_rmg_used * self.args.rmg_weight
             )
+
+            metric_sums['base_loss'] += float(base_loss.item())
+            metric_sums['cluster_img_loss'] += float(loss_cluster_image.item())
+            metric_sums['cluster_txt_loss'] += float(loss_cluster_caption.item())
+            metric_sums['rmg_loss'] += float(loss_rmg.item())
+            metric_sums['cluster_img_loss_used'] += float(loss_cluster_image_used.item())
+            metric_sums['cluster_txt_loss_used'] += float(loss_cluster_caption_used.item())
+            metric_sums['rmg_loss_used'] += float(loss_rmg_used.item())
+            metric_sums['total_loss'] += float(total_loss.item())
+            metric_count += 1
 
             self.optimizer.zero_grad()
             if self.config.train.get('use_fp16'):
@@ -229,6 +266,37 @@ class MMClientTrainer(EngineBase):
             if self.logger is not None:
                 self.logger.log(f"Skip clustered local epoch for client {self._get_global_client_key()}: train loader has no full batch")
             return
+
+        if metric_count > 0:
+            self.last_aux_metrics = {
+                'client_id': self._get_global_client_key(),
+                'client_type': self.dset_name,
+                'base_loss': metric_sums['base_loss'] / metric_count,
+                'cluster_img_loss': metric_sums['cluster_img_loss'] / metric_count,
+                'cluster_txt_loss': metric_sums['cluster_txt_loss'] / metric_count,
+                'cluster_loss': (metric_sums['cluster_img_loss'] + metric_sums['cluster_txt_loss']) / (2 * metric_count),
+                'rmg_loss': metric_sums['rmg_loss'] / metric_count,
+                'cluster_img_loss_used': metric_sums['cluster_img_loss_used'] / metric_count,
+                'cluster_txt_loss_used': metric_sums['cluster_txt_loss_used'] / metric_count,
+                'cluster_loss_used': (metric_sums['cluster_img_loss_used'] + metric_sums['cluster_txt_loss_used']) / (2 * metric_count),
+                'rmg_loss_used': metric_sums['rmg_loss_used'] / metric_count,
+                'adaptive_aux_norm': int(bool(self.args.fedmmdp_adaptive_aux_norm)),
+                'total_loss': metric_sums['total_loss'] / metric_count,
+            }
+            if bool(self.args.fedmmdp_log_aux_losses) and self.logger is not None:
+                self.logger.log(
+                    'FedMMDP Aux: [{0}] mm\tBase {1:.4f}\tCluster(raw img/txt) {2:.4f}/{3:.4f}\tCluster(used img/txt) {4:.4f}/{5:.4f}\tRMG(raw/used) {6:.4f}/{7:.4f}\tTotal {8:.4f}'.format(
+                        self.local_epoch,
+                        self.last_aux_metrics['base_loss'],
+                        self.last_aux_metrics['cluster_img_loss'],
+                        self.last_aux_metrics['cluster_txt_loss'],
+                        self.last_aux_metrics['cluster_img_loss_used'],
+                        self.last_aux_metrics['cluster_txt_loss_used'],
+                        self.last_aux_metrics['rmg_loss'],
+                        self.last_aux_metrics['rmg_loss_used'],
+                        self.last_aux_metrics['total_loss'],
+                    )
+                )
 
         loss_dict = {'{}'.format(key): val for key, val in loss_dict.items()}
         loss_dict['step'] = cur_step(self.cur_epoch, last_idx, len(self.train_loader))

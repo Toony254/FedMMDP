@@ -100,6 +100,10 @@ def build_parser():
     parser.add_argument('--feature_dim', type=int, default=1024)
     parser.add_argument('--use_pretrained_proj', type=int, default=1, choices=[0, 1],
                         help='1: load pretrained projector weights, 0: use random projector initialization')
+    parser.add_argument('--pretrained_proj_variant', type=str, default='',
+                        help='optional pretrained projector variant tag, e.g. clonly, rmgonly, maxmargin')
+    parser.add_argument('--pretrained_proj_path', type=str, default='',
+                        help='optional explicit pretrained projector checkpoint path')
     parser.add_argument('--cluster_method', type=str, default='finch', choices=['finch', 'spectral', 'kmeans', 'dbscan'])
     parser.add_argument('--partition_level', type=int, default=1, help='partition level for FINCH clustering')
     parser.add_argument('--n_clusters', type=int, default=5, help='number of clusters for kmeans or spectral clustering')
@@ -109,6 +113,20 @@ def build_parser():
     parser.add_argument('--tau', type=float, default=0.5, help='temperature for FedMMDP domain contrastive loss')
     parser.add_argument('--centroid_init', type=str, default='random_unit', choices=['random_unit'], help='FedMMDP centroid initialization strategy')
     parser.add_argument('--secure_agg_mode', type=str, default='plaintext', choices=['plaintext'], help='FedMMDP secure aggregation backend')
+    parser.add_argument('--fedmmdp_disable_cluster_loss', type=int, default=0, choices=[0, 1],
+                        help='FedMMDP ablation flag: disable cluster-based domain supervision while keeping the rest unchanged')
+    parser.add_argument('--fedmmdp_disable_rmg_loss', type=int, default=0, choices=[0, 1],
+                        help='FedMMDP ablation flag: disable RMG loss on multimodal clients')
+    parser.add_argument('--fedmmdp_cluster_inner_steps', type=int, default=1,
+                        help='number of secure-aggregation Lloyd updates per communication round for FedMMDP')
+    parser.add_argument('--fedmmdp_log_aux_losses', type=int, default=0, choices=[0, 1],
+                        help='when enabled, FedMMDP stores auxiliary loss traces to a dedicated CSV file')
+    parser.add_argument('--fedmmdp_ablation_tag', type=str, default='',
+                        help='optional tag appended only to FedMMDP auxiliary artifacts for ablation bookkeeping')
+    parser.add_argument('--fedmmdp_adaptive_aux_norm', type=int, default=1, choices=[0, 1],
+                        help='when enabled, rescale FedMMDP auxiliary losses to the current base-loss magnitude on each client')
+    parser.add_argument('--fedmmdp_aux_norm_eps', type=float, default=1e-6,
+                        help='numerical stabilizer used by FedMMDP adaptive auxiliary-loss normalization')
     parser.add_argument('--fedmobile_gen_lr', type=float, default=1e-4)
     parser.add_argument('--fedmobile_gen_weight', type=float, default=0.5)
     parser.add_argument('--fedmobile_align_weight', type=float, default=0.1)

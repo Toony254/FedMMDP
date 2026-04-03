@@ -192,6 +192,10 @@ def apply_runtime_overrides(args, config: munch.Munch) -> munch.Munch:
             config.model.name = args.model
         if hasattr(args, 'use_pretrained_proj'):
             config.model.use_pretrained_proj = bool(args.use_pretrained_proj)
+        if hasattr(args, 'pretrained_proj_variant'):
+            config.model.pretrained_proj_variant = args.pretrained_proj_variant
+        if hasattr(args, 'pretrained_proj_path'):
+            config.model.pretrained_proj_path = args.pretrained_proj_path
 
     if hasattr(config, 'dataloader'):
         if hasattr(args, 'batch_size'):

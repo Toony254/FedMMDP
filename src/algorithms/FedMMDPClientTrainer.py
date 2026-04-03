@@ -123,6 +123,9 @@ class ClientTrainer:
         self.save_step = save_step
         self.loss = loss
         self.losses = AverageMeter()
+        self.base_losses = AverageMeter()
+        self.cluster_losses = AverageMeter()
+        self.cluster_losses_raw = AverageMeter()
         self.top1, self.test_top1 = AverageMeter(), AverageMeter()
         self.top5, self.test_top5 = AverageMeter(), AverageMeter()
         self.scale = scale
@@ -140,6 +143,7 @@ class ClientTrainer:
         self.local_epochs = args.local_epochs
         self.local_epoch = 0
         self.cached_domain_labels = {}
+        self.last_aux_metrics = {}
 
     def _get_global_client_key(self):
         if hasattr(self, 'client_idx') and self.client_idx is not None:
@@ -218,7 +222,9 @@ class ClientTrainer:
             self.logger.log(f'Setting model {self.client_id}')
         if self.dset_name == 'image' and is_embedding_model(self.args.model):
             self.model = ClientImageEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, mlp_local=self.args.mlp_local, is_train=True,
-                                        use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model)
+                                        use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model,
+                                        pretrained_proj_variant=getattr(self.args, 'pretrained_proj_variant', ''),
+                                        pretrained_proj_path=getattr(self.args, 'pretrained_proj_path', ''))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'image' and self.args.model == 'resnet':
@@ -229,7 +235,10 @@ class ClientTrainer:
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         elif self.dset_name == 'text' and is_embedding_model(self.args.model):
-            self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, mlp_local=self.args.mlp_local, use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model)
+            self.model = ClientTextEncoder(num_class=self.classSize, embed_dim=self.args.feature_dim, mlp_local=self.args.mlp_local,
+                                           use_pretrained_proj=bool(self.args.use_pretrained_proj), model_name=self.args.model,
+                                           pretrained_proj_variant=getattr(self.args, 'pretrained_proj_variant', ''),
+                                           pretrained_proj_path=getattr(self.args, 'pretrained_proj_path', ''))
             self.criterion = losses.create(self.loss)
             params = self.model.parameters()
         else:
@@ -284,6 +293,13 @@ class ClientTrainer:
         gc.collect()
         return {'sum': local_sum, 'count': local_count}, self.dset_name
 
+    def _match_base_scale(self, aux_loss, base_loss):
+        if not bool(self.args.fedmmdp_adaptive_aux_norm):
+            return aux_loss
+        base_scale = base_loss.detach().abs()
+        aux_scale = aux_loss.detach().abs().clamp_min(self.args.fedmmdp_aux_norm_eps)
+        return aux_loss * (base_scale / aux_scale)
+
     def tra(self, global_centroids):
         def printnreset(name):
             self.logger.log(
@@ -292,7 +308,21 @@ class ClientTrainer:
                     self.local_epoch, name, loss=self.losses, top1=self.top1, top5=self.top5
                 )
             )
+            if bool(self.args.fedmmdp_log_aux_losses):
+                self.logger.log(
+                    'FedMMDP Aux: [{0}] {1}\tBase {base.avg:.4f}\tCluster(raw/used) {cluster_raw.avg:.4f}/{cluster_used.avg:.4f}\tTotal {loss.avg:.4f}'.format(
+                        self.local_epoch,
+                        name,
+                        base=self.base_losses,
+                        cluster_raw=self.cluster_losses_raw,
+                        cluster_used=self.cluster_losses,
+                        loss=self.losses,
+                    )
+                )
             self.losses = AverageMeter()
+            self.base_losses = AverageMeter()
+            self.cluster_losses = AverageMeter()
+            self.cluster_losses_raw = AverageMeter()
             self.top1 = AverageMeter()
             self.top5 = AverageMeter()
 
@@ -347,14 +377,20 @@ class ClientTrainer:
 
                 local_features = F.normalize(torch.nan_to_num(local_features.float(), nan=0.0, posinf=0.0, neginf=0.0), p=2, dim=1)
                 domain_logits = torch.matmul(local_features, centroids.t()) / self.args.tau
-                loss_cluster = F.cross_entropy(domain_logits, domain_targets)
+                loss_cluster_raw = F.cross_entropy(domain_logits, domain_targets)
+                if bool(self.args.fedmmdp_disable_cluster_loss):
+                    loss_cluster_raw = torch.zeros_like(loss_cluster_raw)
 
                 loss = self.criterion(fvec, labels_var)
-                total_loss = loss + self.args.cluster_weight * loss_cluster
+                loss_cluster_used = self._match_base_scale(loss_cluster_raw, loss)
+                total_loss = loss + self.args.cluster_weight * loss_cluster_used
                 prec1, prec5 = accuracy(fvec.data, labels_bt, topk=(1, 5))
                 self.top1.update(prec1[0], inputs_bt.size(0))
                 self.top5.update(prec5[0], inputs_bt.size(0))
 
+                self.base_losses.update(loss.item(), inputs_bt.size(0))
+                self.cluster_losses_raw.update(loss_cluster_raw.item(), inputs_bt.size(0))
+                self.cluster_losses.update(loss_cluster_used.item(), inputs_bt.size(0))
                 self.losses.update(total_loss.item(), inputs_bt.size(0))
                 total_loss.backward()
                 nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), 2)
@@ -363,6 +399,15 @@ class ClientTrainer:
             if is_test:
                 break
 
+        self.last_aux_metrics = {
+            'client_id': self._get_global_client_key(),
+            'client_type': self.dset_name,
+            'base_loss': self.base_losses.avg,
+            'cluster_loss': self.cluster_losses_raw.avg,
+            'cluster_loss_used': self.cluster_losses.avg,
+            'adaptive_aux_norm': int(bool(self.args.fedmmdp_adaptive_aux_norm)),
+            'total_loss': self.losses.avg,
+        }
         printnreset(self.dset_name)
 
     def test(self):

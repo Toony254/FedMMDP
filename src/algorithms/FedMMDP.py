@@ -73,13 +73,65 @@ class MMFL(object):
             raise ValueError('FedMMDP requires n_clusters > 0.')
         if self.args.tau <= 0:
             raise ValueError('FedMMDP requires tau > 0.')
+        if self.args.fedmmdp_cluster_inner_steps <= 0:
+            raise ValueError('FedMMDP requires fedmmdp_cluster_inner_steps > 0.')
         if self.args.secure_agg_mode != 'plaintext':
             raise ValueError(f'Unsupported secure aggregation mode: {self.args.secure_agg_mode}')
         if self.args.centroid_init != 'random_unit':
             raise ValueError(f'Unsupported centroid initialization mode: {self.args.centroid_init}')
+        if self.args.fedmmdp_aux_norm_eps <= 0:
+            raise ValueError('FedMMDP requires fedmmdp_aux_norm_eps > 0.')
 
     def _artifact_tag(self):
         return f'{self.args.name}_{self.args.dataset}_{self.args.model}_{self.args.lr}_{self.args.alpha}_{self.args.local_epochs}x{self.args.comm_rounds}_{projector_tag(self.args)}_FedMMDP_secureagg_{self.args.secure_agg_mode}_{self.args.cluster_method}'
+
+    def _auxloss_csv_path(self):
+        ablation_tag = self.args.fedmmdp_ablation_tag.strip()
+        suffix = f'_{ablation_tag}' if ablation_tag else ''
+        return f'results/auxloss_{self._artifact_tag()}{suffix}.csv'
+
+    def _write_aux_loss_rows(self, round_n, aux_rows):
+        if not aux_rows:
+            return
+        os.makedirs('results', exist_ok=True)
+        aux_csv = self._auxloss_csv_path()
+        write_header = not os.path.exists(aux_csv)
+        with open(aux_csv, 'a', newline='') as f:
+            writer = csv.writer(f)
+            if write_header:
+                writer.writerow([
+                    'round',
+                    'client_id',
+                    'client_type',
+                    'base_loss',
+                    'cluster_loss',
+                    'cluster_img_loss',
+                    'cluster_txt_loss',
+                    'rmg_loss',
+                    'cluster_loss_used',
+                    'cluster_img_loss_used',
+                    'cluster_txt_loss_used',
+                    'rmg_loss_used',
+                    'adaptive_aux_norm',
+                    'total_loss',
+                ])
+            for row in aux_rows:
+                writer.writerow([
+                    round_n,
+                    row.get('client_id', -1),
+                    row.get('client_type', ''),
+                    row.get('base_loss', ''),
+                    row.get('cluster_loss', ''),
+                    row.get('cluster_img_loss', ''),
+                    row.get('cluster_txt_loss', ''),
+                    row.get('rmg_loss', ''),
+                    row.get('cluster_loss_used', ''),
+                    row.get('cluster_img_loss_used', ''),
+                    row.get('cluster_txt_loss_used', ''),
+                    row.get('rmg_loss_used', ''),
+                    row.get('adaptive_aux_norm', ''),
+                    row.get('total_loss', ''),
+                ])
 
     def _initialize_global_centroids(self):
         if self.global_centroids is not None:
@@ -328,21 +380,26 @@ class MMFL(object):
 
     def _run_secure_agg_lloyd_round(self, round_n):
         self._initialize_global_centroids()
-        aggregator = SecureAggregator(
-            num_clusters=self.args.n_clusters,
-            feature_dim=self.args.feature_dim,
-            mode=self.args.secure_agg_mode,
-        )
-        for trainer in self.cur_trainers:
-            trainer.cur_epoch = round_n
-            local_stats, dataset_name = trainer.compute_local_cluster_statistics(self.global_centroids)
-            self.logger.log(f"Secure-agg statistics collected from {dataset_name} client {trainer.client_idx}.")
-            aggregator.collect(trainer.client_idx, local_stats)
-        aggregated_stats = aggregator.finalize()
-        self._lloyd_update(aggregated_stats)
-        self.logger.log(
-            f"Secure aggregation finalized for {aggregated_stats['num_clients']} clients in round {round_n + 1}."
-        )
+        for inner_step in range(self.args.fedmmdp_cluster_inner_steps):
+            aggregator = SecureAggregator(
+                num_clusters=self.args.n_clusters,
+                feature_dim=self.args.feature_dim,
+                mode=self.args.secure_agg_mode,
+            )
+            for trainer in self.cur_trainers:
+                trainer.cur_epoch = round_n
+                local_stats, dataset_name = trainer.compute_local_cluster_statistics(self.global_centroids)
+                self.logger.log(
+                    f"Secure-agg statistics collected from {dataset_name} client {trainer.client_idx} "
+                    f"(inner_step {inner_step + 1}/{self.args.fedmmdp_cluster_inner_steps})."
+                )
+                aggregator.collect(trainer.client_idx, local_stats)
+            aggregated_stats = aggregator.finalize()
+            self._lloyd_update(aggregated_stats)
+            self.logger.log(
+                f"Secure aggregation finalized for {aggregated_stats['num_clients']} clients in round {round_n + 1} "
+                f"(inner_step {inner_step + 1}/{self.args.fedmmdp_cluster_inner_steps})."
+            )
 
     def train(self, round_n):
         self.cur_epoch = round_n
@@ -354,15 +411,21 @@ class MMFL(object):
         local_image_model = []
         local_text_model = []
         local_mm_model = []
+        aux_rows = []
         for trainer in self.cur_trainers:
             self.logger.log(f"Training Client {trainer.client_idx} with secure-agg centroids.")
             trainer.run(self.global_centroids)
+            if bool(self.args.fedmmdp_log_aux_losses) and getattr(trainer, 'last_aux_metrics', None):
+                aux_rows.append(dict(trainer.last_aux_metrics))
             if trainer.dset_name == 'image':
                 local_image_model.append(trainer.model)
             elif trainer.dset_name == 'text':
                 local_text_model.append(trainer.model)
             elif trainer.dset_name == 'mm':
                 local_mm_model.append(trainer.model)
+
+        if bool(self.args.fedmmdp_log_aux_losses):
+            self._write_aux_loss_rows(round_n, aux_rows)
 
         if self.args.aggregate is True:
             if is_embedding_model(self.args.model):

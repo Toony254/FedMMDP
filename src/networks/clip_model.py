@@ -1,33 +1,32 @@
 import torch.nn as nn
 import sys
 import torch
-from pathlib import Path
 
 sys.path.append("../")
 sys.path.append("../../")
 from src.utils.tensor_utils import l2_normalize
-from src.utils.model_utils import normalize_model_name
+from src.utils.projector_utils import resolve_projector_weight_path
 
 
-def _resolve_projector_weight_path(model_name, emb_dim):
-    normalized_model = normalize_model_name(model_name)
-    projector_dir = Path(__file__).resolve().parents[2] / 'saved' / 'projector_weights'
-    candidates = [
-        projector_dir / f'mlp+norm_{normalized_model}_{emb_dim}.pth',
-        projector_dir / f'mlp+norm{emb_dim}.pth',
-    ]
-    for candidate in candidates:
-        if candidate.exists():
-            return candidate
-    candidate_str = ', '.join(str(candidate) for candidate in candidates)
-    raise FileNotFoundError(f'Pretrained projector weights not found. Tried: {candidate_str}')
-
-
-def _maybe_load_projector(projector, projector_key, emb_dim, use_pretrained_proj, model_name='clip'):
+def _maybe_load_projector(
+    projector,
+    projector_key,
+    emb_dim,
+    use_pretrained_proj,
+    model_name='clip',
+    projector_variant='',
+    projector_path='',
+):
     if not use_pretrained_proj:
         return
 
-    projector_weight_path = _resolve_projector_weight_path(model_name, emb_dim)
+    projector_weight_path = resolve_projector_weight_path(
+        model_name=model_name,
+        emb_dim=emb_dim,
+        projector_name='mlp+norm',
+        variant=projector_variant,
+        override_path=projector_path,
+    )
     projector_weight = torch.load(projector_weight_path, map_location='cpu')
     projector_state = projector_weight[projector_key]
     if hasattr(projector_state, 'state_dict'):
@@ -42,6 +41,8 @@ class ClientImageEncoder(nn.Module):
         emb_dim = kwargs.get('embed_dim')
         use_pretrained_proj = bool(kwargs.get('use_pretrained_proj', True))
         model_name = kwargs.get('model_name', 'clip')
+        projector_variant = kwargs.get('pretrained_proj_variant', '')
+        projector_path = kwargs.get('pretrained_proj_path', '')
 
         self.visual_projector = nn.Sequential(
             nn.Linear(emb_dim, 2 * emb_dim),
@@ -51,7 +52,15 @@ class ClientImageEncoder(nn.Module):
             nn.LayerNorm(emb_dim),
             nn.ReLU(),
         )
-        _maybe_load_projector(self.visual_projector, 'visual_projector', emb_dim, use_pretrained_proj, model_name=model_name)
+        _maybe_load_projector(
+            self.visual_projector,
+            'visual_projector',
+            emb_dim,
+            use_pretrained_proj,
+            model_name=model_name,
+            projector_variant=projector_variant,
+            projector_path=projector_path,
+        )
 
         self.embed_dim = kwargs.get('embed_dim', emb_dim)
         self.relu = nn.ReLU(inplace=False)
@@ -91,6 +100,8 @@ class CLIPImageEncoder(nn.Module):
         emb_dim = config['embed_dim']
         use_pretrained_proj = bool(config.get('use_pretrained_proj', True))
         model_name = config.get('name', 'clip')
+        projector_variant = config.get('pretrained_proj_variant', '')
+        projector_path = config.get('pretrained_proj_path', '')
 
         self.visual_projector = nn.Sequential(
             nn.Linear(emb_dim, 2 * emb_dim),
@@ -100,7 +111,15 @@ class CLIPImageEncoder(nn.Module):
             nn.LayerNorm(emb_dim),
             nn.ReLU(),
         )
-        _maybe_load_projector(self.visual_projector, 'visual_projector', emb_dim, use_pretrained_proj, model_name=model_name)
+        _maybe_load_projector(
+            self.visual_projector,
+            'visual_projector',
+            emb_dim,
+            use_pretrained_proj,
+            model_name=model_name,
+            projector_variant=projector_variant,
+            projector_path=projector_path,
+        )
 
         self.mlp_local = mlp_local
         if self.mlp_local:
@@ -122,7 +141,17 @@ class CLIPImageEncoder(nn.Module):
 
 
 class ClientTextEncoder(nn.Module):
-    def __init__(self, embed_dim=1024, num_class=4, scale=128, mlp_local=False, use_pretrained_proj=True, model_name='clip'):
+    def __init__(
+        self,
+        embed_dim=1024,
+        num_class=4,
+        scale=128,
+        mlp_local=False,
+        use_pretrained_proj=True,
+        model_name='clip',
+        pretrained_proj_variant='',
+        pretrained_proj_path='',
+    ):
         super(ClientTextEncoder, self).__init__()
         emb_dim = embed_dim
 
@@ -134,7 +163,15 @@ class ClientTextEncoder(nn.Module):
             nn.LayerNorm(emb_dim),
             nn.ReLU(),
         )
-        _maybe_load_projector(self.text_projector, 'text_projector', emb_dim, use_pretrained_proj, model_name=model_name)
+        _maybe_load_projector(
+            self.text_projector,
+            'text_projector',
+            emb_dim,
+            use_pretrained_proj,
+            model_name=model_name,
+            projector_variant=pretrained_proj_variant,
+            projector_path=pretrained_proj_path,
+        )
 
         self.relu = nn.ReLU(inplace=False)
         self.class_fc_2 = nn.Linear(embed_dim, num_class)
@@ -170,6 +207,8 @@ class CLIPTextEncoder(nn.Module):
         emb_dim = config['embed_dim']
         use_pretrained_proj = bool(config.get('use_pretrained_proj', True))
         model_name = config.get('name', 'clip')
+        projector_variant = config.get('pretrained_proj_variant', '')
+        projector_path = config.get('pretrained_proj_path', '')
 
         self.text_projector = nn.Sequential(
             nn.Linear(emb_dim, 2 * emb_dim),
@@ -179,7 +218,15 @@ class CLIPTextEncoder(nn.Module):
             nn.LayerNorm(emb_dim),
             nn.ReLU(),
         )
-        _maybe_load_projector(self.text_projector, 'text_projector', emb_dim, use_pretrained_proj, model_name=model_name)
+        _maybe_load_projector(
+            self.text_projector,
+            'text_projector',
+            emb_dim,
+            use_pretrained_proj,
+            model_name=model_name,
+            projector_variant=projector_variant,
+            projector_path=projector_path,
+        )
 
     def forward(self, embeddings):
         embeddings = embeddings.float()

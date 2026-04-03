@@ -1,234 +1,89 @@
-import os
-
-# 导入所需的库和模块
-import datetime
-import math
-import torch
-from torch.utils.data import DataLoader
-from torch.utils.tensorboard import SummaryWriter
-import numpy as np
-from pycocotools.coco import COCO
-from PIL import Image
-import pickle
-from sklearn.metrics.pairwise import cosine_similarity
-import torchvision.transforms as T
-from transformers import SiglipProcessor, SiglipModel
-
-# 设置设备(GPU/CPU)
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-from torch.utils.data import Dataset, DataLoader, Subset
-from torch import nn
-import torch.optim as optim
-from tqdm import tqdm
-import sys
-import torch.nn.functional as F
 import argparse
-import random
+import json
+import math
 import os
+import pickle
+import random
+import sys
+from pathlib import Path
 
-# 设置混合精度训练
-use_amp = False
-# 初始化tensorboard
-writer = SummaryWriter(comment="runs/align")
-# 设置CUDNN
+import numpy as np
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from PIL import Image
+from pycocotools.coco import COCO
+from sklearn.metrics.pairwise import cosine_similarity
+from torch.utils.data import DataLoader, Dataset
+from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
+from transformers import SiglipModel, SiglipProcessor
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+SRC_DIR = ROOT_DIR / "src"
+for candidate in (ROOT_DIR, SRC_DIR):
+    candidate_str = str(candidate)
+    if candidate_str not in sys.path:
+        sys.path.append(candidate_str)
+
+try:
+    from src.utils.projector_utils import (
+        normalize_projector_variant,
+        projector_checkpoint_name,
+        projector_variant_label,
+    )
+except ImportError:
+    from utils.projector_utils import (
+        normalize_projector_variant,
+        projector_checkpoint_name,
+        projector_variant_label,
+    )
+
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+USE_AMP = False
+RANDOM_SEED = 42
+SIGLIP_MODEL_NAME = "google/siglip-base-patch16-224"
+
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-RANDOM_SEED = 42
+
+
+def set_seed(seed: int) -> None:
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+
 
 class F30kCaptionsCap(Dataset):
-    def __init__(self, annFile='dataset_k_split.pkl', split='train',
-                 transform=None, target_transform=None):
+    def __init__(self, ann_file="dataset_k_split.pkl", split="test", transform=None):
         self.transform = transform
-        self.target_transform = target_transform
-        self.data = pickle.load(open(annFile, 'rb'))
-        if split not in self.data.keys():
-            assert False, f'split wrong {split}'
+        self.data = pickle.load(open(ann_file, "rb"))
+        if split not in self.data:
+            raise ValueError(f"Invalid split: {split}")
         self.data = self.data[split]
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, index):
-        data = self.data[index]
-        caption = data[1]
-
-        path = data[0].replace('/data/mmdata/Flick30k/flickr30k-images/',
-                       '/home/bd/data/zs/data/flickr30k/flickr30k-images/')
-
-        img = Image.open(path).convert('RGB')
+        image_path, caption = self.data[index][0], self.data[index][1]
+        image_path = image_path.replace(
+            "/data/mmdata/Flick30k/flickr30k-images/",
+            "/home/bd/data/zs/data/flickr30k/flickr30k-images/",
+        )
+        image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
-            img = self.transform(img)
+            image = self.transform(image)
+        return image, caption
 
-        if self.target_transform is not None:
-            target = self.target_transform(caption, truncate=True)[0]
-            return img, target, caption
-        return img, caption
-
-    
-# 设置随机种子函数
-def set_seed(seed):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    os.environ['PYTHONHASHSEED'] = str(seed)
-
-class SelfAttentionProjector(nn.Module):
-    def __init__(self, dim=1024):
-        super().__init__()
-        self.query = nn.Linear(dim, dim)
-        self.key = nn.Linear(dim, dim)
-        self.value = nn.Linear(dim, dim)
-        self.proj = nn.Linear(dim, dim)
-        self.scale = dim ** -0.5
-        
-    def forward(self, x):
-        q = self.query(x)
-        k = self.key(x)
-        v = self.value(x)
-        attn = (q @ k.transpose(-2, -1)) * self.scale
-        attn = attn.softmax(dim=-1)
-        out = attn @ v
-        return self.proj(out)
-
-class ResidualProjector(nn.Module):
-    def __init__(self, dim=1024):
-        super().__init__()
-        self.proj = nn.Sequential(
-            nn.Linear(dim, dim),
-            nn.ReLU(),
-            nn.Linear(dim, dim)
-        )
-        
-    def forward(self, x):
-        return x + self.proj(x)
-            
-class CombinedModel(nn.Module):
-    def __init__(self, siglip_model, siglip_processor, args, projector_ckpt=None):
-        super(CombinedModel, self).__init__()
-        self.siglip_model = siglip_model
-        self.siglip_processor = siglip_processor
-        # 获取SigLIP输出维度（直接从模型配置读取，无需 forward pass）
-        # SiglipModel 无独立 projection head，image_embeds/text_embeds 维度即为
-        # vision_config.hidden_size，避免了用随机 tensor 调用 processor 时的范围错误
-        emb_dim = siglip_model.config.vision_config.hidden_size
-        # 投影器
-        if args.projector == "linear":
-            self.visual_projector = nn.Linear(emb_dim, emb_dim)
-            self.text_projector = nn.Linear(emb_dim, emb_dim)
-        elif args.projector == "mlp":
-            self.visual_projector = nn.Sequential(
-                nn.Linear(emb_dim, 2*emb_dim),
-                nn.ReLU(),
-                nn.Linear(2*emb_dim, emb_dim)
-            )
-            self.text_projector = nn.Sequential(
-                nn.Linear(emb_dim, 2*emb_dim),
-                nn.ReLU(),
-                nn.Linear(2*emb_dim, emb_dim)
-            )
-        elif args.projector == "residual":
-            self.visual_projector = ResidualProjector(emb_dim)
-            self.text_projector = ResidualProjector(emb_dim)
-        elif args.projector == "norm":
-            self.visual_projector = nn.Sequential(
-                nn.Linear(emb_dim, emb_dim),
-                nn.LayerNorm(emb_dim),
-                nn.ReLU()
-            )
-            self.text_projector = nn.Sequential(
-                nn.Linear(emb_dim, emb_dim),
-                nn.LayerNorm(emb_dim),
-                nn.ReLU()
-            )
-        elif args.projector == "mlp+norm":
-            self.visual_projector = nn.Sequential(
-                nn.Linear(emb_dim, 2*emb_dim),
-                nn.ReLU(),
-                nn.Linear(2*emb_dim, emb_dim),
-                nn.Linear(emb_dim, emb_dim),
-                nn.LayerNorm(emb_dim),
-                nn.ReLU()
-            )
-            self.text_projector = nn.Sequential(
-                nn.Linear(emb_dim, 2*emb_dim),
-                nn.ReLU(),
-                nn.Linear(2*emb_dim, emb_dim),
-                nn.Linear(emb_dim, emb_dim),
-                nn.LayerNorm(emb_dim),
-                nn.ReLU()
-            )
-        elif args.projector == "bottleneck":
-            self.visual_projector = nn.Sequential(
-                nn.Linear(emb_dim, emb_dim//2),
-                nn.ReLU(),
-                nn.Linear(emb_dim//2, emb_dim)
-            )
-            self.text_projector = nn.Sequential(
-                nn.Linear(emb_dim, emb_dim//2),
-                nn.ReLU(),
-                nn.Linear(emb_dim//2, emb_dim)
-            )
-        elif args.projector == "attention":
-            self.visual_projector = SelfAttentionProjector(emb_dim)
-            self.text_projector = SelfAttentionProjector(emb_dim)
-        elif args.projector == "clip":
-            self.visual_projector = nn.Identity()
-            self.text_projector = nn.Identity()
-        # 加载预训练投影器参数
-        if projector_ckpt is not None:
-            state = torch.load(projector_ckpt, map_location=device)
-            self.visual_projector.load_state_dict(state['visual_projector'].state_dict())
-            self.text_projector.load_state_dict(state['text_projector'].state_dict())
-
-    def forward(self, img_input, text_input):
-        # img_input: already preprocessed pixel_values tensor [B,3,224,224]
-        # text_input: dict, e.g. {"texts": [...]}
-        texts = text_input["texts"] if "texts" in text_input else text_input
-        text_inputs = self.siglip_processor(
-            text=texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True
-        )
-        text_inputs = {k: v.to(device) for k, v in text_inputs.items()}
-        vision_outputs = self.siglip_model.vision_model(pixel_values=img_input)
-        text_outputs = self.siglip_model.text_model(**text_inputs)
-        img_feats = self.visual_projector(vision_outputs.pooler_output)
-        text_feats = self.text_projector(text_outputs.pooler_output)
-        return img_feats, text_feats
-
-    def get_image_features(self, img_input):
-        # img_input: already preprocessed pixel_values tensor [B,3,224,224]
-        vision_outputs = self.siglip_model.vision_model(pixel_values=img_input)
-        img_feats = self.visual_projector(vision_outputs.pooler_output)
-        return img_feats
-
-    def get_text_features(self, text_input):
-        # text_input: dict, e.g. {"texts": [...]}
-        texts = text_input["texts"] if "texts" in text_input else text_input
-        inputs = self.siglip_processor(
-            text=texts,
-            return_tensors="pt",
-            padding=True,
-            truncation=True
-        )
-        inputs = {k: v.to(device) for k, v in inputs.items()}
-        text_outputs = self.siglip_model.text_model(**inputs)
-        text_feats = self.text_projector(text_outputs.pooler_output)
-        return text_feats
 
 class MSCOCODataset(Dataset):
     def __init__(self, coco_json, img_dir, img_transform=None):
-        """
-        Args:
-            coco_json: COCO注释json文件
-            img_dir: 包含所有图像的目录
-            img_transform: 应用于图像的变换
-            txt_transform: 应用于文本的变换
-        """
         self.coco = COCO(coco_json)
         self.img_dir = img_dir
         self.ids = list(self.coco.imgs.keys())
@@ -240,90 +95,247 @@ class MSCOCODataset(Dataset):
     def __getitem__(self, index):
         img_id = self.ids[index]
         img_info = self.coco.imgs[img_id]
-        img_path = os.path.join(self.img_dir, img_info['file_name'])
-        
-        # 加载图像
-        image = Image.open(img_path).convert('RGB')
-        if self.img_transform:
+        image_path = os.path.join(self.img_dir, img_info["file_name"])
+        image = Image.open(image_path).convert("RGB")
+        if self.img_transform is not None:
             image = self.img_transform(image)
-        
-        # 获取该图像的所有描述
         ann_ids = self.coco.getAnnIds(imgIds=img_id)
-        annotations = self.coco.loadAnns(ann_ids)
-        captions = [ann['caption'] for ann in annotations]
-        
-        # 随机选择一个描述
+        captions = [ann["caption"] for ann in self.coco.loadAnns(ann_ids)]
         caption = random.choice(captions)
         return image, caption
 
 
+class SelfAttentionProjector(nn.Module):
+    def __init__(self, dim=768):
+        super().__init__()
+        self.query = nn.Linear(dim, dim)
+        self.key = nn.Linear(dim, dim)
+        self.value = nn.Linear(dim, dim)
+        self.proj = nn.Linear(dim, dim)
+        self.scale = dim ** -0.5
+
+    def forward(self, x):
+        q = self.query(x)
+        k = self.key(x)
+        v = self.value(x)
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+        return self.proj(attn @ v)
+
+
+class ResidualProjector(nn.Module):
+    def __init__(self, dim=768):
+        super().__init__()
+        self.proj = nn.Sequential(
+            nn.Linear(dim, dim),
+            nn.ReLU(),
+            nn.Linear(dim, dim),
+        )
+
+    def forward(self, x):
+        return x + self.proj(x)
+
+
+def build_projector(projector_name: str, emb_dim: int) -> nn.Module:
+    if projector_name == "linear":
+        return nn.Linear(emb_dim, emb_dim)
+    if projector_name == "mlp":
+        return nn.Sequential(
+            nn.Linear(emb_dim, 2 * emb_dim),
+            nn.ReLU(),
+            nn.Linear(2 * emb_dim, emb_dim),
+        )
+    if projector_name == "residual":
+        return ResidualProjector(emb_dim)
+    if projector_name == "norm":
+        return nn.Sequential(
+            nn.Linear(emb_dim, emb_dim),
+            nn.LayerNorm(emb_dim),
+            nn.ReLU(),
+        )
+    if projector_name == "mlp+norm":
+        return nn.Sequential(
+            nn.Linear(emb_dim, 2 * emb_dim),
+            nn.ReLU(),
+            nn.Linear(2 * emb_dim, emb_dim),
+            nn.Linear(emb_dim, emb_dim),
+            nn.LayerNorm(emb_dim),
+            nn.ReLU(),
+        )
+    if projector_name == "bottleneck":
+        return nn.Sequential(
+            nn.Linear(emb_dim, emb_dim // 2),
+            nn.ReLU(),
+            nn.Linear(emb_dim // 2, emb_dim),
+        )
+    if projector_name == "attention":
+        return SelfAttentionProjector(emb_dim)
+    raise ValueError(f"Unsupported projector: {projector_name}")
+
+
+class CombinedModel(nn.Module):
+    def __init__(self, siglip_model, siglip_processor, args):
+        super().__init__()
+        self.siglip_model = siglip_model
+        self.siglip_processor = siglip_processor
+        emb_dim = siglip_model.config.vision_config.hidden_size
+        self.visual_projector = build_projector(args.projector, emb_dim)
+        self.text_projector = build_projector(args.projector, emb_dim)
+
+    def get_image_features(self, images):
+        vision_outputs = self.siglip_model.vision_model(pixel_values=images)
+        return self.visual_projector(vision_outputs.pooler_output)
+
+    def get_text_features(self, texts):
+        text_inputs = self.siglip_processor(
+            text=list(texts),
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
+        )
+        text_inputs = {key: value.to(DEVICE) for key, value in text_inputs.items()}
+        text_outputs = self.siglip_model.text_model(**text_inputs)
+        return self.text_projector(text_outputs.pooler_output)
+
+    def forward(self, images, texts):
+        return self.get_image_features(images), self.get_text_features(texts)
+
+
 def contrastive_loss(img_feats, text_feats, temperature=0.07):
-    """
-    计算图文对比损失
-    """
-    # 归一化特征
     img_feats = F.normalize(img_feats, p=2, dim=1)
     text_feats = F.normalize(text_feats, p=2, dim=1)
-    
-    # 计算余弦相似度矩阵 (batch_size x batch_size)
     logits = torch.matmul(img_feats, text_feats.t()) / temperature
-    
-    # 对角线上的元素是正样本对
     labels = torch.arange(logits.shape[0], device=logits.device)
-    
-    # 计算图像->文本和文本->图像方向的损失
-    i2t_loss = F.cross_entropy(logits, labels)
-    t2i_loss = F.cross_entropy(logits.t(), labels)
-    
-    # 总损失是两个方向损失的平均
-    total_loss = (i2t_loss + t2i_loss) / 2
-    return total_loss
+    return 0.5 * (F.cross_entropy(logits, labels) + F.cross_entropy(logits.t(), labels))
+
 
 def compute_rmg(image_features, text_features):
-    image_to_text_map = torch.arange(image_features.shape[0]).reshape(image_features.shape[0], 1) # [batch_size, 1]
-    text_to_image_map = torch.arange(image_features.shape[0]) # [batch_size * 1]
+    image_to_text_map = torch.arange(image_features.shape[0], device=image_features.device).reshape(image_features.shape[0], 1)
+    text_to_image_map = torch.arange(image_features.shape[0], device=image_features.device)
     image_features = image_features / image_features.norm(dim=-1, keepdim=True)
     text_features = text_features / text_features.norm(dim=-1, keepdim=True)
     image_features_original = image_features.clone()
     image_features = torch.stack([image_features[l] for l in text_to_image_map], dim=0)
     text_feature_per_image = text_features
-    labels_to_idx_map = torch.ones((text_features.size(0),text_features.size(0))).bool()
+    labels_to_idx_map = torch.ones((text_features.size(0), text_features.size(0)), dtype=torch.bool, device=image_features.device)
     for txt_idcs in image_to_text_map:
-        for i,j in [(x.item(), y.item()) for x in txt_idcs for y in txt_idcs]:
-            labels_to_idx_map[i,j] = False
-    
-    image_features_matching = torch.sum(image_features*text_feature_per_image, dim=1).mean()
-    image_features_matching = 1-(image_features_matching+1)/2 # [0, 1] & flip
-    image_features_matching = torch.where(image_features_matching > 0, image_features_matching, torch.ones_like(image_features_matching)*1e-3) # [1e-3, 1]
+        for i, j in [(x.item(), y.item()) for x in txt_idcs for y in txt_idcs]:
+            labels_to_idx_map[i, j] = False
+
+    image_features_matching = torch.sum(image_features * text_feature_per_image, dim=1).mean()
+    image_features_matching = 1 - (image_features_matching + 1) / 2
+    image_features_matching = torch.where(
+        image_features_matching > 0,
+        image_features_matching,
+        torch.ones_like(image_features_matching) * 1e-3,
+    )
 
     i_x_i = image_features_original @ image_features_original.T
-
     i_x_i.fill_diagonal_(0)
-    mean_img_similarity = i_x_i.sum() / (math.prod(i_x_i.shape)-i_x_i.shape[0]) # [-1, 1]
-    mean_img_similarity = 1-(mean_img_similarity+1)/2 # [0,1] & flip
+    mean_img_similarity = i_x_i.sum() / (math.prod(i_x_i.shape) - i_x_i.shape[0])
+    mean_img_similarity = 1 - (mean_img_similarity + 1) / 2
 
     t_x_t = text_features @ text_features.T
     t_x_t.fill_diagonal_(0)
-    mean_txt_similarity = t_x_t.sum() / (math.prod(t_x_t.shape)-t_x_t.shape[0]) # [-1, 1]
-    mean_txt_similarity = 1-(mean_txt_similarity+1)/2 # [0,1] & flip
+    mean_txt_similarity = t_x_t.sum() / (math.prod(t_x_t.shape) - t_x_t.shape[0])
+    mean_txt_similarity = 1 - (mean_txt_similarity + 1) / 2
 
     normalizer = image_features_matching.mean() + (mean_img_similarity.mean() + mean_txt_similarity.mean()) / 2
-    dist = image_features_matching.mean().item() / normalizer.item()
+    return image_features_matching.mean() / normalizer.clamp_min(1e-8)
 
-    return torch.tensor(dist)
 
-# 修改训练函数
-def train(hyper_dict, train_loader, val_loader=None, projector_ckpt=None):
-    print(hyper_dict)
-    print("using {} device.".format(device))
-    # 加载SigLIP模型和processor
-    SIGLIP_MODEL_NAME = "google/siglip-base-patch16-224"
+def max_margin_loss(img_feats, text_feats, margin=0.2):
+    img_feats = F.normalize(img_feats, p=2, dim=1)
+    text_feats = F.normalize(text_feats, p=2, dim=1)
+    sims = img_feats @ text_feats.t()
+    batch_size = sims.size(0)
+    if batch_size <= 1:
+        return torch.zeros((), device=sims.device, dtype=sims.dtype)
+    pos = sims.diag()
+    mask = ~torch.eye(batch_size, dtype=torch.bool, device=sims.device)
+    i2t = F.relu(margin + sims - pos.unsqueeze(1))[mask].mean()
+    t2i = F.relu(margin + sims - pos.unsqueeze(0))[mask].mean()
+    return 0.5 * (i2t + t2i)
+
+
+def calculate_accuracy(image_features, text_features, labels, threshold=0.5):
+    if isinstance(image_features, torch.Tensor):
+        image_features = image_features.detach().cpu().numpy()
+        text_features = text_features.detach().cpu().numpy()
+    similarity_matrix = cosine_similarity(image_features, text_features)
+    predictions = (similarity_matrix > threshold).astype(int)
+    return float(np.mean(predictions == labels))
+
+
+def compute_total_loss(img_feats, text_feats, loss_mode, temperature, margin):
+    normalized_mode = normalize_projector_variant(loss_mode)
+    cl_loss = contrastive_loss(img_feats, text_feats, temperature=temperature)
+    rmg_loss = compute_rmg(img_feats, text_feats)
+    mm_loss = max_margin_loss(img_feats, text_feats, margin=margin)
+
+    if normalized_mode == "clonly":
+        total_loss = cl_loss
+    elif normalized_mode == "rmgonly":
+        total_loss = rmg_loss
+    elif normalized_mode == "maxmargin":
+        total_loss = mm_loss
+    else:
+        total_loss = cl_loss + rmg_loss
+
+    stats = {
+        "loss": float(total_loss.detach().item()),
+        "cl_loss": float(cl_loss.detach().item()),
+        "rmg_loss": float(rmg_loss.detach().item()),
+        "max_margin_loss": float(mm_loss.detach().item()),
+    }
+    return total_loss, stats
+
+
+def evaluate_loader(model, data_loader, temperature, margin):
+    model.eval()
+    total_loss = 0.0
+    total_cl = 0.0
+    total_rmg = 0.0
+    total_mm = 0.0
+    total_accuracy = 0.0
+    total_samples = 0
+
+    with torch.no_grad():
+        progress = tqdm(data_loader, desc="eval", leave=False)
+        for images, texts in progress:
+            images = images.to(DEVICE)
+            img_feats = model.get_image_features(images)
+            text_feats = model.get_text_features(texts)
+            _, stats = compute_total_loss(img_feats, text_feats, "", temperature, margin)
+            batch_size = len(texts)
+            accuracy = calculate_accuracy(img_feats, text_feats, np.eye(batch_size))
+
+            total_loss += stats["loss"] * batch_size
+            total_cl += stats["cl_loss"] * batch_size
+            total_rmg += stats["rmg_loss"] * batch_size
+            total_mm += stats["max_margin_loss"] * batch_size
+            total_accuracy += accuracy * batch_size
+            total_samples += batch_size
+            progress.set_postfix(loss=f"{stats['loss']:.4f}", rmg=f"{stats['rmg_loss']:.4f}", acc=f"{accuracy * 100:.2f}%")
+
+    return {
+        "loss": total_loss / max(total_samples, 1),
+        "cl_loss": total_cl / max(total_samples, 1),
+        "rmg": total_rmg / max(total_samples, 1),
+        "max_margin_loss": total_mm / max(total_samples, 1),
+        "accuracy": total_accuracy / max(total_samples, 1),
+    }
+
+
+def train(args, train_loader, val_loader, writer):
+    normalized_mode = normalize_projector_variant(args.loss_mode)
+    print(f"Using device: {DEVICE}")
+    print(f"Projector: {args.projector}, loss_mode: {projector_variant_label(normalized_mode)}")
+
     siglip_processor = SiglipProcessor.from_pretrained(SIGLIP_MODEL_NAME)
-    siglip_model = SiglipModel.from_pretrained(SIGLIP_MODEL_NAME).to(device)
-    siglip_model.eval()
+    siglip_model = SiglipModel.from_pretrained(SIGLIP_MODEL_NAME).to(DEVICE)
+    combined_model = CombinedModel(siglip_model, siglip_processor, args).to(DEVICE)
 
-    # 创建只包含SigLIP和投影层的模型
-    combined_model = CombinedModel(siglip_model, siglip_processor, hyper_dict, projector_ckpt=projector_ckpt).to(device)
     for param in combined_model.siglip_model.parameters():
         param.requires_grad = False
     for param in combined_model.visual_projector.parameters():
@@ -331,238 +343,194 @@ def train(hyper_dict, train_loader, val_loader=None, projector_ckpt=None):
     for param in combined_model.text_projector.parameters():
         param.requires_grad = True
 
-    optimizer = optim.Adam(filter(lambda p: p.requires_grad, combined_model.parameters()), lr=hyper_dict.lr)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=hyper_dict.epochs, eta_min=1e-6)
-    epochs = hyper_dict.epochs
-    best_loss = float('inf')
-    scaler = torch.cuda.amp.GradScaler(enabled=use_amp)
-    have_saved = None
+    optimizer = optim.Adam(filter(lambda p: p.requires_grad, combined_model.parameters()), lr=args.lr)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs, eta_min=1e-6)
+    scaler = torch.cuda.amp.GradScaler(enabled=USE_AMP)
+    best_state = None
+    best_metrics = None
+    best_loss = float("inf")
 
-    for epoch in range(epochs):
+    for epoch in range(args.epochs):
         combined_model.train()
-        running_loss = 0.0
-        train_bar = tqdm(train_loader, file=sys.stdout)
-        for step, (images, texts) in enumerate(train_bar):
+        train_loss_sum = 0.0
+        train_samples = 0
+        progress = tqdm(train_loader, desc=f"train {epoch + 1}/{args.epochs}")
+
+        for step, (images, texts) in enumerate(progress):
             optimizer.zero_grad()
-            images = images.to(device)
-            # 文本tokenize
-            text_inputs = {"texts": list(texts)}
-            with torch.cuda.amp.autocast(enabled=use_amp):
+            images = images.to(DEVICE)
+            with torch.cuda.amp.autocast(enabled=USE_AMP):
                 img_feats = combined_model.get_image_features(images)
-                text_feats = combined_model.get_text_features(text_inputs)
-                cl_loss = contrastive_loss(img_feats, text_feats, temperature=hyper_dict.temperature)
-                rmg_loss = compute_rmg(img_feats, text_feats)
-                loss = cl_loss + rmg_loss
+                text_feats = combined_model.get_text_features(texts)
+                loss, stats = compute_total_loss(
+                    img_feats,
+                    text_feats,
+                    args.loss_mode,
+                    args.temperature,
+                    args.margin,
+                )
+
             scaler.scale(loss).backward()
             torch.nn.utils.clip_grad_norm_(combined_model.parameters(), max_norm=1.0)
             scaler.step(optimizer)
             scaler.update()
             scheduler.step()
-            running_loss += loss.item()
-            train_bar.desc = "train epoch[{}/{}] cl_loss:{:.3f} rmg_loss:{:.3f}".format(epoch + 1, epochs, cl_loss, rmg_loss)
-            writer.add_scalar("Loss/train", loss.item(), epoch * len(train_loader) + step)
-            writer.add_scalar("CL_Loss/train", cl_loss.item(), epoch * len(train_loader) + step)
-            writer.add_scalar("RMG_Loss/train", rmg_loss.item(), epoch * len(train_loader) + step)
-        avg_loss = running_loss / len(train_loader)
-        print(f'[Epoch {epoch+1}/{epochs}] Train Loss: {avg_loss:.3f}')
-        if val_loader is not None:
-            combined_model.eval()
-            val_loss = 0.0
-            total_accuracy = 0
-            total_RMG = 0
-            with torch.no_grad():
-                val_bar = tqdm(val_loader, file=sys.stdout)
-                for val_images, val_texts in val_bar:
-                    val_images = val_images.to(device)
-                    text_inputs = {"texts": list(val_texts)}
-                    img_feats = combined_model.get_image_features(val_images)
-                    text_feats = combined_model.get_text_features(text_inputs)
-                    cl_loss = contrastive_loss(img_feats, text_feats, temperature=hyper_dict.temperature)
-                    rmg_loss = compute_rmg(img_feats, text_feats)
-                    loss = cl_loss + rmg_loss
-                    total_RMG += rmg_loss*len(val_texts)
-                    labels = np.eye(len(val_texts))
-                    accuracy = calculate_accuracy(img_feats, text_feats, labels)
-                    total_accuracy += accuracy*len(val_texts)
-                    val_loss += loss.item()
-                    val_bar.desc = f"val epoch[{epoch+1}/{epochs}] loss:{loss:.3f} cl_loss:{cl_loss:.3f} rmg_loss:{rmg_loss:.3f}"
-            avg_val_loss = val_loss / len(val_loader)
-            avg_accuracy = total_accuracy / len(val_loader.dataset)
-            avg_RMG = total_RMG / len(val_loader.dataset)
-            print(f'[Epoch {epoch+1}/{epochs}] Val Loss: {avg_val_loss:.3f}')
-            print(f'[Epoch {epoch+1}/{epochs}] Val Accuracy: {avg_accuracy*100:.3f}%')
-            print(f'[Epoch {epoch+1}/{epochs}] Val RMG: {avg_RMG:.3f}')
-            writer.add_scalar("Loss/val", avg_val_loss, epoch)
-            writer.add_scalar("Accuracy/val", avg_accuracy, epoch)
-            writer.add_scalar("RMG/val", avg_RMG, epoch)
-            if avg_val_loss < best_loss:
-                best_loss = avg_val_loss
-                best_RMG = avg_RMG
-                best_accuracy = avg_accuracy
-                print(f"Best Loss: {best_loss:.3f}, Best RMG: {best_RMG:.3f}, Best Accuracy: {best_accuracy*100:.3f}%")
-                if have_saved:
-                    os.remove(have_saved)
-                now = datetime.datetime.now()
-                filename = f"{hyper_dict.projector}_siglip_{img_feats.shape[-1]}.pth"
-                save_path_file = os.path.join(hyper_dict.save_path, filename)
-                best_model = combined_model
-                torch.save({'visual_projector': combined_model.visual_projector,
-                            'text_projector': combined_model.text_projector}, save_path_file)
-                have_saved = save_path_file
-                print(f"Model saved to {save_path_file}")
-        else:
-            if epoch % 5 == 0 or epoch == epochs - 1:
-                now = datetime.datetime.now()
-                filename = now.strftime("%Y%m%d_%H%M%S.pth")
-                save_path_file = os.path.join(hyper_dict.save_path, filename)
-                torch.save({'visual_projector': combined_model.visual_projector,
-                            'text_projector': combined_model.text_projector}, save_path_file)
-                print(f"Model saved to {save_path_file}")
-    print('Finished Training')
-    if val_loader is not None:
-        print(f'Best Loss: {best_loss:.3f}')
-    return best_model
 
-def calculate_accuracy(image_features, text_features, labels, threshold=0.5):
-    if isinstance(image_features, torch.Tensor):
-        image_features = image_features.cpu().numpy()
-        text_features = text_features.cpu().numpy()
-    similarity_matrix = cosine_similarity(image_features, text_features)
-    
-    # 根据阈值判断匹配情况
-    predictions = (similarity_matrix > threshold).astype(int)
-    
-    # 计算准确率
-    accuracy = np.mean(predictions == labels)
-    
-    return accuracy
+            batch_size = len(texts)
+            train_loss_sum += stats["loss"] * batch_size
+            train_samples += batch_size
+            global_step = epoch * len(train_loader) + step
+            writer.add_scalar("train/loss", stats["loss"], global_step)
+            writer.add_scalar("train/cl_loss", stats["cl_loss"], global_step)
+            writer.add_scalar("train/rmg_loss", stats["rmg_loss"], global_step)
+            writer.add_scalar("train/max_margin_loss", stats["max_margin_loss"], global_step)
+            progress.set_postfix(
+                loss=f"{stats['loss']:.4f}",
+                cl=f"{stats['cl_loss']:.4f}",
+                rmg=f"{stats['rmg_loss']:.4f}",
+                mm=f"{stats['max_margin_loss']:.4f}",
+            )
 
-# 修改主函数
-if __name__ == "__main__":
-    # 解析命令行参数
-    parser = argparse.ArgumentParser(description="training")
-    parser.add_argument('--save_path', type=str, default="saved/projector_weights/")
-    parser.add_argument('--lr', type=float, default=1e-4)
-    parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--temperature', type=float, default=0.07)
-    parser.add_argument('--coco_json', type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_train2017.json")
-    parser.add_argument('--coco_img_dir', type=str, default="/home/bd/data/zs/data/COCO/train2017")
-    parser.add_argument('--coco_val_json', type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_val2017.json")
-    parser.add_argument('--coco_val_img_dir', type=str, default="/home/bd/data/zs/data/COCO/val2017")
-    parser.add_argument('--val_split', type=float, default=0.1)
-    parser.add_argument('--projector', type=str, default="mlp+norm", choices=["linear", "mlp", "residual", "norm", "mlp+norm", "bottleneck", "attention"])
-    parser.add_argument('--model', type=str, default="base")
-    args = parser.parse_args()
-    
-    # 设置随机种子
-    set_seed(RANDOM_SEED)
-    
-    # 确保保存路径存在
-    os.makedirs(args.save_path, exist_ok=True)
-    
-    # 加载SigLIP图像预处理
-    SIGLIP_MODEL_NAME = "google/siglip-base-patch16-224"
+        avg_train_loss = train_loss_sum / max(train_samples, 1)
+        print(f"[Epoch {epoch + 1}/{args.epochs}] Train Loss: {avg_train_loss:.4f}")
+
+        if val_loader is None:
+            continue
+
+        val_metrics = evaluate_loader(combined_model, val_loader, args.temperature, args.margin)
+        writer.add_scalar("val/loss", val_metrics["loss"], epoch)
+        writer.add_scalar("val/accuracy", val_metrics["accuracy"], epoch)
+        writer.add_scalar("val/rmg", val_metrics["rmg"], epoch)
+        writer.add_scalar("val/max_margin_loss", val_metrics["max_margin_loss"], epoch)
+        print(
+            f"[Epoch {epoch + 1}/{args.epochs}] "
+            f"Val Loss: {val_metrics['loss']:.4f}, "
+            f"Val Accuracy: {val_metrics['accuracy'] * 100:.2f}%, "
+            f"Val RMG: {val_metrics['rmg']:.4f}"
+        )
+
+        if val_metrics["loss"] < best_loss:
+            best_loss = val_metrics["loss"]
+            best_metrics = {"epoch": epoch + 1, **val_metrics}
+            best_state = {key: value.detach().cpu().clone() for key, value in combined_model.state_dict().items()}
+
+    if best_state is not None:
+        combined_model.load_state_dict(best_state)
+    else:
+        best_metrics = {"epoch": args.epochs}
+
+    emb_dim = siglip_model.config.vision_config.hidden_size
+    checkpoint_name = projector_checkpoint_name(args.projector, "siglip", emb_dim, normalized_mode)
+    checkpoint_path = Path(args.save_path) / checkpoint_name
+    torch.save(
+        {
+            "visual_projector": combined_model.visual_projector.state_dict(),
+            "text_projector": combined_model.text_projector.state_dict(),
+            "metadata": {
+                "model": "siglip",
+                "projector": args.projector,
+                "loss_mode": projector_variant_label(normalized_mode),
+                "temperature": args.temperature,
+                "margin": args.margin,
+                "best_metrics": best_metrics,
+            },
+        },
+        checkpoint_path,
+    )
+    print(f"Saved checkpoint to {checkpoint_path}")
+    return combined_model, checkpoint_path, best_metrics
+
+
+def write_metrics_json(json_path: Path, payload: dict) -> None:
+    with open(json_path, "w", encoding="utf-8") as fout:
+        json.dump(payload, fout, indent=2, ensure_ascii=False)
+
+
+def build_dataloaders(args):
     siglip_processor = SiglipProcessor.from_pretrained(SIGLIP_MODEL_NAME)
-    siglip_model = SiglipModel.from_pretrained(SIGLIP_MODEL_NAME).to(device)
-    siglip_model.eval()
-    # 使用SigLIP的预处理
-    def siglip_preprocess(img):
-        return siglip_processor(images=img, return_tensors="pt")["pixel_values"].squeeze(0)
-    # 创建MSCOCO数据集
-    train_dataset = MSCOCODataset(
-        args.coco_json,
-        args.coco_img_dir,
-        img_transform=siglip_preprocess
-    )
-    val_dataset = MSCOCODataset(
-        args.coco_val_json,
-        args.coco_val_img_dir,
-        img_transform=siglip_preprocess
-    )
+
+    def siglip_preprocess(image):
+        return siglip_processor(images=image, return_tensors="pt")["pixel_values"].squeeze(0)
+
+    train_dataset = MSCOCODataset(args.coco_json, args.coco_img_dir, img_transform=siglip_preprocess)
+    val_dataset = MSCOCODataset(args.coco_val_json, args.coco_val_img_dir, img_transform=siglip_preprocess)
+    flickr_dataset = F30kCaptionsCap(args.flickr_split, split=args.flickr_eval_split, transform=siglip_preprocess)
+
     train_loader = DataLoader(
-        dataset=train_dataset,
+        train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=4,
-        pin_memory=True
+        num_workers=args.num_workers,
+        pin_memory=True,
     )
     val_loader = DataLoader(
-        dataset=val_dataset,
+        val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=4,
-        pin_memory=True
+        num_workers=args.num_workers,
+        pin_memory=True,
     )
-    
-    # original_rmg = 0
-    # original_accuracy = 0
-    # with torch.no_grad():
-    #     for batch in tqdm(val_loader, desc="Processing MSCOCO"):
-    #         images, text_tokens = batch
-    #         images = images.to(device)
-    #         text_tokens = clip.tokenize(text_tokens, truncate=True).to(device)
-            
-    #         # 获取特征
-    #         img_feats, txt_feats = clip_model.encode_image(images), clip_model.encode_text(text_tokens)
-            
-    #         # 归一化特征
-    #         img_feats = F.normalize(img_feats, p=2, dim=1)
-    #         txt_feats = F.normalize(txt_feats, p=2, dim=1)
-    #         original_rmg += compute_rmg(img_feats, txt_feats) * img_feats.shape[0]
-    #         original_accuracy += calculate_accuracy(img_feats, txt_feats, np.eye(img_feats.shape[0]), threshold=0.5) * img_feats.shape[0]
-    # original_rmg /= len(val_loader.dataset)
-    # original_accuracy /= len(val_loader.dataset)
-    # print(f"MSCOCO Original RMG: {original_rmg:.3f}")
-    # print(f"MSCOCO Original Accuracy: {original_accuracy*100:.3f}%")
-    
-    # 开始训练
-    combined_model = train(args, train_loader, val_loader)
-    
-    FLICKR_PATH = 'dataset_k_split.pkl'
-    flickr30k_dataset = F30kCaptionsCap(FLICKR_PATH, transform=siglip_preprocess)
-    print(f"Loaded Flickr30k dataset with {len(flickr30k_dataset)} samples")
+    flickr_loader = DataLoader(
+        flickr_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+    )
+    return train_loader, val_loader, flickr_loader
 
-    batch_size = 32
-    dataloader = DataLoader(flickr30k_dataset, batch_size=batch_size, shuffle=False)
-    
-    # original_rmg = 0
-    # original_accuracy = 0
-    # with torch.no_grad():
-    #     for batch in tqdm(dataloader, desc="Processing Flickr30k"):
-    #         images, _, captions = batch
-    #         images = images.to(device)
-    #         text_tokens = clip.tokenize(captions, truncate=True).to(device)
-            
-    #         # 获取特征
-    #         img_feats, txt_feats = clip_model.encode_image(images), clip_model.encode_text(text_tokens)
-            
-    #         # 归一化特征
-    #         img_feats = F.normalize(img_feats, p=2, dim=1)
-    #         txt_feats = F.normalize(txt_feats, p=2, dim=1)
-    #         original_rmg += compute_rmg(img_feats, txt_feats) * img_feats.shape[0]
-    #         original_accuracy += calculate_accuracy(img_feats, txt_feats, np.eye(img_feats.shape[0]), threshold=0.5) * img_feats.shape[0]
-    # original_rmg /= len(flickr30k_dataset)
-    # original_accuracy /= len(flickr30k_dataset)
-    # print(f"Flickr30k Original RMG: {original_rmg:.3f}")
-    # print(f"Flickr30k Original Accuracy: {original_accuracy*100:.3f}%")
-    
-    combined_model.eval()  # Ensure the model is in evaluation mode
-    
-    total_rmg = 0
-    total_accuracy = 0
-    with torch.no_grad():
-        for batch in tqdm(dataloader, desc="Processing Flickr30k"):
-            images, captions = batch
-            images = images.to(device)
-            text_inputs = {"texts": list(captions)}
-            img_feats, txt_feats = combined_model(images, text_inputs)
-            img_feats = F.normalize(img_feats, p=2, dim=1)
-            txt_feats = F.normalize(txt_feats, p=2, dim=1)
-            total_rmg += compute_rmg(img_feats, txt_feats) * img_feats.shape[0]
-            total_accuracy += calculate_accuracy(img_feats, txt_feats, np.eye(img_feats.shape[0]), threshold=0.5) * img_feats.shape[0]
-    
-    flickr30k_rmg = total_rmg / len(flickr30k_dataset)
-    flickr30k_accuracy = total_accuracy / len(flickr30k_dataset)
-    print(f"Flickr30k RMG: {flickr30k_rmg:.3f}")
-    print(f"Flickr30k Accuracy: {flickr30k_accuracy*100:.3f}%")
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Pretrain SigLIP projector with configurable loss variants")
+    parser.add_argument("--save_path", type=str, default="saved/projector_weights/")
+    parser.add_argument("--lr", type=float, default=1e-4)
+    parser.add_argument("--epochs", type=int, default=10)
+    parser.add_argument("--batch_size", type=int, default=32)
+    parser.add_argument("--temperature", type=float, default=0.07)
+    parser.add_argument("--margin", type=float, default=0.2)
+    parser.add_argument("--projector", type=str, default="mlp+norm",
+                        choices=["linear", "mlp", "residual", "norm", "mlp+norm", "bottleneck", "attention"])
+    parser.add_argument("--loss_mode", type=str, default="cl_rmg",
+                        choices=["cl_rmg", "cl_only", "rmg_only", "max_margin", "clonly", "rmgonly", "maxmargin"])
+    parser.add_argument("--coco_json", type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_train2017.json")
+    parser.add_argument("--coco_img_dir", type=str, default="/home/bd/data/zs/data/COCO/train2017")
+    parser.add_argument("--coco_val_json", type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_val2017.json")
+    parser.add_argument("--coco_val_img_dir", type=str, default="/home/bd/data/zs/data/COCO/val2017")
+    parser.add_argument("--flickr_split", type=str, default="dataset_k_split.pkl")
+    parser.add_argument("--flickr_eval_split", type=str, default="test")
+    parser.add_argument("--num_workers", type=int, default=4)
+    parser.add_argument("--seed", type=int, default=RANDOM_SEED)
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+    set_seed(args.seed)
+    os.makedirs(args.save_path, exist_ok=True)
+
+    variant_label = projector_variant_label(args.loss_mode)
+    writer = SummaryWriter(log_dir=os.path.join("runs", f"projector_siglip_{args.projector}_{variant_label}"))
+    train_loader, val_loader, flickr_loader = build_dataloaders(args)
+    best_model, checkpoint_path, best_val_metrics = train(args, train_loader, val_loader, writer)
+    flickr_metrics = evaluate_loader(best_model, flickr_loader, args.temperature, args.margin)
+    writer.close()
+
+    print(f"Flickr30k Accuracy: {flickr_metrics['accuracy'] * 100:.2f}%")
+    print(f"Flickr30k RMG: {flickr_metrics['rmg']:.4f}")
+
+    metrics_payload = {
+        "checkpoint": str(checkpoint_path),
+        "model": "siglip",
+        "projector": args.projector,
+        "loss_mode": variant_label,
+        "selection_metric": "val_loss",
+        "mscoco_val": best_val_metrics,
+        "flickr30k": flickr_metrics,
+    }
+    metrics_path = checkpoint_path.with_suffix(".json")
+    write_metrics_json(metrics_path, metrics_payload)
+    print(f"Saved metrics to {metrics_path}")
+
+
+if __name__ == "__main__":
+    main()

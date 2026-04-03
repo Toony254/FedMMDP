@@ -5,6 +5,28 @@ import torch
 import pickle
 from datasets import load_from_disk
 from src.datasets.transform import collate_fn
+
+
+def resolve_partition_prefix(data_root):
+    normalized_root = data_root.replace("\\", "/").lower()
+    dataset_name_from_path = normalized_root.split("preprocessed_")[-1].split("/")[0]
+
+    # Reuse the original IAPR partition files for SigLIP IAPR because the
+    # generated dataset preserves the exact same sample ids, ordering, and
+    # train/test splits as the CLIP IAPR dataset.
+    if dataset_name_from_path == "iapr_siglip":
+        return "./data_partition/iapr"
+
+    if "align" in normalized_root:
+        return "./data_partition/imagenet_align_"
+
+    # Existing ImageNet SigLIP experiments use a dedicated partition namespace.
+    if "siglip" in normalized_root:
+        return "./data_partition/imagenet_siglip_"
+
+    return os.path.join("./data_partition/", dataset_name_from_path)
+
+
 def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, batch_size):
     net_dataset_map_list = []
     test_loaders = []
@@ -27,12 +49,7 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
         # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_imagenet/domain_datasets/"
         # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/"
         # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/"
-        dataset_name_from_path = data_root.split('preprocessed_')[-1].split('/')[0]
-        check_dir = os.path.join('./data_partition/', dataset_name_from_path)
-        if "ALIGN" in data_root:
-            check_dir = './data_partition/imagenet_align_'
-        elif "siglip" in data_root:
-            check_dir = './data_partition/imagenet_siglip_'
+        check_dir = resolve_partition_prefix(data_root)
         net_dataidx_map = data_partitioner(domain, num_samples, 3, partition=partition,
                                         check_dir=check_dir, alpha=alpha,
                                         y_train=np.array(targets))

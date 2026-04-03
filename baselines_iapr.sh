@@ -1,19 +1,92 @@
-export IAPR_CLIP_ROOT=/home/bd/data/zs/FedMMDP/preprocessed_iapr/domain_datasets
+#!/usr/bin/env bash
+set -euo pipefail
 
-USE_PRETRAINED_PROJ=${USE_PRETRAINED_PROJ:-0}
+cd /home/bd/data/zs/FedMMDP-base
+
+CONDA_BIN="${CONDA_BIN:-/mnt/data/software/anaconda/bin/conda}"
+ENV_NAME="${ENV_NAME:-zs_vita}"
+USE_PRETRAINED_PROJ="${USE_PRETRAINED_PROJ:-0}"
 PROJ_TAG=$([ "$USE_PRETRAINED_PROJ" -eq 1 ] && echo preproj || echo randproj)
+COMM_ROUNDS="${COMM_ROUNDS:-50}"
+PUB_DATA_NUM="${PUB_DATA_NUM:-5000}"
+GPUS="${GPUS:-1,1,1,1,2,2,2,2,3,3,3}"
 
+DATASET="iapr"
+DATA_ROOT="/home/bd/data/zs/FedMMDP/preprocessed_iapr/domain_datasets"
+MODEL="clip"
+FEATURE_DIM="1024"
+FEDMMDP_NAME="${FEDMMDP_NAME:-FedMMDP-iapr-clip-${PROJ_TAG}-noRMG}"
+FEDMMDP_LOG="${FEDMMDP_LOG:-outputs/output_FedMMDP_iapr_clip_${PROJ_TAG}_noRMG.log}"
 
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-avg --FL_algorithm FedAvg --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20  --batch_size 256 --model clip --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_avg_clip_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-prox --FL_algorithm FedProx --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_prox_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-md --FL_algorithm FedMD --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --pub_data_num 5000 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_md_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=1 python src/main.py --name FedMMDP-df --FL_algorithm FedDF --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --pub_data_num 5000 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_df_iapr_${PROJ_TAG}.log 2>&1 &
+if [[ ! -x "$CONDA_BIN" ]]; then
+  echo "[ERROR] conda binary not found: $CONDA_BIN" >&2
+  exit 1
+fi
 
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-Cream --FL_algorithm Cream --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --pub_data_num 5000 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_cream_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-Harmony --FL_algorithm Harmony --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --harmony_stage1_rounds 10 --harmony_clusters 2 --harmony_cluster_mode fixed --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_Harmony_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-MASA --FL_algorithm MASA --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_MASA_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=2 python src/main.py --name FedMMDP-MEMA --FL_algorithm FedMEMA --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_FedMEMA_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-Mobile --FL_algorithm FedMobile --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_FedMobile_iapr_${PROJ_TAG}.log 2>&1 &
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP-MEKT --FL_algorithm FedMEKT --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_FedMEKT_iapr_${PROJ_TAG}.log 2>&1 &
+if [[ ! -d "$DATA_ROOT" ]]; then
+  echo "[ERROR] data root not found: $DATA_ROOT" >&2
+  exit 1
+fi
 
-CUDA_VISIBLE_DEVICES=3 python src/main.py --name FedMMDP --FL_algorithm FedMMDP --dataset iapr --data_root "$IAPR_CLIP_ROOT" --lr 1e-5 --local_epochs 1 --comm_rounds 20 --model clip --batch_size 256 --use_pretrained_proj "$USE_PRETRAINED_PROJ" --partition hetero >outputs/output_FedMMDP_iapr_${PROJ_TAG}.log 2>&1 &
+mkdir -p outputs
+
+eval "$("$CONDA_BIN" shell.bash hook)"
+conda activate "$ENV_NAME"
+
+IFS=',' read -r -a GPU_SLOTS <<< "${GPUS// /}"
+if (( ${#GPU_SLOTS[@]} < 11 )); then
+  echo "[ERROR] GPUS must contain at least 11 comma-separated entries, got: $GPUS" >&2
+  exit 1
+fi
+
+declare -a PIDS=()
+
+launch_run() {
+  local gpu="$1"
+  local name="$2"
+  local algo="$3"
+  local log_file="$4"
+  shift 4
+
+  echo "[LAUNCH] gpu=$gpu algo=$algo name=$name log=$log_file"
+  nohup env CUDA_VISIBLE_DEVICES="$gpu" PYTHONUNBUFFERED=1 python -u src/main.py \
+    --name "$name" \
+    --FL_algorithm "$algo" \
+    --dataset "$DATASET" \
+    --data_root "$DATA_ROOT" \
+    --model "$MODEL" \
+    --feature_dim "$FEATURE_DIM" \
+    --lr 1e-5 \
+    --local_epochs 1 \
+    --comm_rounds "$COMM_ROUNDS" \
+    --batch_size 256 \
+    --use_pretrained_proj "$USE_PRETRAINED_PROJ" \
+    --partition hetero \
+    "$@" >"$log_file" 2>&1 &
+  PIDS+=($!)
+}
+
+launch_run "${GPU_SLOTS[0]}" "FedMMDP-avg" "FedAvg" "outputs/output_avg_clip_iapr_${PROJ_TAG}.log"
+launch_run "${GPU_SLOTS[1]}" "FedMMDP-prox" "FedProx" "outputs/output_prox_iapr_${PROJ_TAG}.log"
+launch_run "${GPU_SLOTS[2]}" "FedMMDP-md" "FedMD" "outputs/output_md_iapr_${PROJ_TAG}.log" \
+  --pub_data_num "$PUB_DATA_NUM"
+launch_run "${GPU_SLOTS[3]}" "FedMMDP-df" "FedDF" "outputs/output_df_iapr_${PROJ_TAG}.log" \
+  --pub_data_num "$PUB_DATA_NUM"
+launch_run "${GPU_SLOTS[4]}" "FedMMDP-Cream" "Cream" "outputs/output_cream_iapr_${PROJ_TAG}.log" \
+  --pub_data_num "$PUB_DATA_NUM"
+launch_run "${GPU_SLOTS[5]}" "FedMMDP-Harmony" "Harmony" "outputs/output_Harmony_iapr_${PROJ_TAG}.log" \
+  --harmony_stage1_rounds 10 \
+  --harmony_clusters 2 \
+  --harmony_cluster_mode fixed
+launch_run "${GPU_SLOTS[6]}" "FedMMDP-MASA" "MASA" "outputs/output_MASA_iapr_${PROJ_TAG}.log"
+launch_run "${GPU_SLOTS[7]}" "FedMMDP-MEMA" "FedMEMA" "outputs/output_FedMEMA_iapr_${PROJ_TAG}.log"
+launch_run "${GPU_SLOTS[8]}" "FedMMDP-Mobile" "FedMobile" "outputs/output_FedMobile_iapr_${PROJ_TAG}.log"
+launch_run "${GPU_SLOTS[9]}" "FedMMDP-MEKT" "FedMEKT" "outputs/output_FedMEKT_iapr_${PROJ_TAG}.log"
+launch_run "${GPU_SLOTS[10]}" "$FEDMMDP_NAME" "FedMMDP" "$FEDMMDP_LOG" \
+  --fedmmdp_log_aux_losses 1 \
+  --fedmmdp_disable_rmg_loss 1
+
+echo "[LAUNCH] data_root=$DATA_ROOT"
+echo "[LAUNCH] proj=$PROJ_TAG comm_rounds=$COMM_ROUNDS"
+echo "[LAUNCH] started ${#PIDS[@]} jobs"
+echo "[LAUNCH] pids=${PIDS[*]}"
