@@ -2,6 +2,7 @@ import os, json, h5py, numpy as np, torch
 import clip
 from PIL import Image
 from datasets import Dataset, Features, Value, Image as HFImage, Sequence, ClassLabel
+ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 # 路径与模型
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -10,7 +11,7 @@ clip_model.eval()
 clip_dim = clip_model.text_projection.shape[1]
 
 if 'dir_fashion_gen' not in globals():
-    dir_fashion_gen = "/mnt/data/zs/data/fashion-gen/"
+    dir_fashion_gen = os.environ.get("FEDMMDP_FASHION_GEN_ROOT", os.path.join(ROOT_DIR, "data", "fashion-gen"))
 train_path = os.path.join(dir_fashion_gen, "fashiongen_256_256_train.h5")
 
 def pick_split(options):
@@ -123,7 +124,10 @@ print(f"Classes: {len(class_names)}; mapping stored at {os.path.join(output_dir,
 from datasets import load_from_disk
 
 preprocessed_root = os.path.join(os.getcwd(), "preprocessed_fashion")
-domain_out_root = "/home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets"
+domain_out_root = os.environ.get(
+    "FEDMMDP_FASHION_DOMAIN_ROOT",
+    os.path.join(ROOT_DIR, "data", "preprocessed_fashion", "domain_datasets"),
+)
 os.makedirs(domain_out_root, exist_ok=True)
 
 print("Loading saved datasets for domain split...")

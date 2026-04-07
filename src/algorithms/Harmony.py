@@ -156,7 +156,7 @@ class MMFL(object):
         self.logger.log('start creating model and partition datasets')
         self.device = torch.device('cuda:%d' % args.device)
 
-        os.makedirs('/home/bd/data/zs/data/yClient', exist_ok=True)
+        os.makedirs(os.environ.get('FEDMMDP_CLIENT_ARTIFACT_DIR', './artifacts/yClient'), exist_ok=True)
 
         self.img_local_trainers, self.txt_local_trainers, self.mm_local_trainers = [], [], []
         if args.num_img_clients > 0:

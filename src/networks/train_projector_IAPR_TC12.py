@@ -7,6 +7,7 @@ import os
 import pickle
 import random
 import sys
+from pathlib import Path
 
 import clip
 import numpy as np
@@ -24,6 +25,12 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from torch.utils.data import Dataset, DataLoader, Subset
 from torch import nn
 from tqdm import tqdm
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_FLICKR_ROOT = Path(
+    os.environ.get('FEDMMDP_FLICKR30K_ROOT', str(ROOT_DIR / 'data' / 'flickr30k' / 'flickr30k-images'))
+)
+LEGACY_FLICKR_ROOT = '/data/mmdata/Flick30k/flickr30k-images/'
 
 # 导入 IAPR TC-12 数据集
 from src.datasets.preprocess_IAPR_TC12 import IAPRTC12Dataset
@@ -55,8 +62,9 @@ class F30kCaptionsCap(Dataset):
         data = self.data[index]
         caption = data[1]
 
-        path = data[0].replace('/data/mmdata/Flick30k/flickr30k-images/',
-                       '/home/bd/data/zs/data/flickr30k/flickr30k-images/')
+        path = data[0]
+        if path.startswith(LEGACY_FLICKR_ROOT):
+            path = str(DEFAULT_FLICKR_ROOT / path[len(LEGACY_FLICKR_ROOT):].lstrip('/'))
 
         img = Image.open(path).convert('RGB')
         if self.transform is not None:

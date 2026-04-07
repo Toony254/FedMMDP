@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 # 导入所需的库和模块
 import datetime
@@ -28,6 +29,15 @@ import argparse
 import random
 import os
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_COCO_ROOT = Path(
+    os.environ.get('FEDMMDP_COCO_ROOT', str(ROOT_DIR / 'data' / 'COCO'))
+)
+DEFAULT_FLICKR_ROOT = Path(
+    os.environ.get('FEDMMDP_FLICKR30K_ROOT', str(ROOT_DIR / 'data' / 'flickr30k' / 'flickr30k-images'))
+)
+LEGACY_FLICKR_ROOT = '/data/mmdata/Flick30k/flickr30k-images/'
+
 # 设置混合精度训练
 use_amp = False
 # 初始化tensorboard
@@ -54,8 +64,9 @@ class F30kCaptionsCap(Dataset):
         data = self.data[index]
         caption = data[1]
 
-        path = data[0].replace('/data/mmdata/Flick30k/flickr30k-images/',
-                       '/home/bd/data/zs/data/flickr30k/flickr30k-images/')
+        path = data[0]
+        if path.startswith(LEGACY_FLICKR_ROOT):
+            path = str(DEFAULT_FLICKR_ROOT / path[len(LEGACY_FLICKR_ROOT):].lstrip('/'))
 
         img = Image.open(path).convert('RGB')
         if self.transform is not None:
@@ -440,10 +451,10 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=10)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--temperature', type=float, default=0.07)
-    parser.add_argument('--coco_json', type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_train2017.json")
-    parser.add_argument('--coco_img_dir', type=str, default="/home/bd/data/zs/data/COCO/train2017")
-    parser.add_argument('--coco_val_json', type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_val2017.json")
-    parser.add_argument('--coco_val_img_dir', type=str, default="/home/bd/data/zs/data/COCO/val2017")
+    parser.add_argument('--coco_json', type=str, default=str(DEFAULT_COCO_ROOT / 'annotations' / 'captions_train2017.json'))
+    parser.add_argument('--coco_img_dir', type=str, default=str(DEFAULT_COCO_ROOT / 'train2017'))
+    parser.add_argument('--coco_val_json', type=str, default=str(DEFAULT_COCO_ROOT / 'annotations' / 'captions_val2017.json'))
+    parser.add_argument('--coco_val_img_dir', type=str, default=str(DEFAULT_COCO_ROOT / 'val2017'))
     parser.add_argument('--val_split', type=float, default=0.1)
     parser.add_argument('--projector', type=str, default="mlp+norm", choices=["linear", "mlp", "residual", "norm", "mlp+norm", "bottleneck", "attention"])
     parser.add_argument('--model', type=str, default="base")

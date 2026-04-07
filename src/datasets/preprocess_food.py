@@ -8,8 +8,9 @@ from PIL import Image
 from pathlib import Path
 from datasets import Dataset, Features, Value, Image as HFImage, Sequence, ClassLabel
 
-# 1. 配置路径与参数
-SOURCE_DATA_DIR = Path("/mnt/data/zs/data/UMPC-FOOD-101")
+# 1. 配置路径与参�?Dataset roots are configured below.
+ROOT_DIR = Path(__file__).resolve().parents[2]
+SOURCE_DATA_DIR = Path(os.environ.get("FEDMMDP_FOOD101_ROOT", str(ROOT_DIR / "data" / "UMPC-FOOD-101")))
 OUTPUT_DIR = Path("preprocessed_food")
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 32
@@ -38,8 +39,7 @@ class_names = sorted(list(classes))
 label2id = {c: i for i, c in enumerate(class_names)}
 print(f"Found {len(class_names)} classes.")
 
-# 4. 定义数据生成器
-def load_metadata_map(csv_path):
+# 4. 定义数据生成�?def load_metadata_map(csv_path):
     meta = {}
     if not csv_path.exists():
         return meta
@@ -112,20 +112,17 @@ print(f"Test samples: {len(test_ds)}")
 
 # 6. 计算 Embeddings
 def compute_embeddings(batch):
-    # batch["image"] 已经是 PIL Image 对象列表（由 HF Dataset 自动加载）
-    images = [img.convert("RGB") for img in batch["image"]]
+    # batch["image"] 已经�?PIL Image 对象列表（由 HF Dataset 自动加载�?    images = [img.convert("RGB") for img in batch["image"]]
     texts = batch["text"]
     
-    # 预处理
-    image_inputs = torch.stack([preprocess(img) for img in images]).to(DEVICE)
+    # 预处�?    image_inputs = torch.stack([preprocess(img) for img in images]).to(DEVICE)
     text_inputs = clip.tokenize(texts, truncate=True).to(DEVICE)
     
     with torch.no_grad():
         image_features = model.encode_image(image_inputs)
         text_features = model.encode_text(text_inputs)
         
-        # 归一化
-        image_features /= image_features.norm(dim=-1, keepdim=True)
+        # 归一�?        image_features /= image_features.norm(dim=-1, keepdim=True)
         text_features /= text_features.norm(dim=-1, keepdim=True)
         
     return {
@@ -152,12 +149,15 @@ with open(OUTPUT_DIR / "label2id.json", "w", encoding="utf-8") as f:
 print("Preprocessing complete!")
 
 # ============================================================
-# 按标签划分 5 个领域并重命名字段，生成精简版领域数据集
+# 按标签划�?5 个领域并重命名字段，生成精简版领域数据集
 # ============================================================
 from datasets import load_from_disk
 
 preprocessed_root = os.path.join(os.getcwd(), "preprocessed_food")
-domain_out_root = "/home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets"
+domain_out_root = os.environ.get(
+    "FEDMMDP_FOOD_DOMAIN_ROOT",
+    str(ROOT_DIR / "data" / "preprocessed_food" / "domain_datasets"),
+)
 os.makedirs(domain_out_root, exist_ok=True)
 
 print("Loading saved datasets for domain split...")
@@ -165,10 +165,9 @@ train_ds_loaded = load_from_disk(os.path.join(preprocessed_root, "train"))
 test_ds_loaded = load_from_disk(os.path.join(preprocessed_root, "test"))
 
 def prepare(ds):
-    # domain_id: 依据 class_id 均匀映射到 5 个领域，互不重叠
+    # domain_id: 依据 class_id 均匀映射�?5 个领域，互不重叠
     ds = ds.map(lambda x: {"domain_id": x["label_id"] % 5})
-    # 重命名表征字段
-    ds = ds.rename_column("image_emb", "processed_img")
+    # 重命名表征字�?    ds = ds.rename_column("image_emb", "processed_img")
     ds = ds.rename_column("text_emb", "cap_tokens")
     ds = ds.rename_column("label_id", "class_id")
     # 删除原始图像/描述字段
@@ -188,3 +187,4 @@ for dom in range(5):
     dom_train.save_to_disk(os.path.join(dom_dir, "train"))
     dom_test.save_to_disk(os.path.join(dom_dir, "test"))
     print(f"Saved domain_dataset_{dom}: train {len(dom_train)}, test {len(dom_test)}")
+

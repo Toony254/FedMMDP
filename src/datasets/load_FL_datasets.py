@@ -46,9 +46,10 @@ def get_FL_trainloader(dataset_name, data_root, num_clients, partition, alpha, b
         targets = train_set['class_id']
         num_samples = train_set.num_rows
         
-        # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_imagenet/domain_datasets/"
-        # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_fashion/domain_datasets/"
-        # data_root = "/home/bd/data/zs/FedMMDP/preprocessed_food/domain_datasets/"
+# Example layouts:
+# data_root = "data/imagenet/domain_datasets/"
+# data_root = "data/fashion/domain_datasets/"
+# data_root = "data/food/domain_datasets/"
         check_dir = resolve_partition_prefix(data_root)
         net_dataidx_map = data_partitioner(domain, num_samples, 3, partition=partition,
                                         check_dir=check_dir, alpha=alpha,

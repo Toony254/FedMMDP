@@ -1,9 +1,18 @@
 import importlib
 import random
 import argparse
+import os
+from pathlib import Path
 
 from utils.helper import Helper as helper
 from utils.model_utils import MODEL_CHOICES
+
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_COCO_ROOT = os.environ.get(
+    'FEDMMDP_COCO_ROOT',
+    str((PROJECT_ROOT / 'data' / 'MSCOCO' / '2014').resolve()),
+)
 
 
 ALGORITHM_MODULES = {
@@ -64,7 +73,7 @@ def build_parser():
 
     parser.add_argument('--dataset', type=str, default='imagenet', choices=['imagenet', 'fashion', 'food', 'iapr'])
     parser.add_argument('--data_root', type=str, default='preprocessed_imagenet/domain_datasets/')
-    parser.add_argument('--coco_root', type=str, default='/home/bd/data/zs/data/mmdata/MSCOCO/2014',
+    parser.add_argument('--coco_root', type=str, default=DEFAULT_COCO_ROOT,
                         help='root directory for the public MSCOCO dataset used by distillation baselines')
     parser.add_argument('--batch_size', type=int, default=256, metavar='N', help='input batch size for training')
     parser.add_argument('--alpha', type=float, default=0.1)

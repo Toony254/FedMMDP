@@ -1,8 +1,5 @@
-# $ conda activate zs_vita
-# $ python src/networks/train_projector.py &
-# $ ps -ef|grep train_projector
-# $ kill [...]
 import os
+from pathlib import Path
 # 导入所需的库和模块
 import datetime
 import clip
@@ -26,6 +23,11 @@ import torch.nn.functional as F
 import argparse
 import random
 import os
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+DEFAULT_COCO_ROOT = Path(
+    os.environ.get('FEDMMDP_COCO_ROOT', str(ROOT_DIR / 'data' / 'COCO'))
+)
 
 # 设置混合精度训练
 use_amp = True
@@ -247,10 +249,10 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=30)
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('--temperature', type=float, default=0.07)
-    parser.add_argument('--coco_json', type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_train2017.json")
-    parser.add_argument('--coco_img_dir', type=str, default="/home/bd/data/zs/data/COCO/train2017")
-    parser.add_argument('--coco_val_json', type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_val2017.json")
-    parser.add_argument('--coco_val_img_dir', type=str, default="/home/bd/data/zs/data/COCO/val2017")
+    parser.add_argument('--coco_json', type=str, default=str(DEFAULT_COCO_ROOT / 'annotations' / 'captions_train2017.json'))
+    parser.add_argument('--coco_img_dir', type=str, default=str(DEFAULT_COCO_ROOT / 'train2017'))
+    parser.add_argument('--coco_val_json', type=str, default=str(DEFAULT_COCO_ROOT / 'annotations' / 'captions_val2017.json'))
+    parser.add_argument('--coco_val_img_dir', type=str, default=str(DEFAULT_COCO_ROOT / 'val2017'))
     parser.add_argument('--val_split', type=float, default=0.1)
     args = parser.parse_args()
     

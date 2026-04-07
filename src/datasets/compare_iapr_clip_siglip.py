@@ -3,13 +3,17 @@ from __future__ import annotations
 import json
 import math
 import pickle
+import os
 from pathlib import Path
 
 from datasets import load_from_disk
 
 
-CLIP_ROOT = Path("/home/bd/data/zs/FedMMDP/preprocessed_iapr")
-SIGLIP_ROOT = Path("/home/bd/data/zs/FedMMDP/preprocessed_iapr_siglip")
+ROOT_DIR = Path(__file__).resolve().parents[2]
+CLIP_ROOT = Path(os.environ.get("FEDMMDP_IAPR_CLIP_ROOT", str(ROOT_DIR / "data" / "iapr")))
+SIGLIP_ROOT = Path(
+    os.environ.get("FEDMMDP_IAPR_SIGLIP_PREPROCESS_ROOT", str(ROOT_DIR / "data" / "iapr_siglip"))
+)
 CLIP_DOMAIN_ROOT = CLIP_ROOT / "domain_datasets"
 SIGLIP_DOMAIN_ROOT = SIGLIP_ROOT / "domain_datasets"
 NUM_DOMAINS = 5

@@ -1,21 +1,45 @@
-/.history
-/.vscode
-/wandb
-/runs
-/saved
-/model_noprob.log
-/experiments
-/.cache
-/data
-/src/**/__pycache__
-/visualization_results
-/saved_clients
-/dataset
-/lib
-/hfd.sh
-/cache
-/temp_batches
-/outputs
-/results
-/src/datasets/coco_emb.pt
-/*.log
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Local private configuration
+config/local_paths.sh
+.env.local
+
+# Experiment artifacts
+outputs/
+results/
+runs/
+saved/
+saved_clients/
+experiments/
+wandb/
+artifacts/
+logs/
+*.log
+
+# Data and checkpoints
+data/
+checkpoints/
+*.pth
+*.pt
+*.ckpt
+*.npy
+*.npz
+
+# Visualization and analysis outputs
+visualization/
+visualizations/
+plots/
+figures/generated/
+partitioned_hierarchy.html
+src/visualization/*.png
+src/visualization/*.pdf
+*.bak_no_projector_load
+
+# Editor and OS noise
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

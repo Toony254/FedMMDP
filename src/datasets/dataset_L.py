@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pickle
 import random
+from pathlib import Path
 import torch
 import torch
 import torch
@@ -19,6 +20,12 @@ from tqdm import tqdm
 from torchtext import datasets
 
 from src.datasets.vocab import Vocabulary
+
+
+TEXT_DATA_ROOT = os.environ.get(
+    'FEDMMDP_TEXT_DATA_ROOT',
+    str(Path(__file__).resolve().parents[2] / 'data'),
+)
 
 
 def tokenize(sentence, vocab, caption_drop_prob):
@@ -60,50 +67,50 @@ def caption_transform(vocab, caption_drop_prob=0):
 def text_cls(dset_name, istrain=False):
     if dset_name == 'AG_NEWS':
         # train: 120000， test: 7600， cls=4
-        dset = datasets.AG_NEWS(root='/home/bd/data/zs' + '/data',
+        dset = datasets.AG_NEWS(root=TEXT_DATA_ROOT,
                                           split='train' if istrain else 'test')
     elif dset_name == 'SogouNews':
         # train: 450000, test: 60000， cls=5
-        dset = datasets.SogouNews(root='/home/bd/data/zs' + '/data',
+        dset = datasets.SogouNews(root=TEXT_DATA_ROOT,
                                             split='train' if istrain else 'test')
     elif dset_name == 'DBpedia':
         # train: 560000, test: 70000， cls=14
-        dset = datasets.DBpedia(root='/home/bd/data/zs' + '/data',
+        dset = datasets.DBpedia(root=TEXT_DATA_ROOT,
                                           split='train' if istrain else 'test')
     elif dset_name == 'YelpReviewPolarity':
         # train: 560000, test: 38000， cls=2
-        dset = datasets.YelpReviewPolarity(root='/home/bd/data/zs' + '/data',
+        dset = datasets.YelpReviewPolarity(root=TEXT_DATA_ROOT,
                                                      split='train' if istrain else 'test')
     elif dset_name == 'YelpReviewFull':
         # train: 650000, test: 50000， cls=5
-        dset = datasets.YelpReviewFull(root='/home/bd/data/zs' + '/data',
+        dset = datasets.YelpReviewFull(root=TEXT_DATA_ROOT,
                                                  split='train' if istrain else 'test')
     elif dset_name == 'YahooAnswers':
         # train: 1400000, test: 60000， cls=10
-        dset = datasets.YahooAnswers(root='/home/bd/data/zs' + '/data',
+        dset = datasets.YahooAnswers(root=TEXT_DATA_ROOT,
                                                split='train' if istrain else 'test')
     elif dset_name == 'AmazonReviewPolarity':
         # train: 3600000, test: 400000， cls=2
-        dset = datasets.AmazonReviewPolarity(root='/home/bd/data/zs' + '/data',
+        dset = datasets.AmazonReviewPolarity(root=TEXT_DATA_ROOT,
                                                        split='train' if istrain else 'test')
     elif dset_name == 'AmazonReviewFull':
         # train: 3000000, test: 650000， cls=5
-        dset = datasets.AmazonReviewFull(root='/home/bd/data/zs' + '/data',
+        dset = datasets.AmazonReviewFull(root=TEXT_DATA_ROOT,
                                                    split='train' if istrain else 'test')
     elif dset_name == 'IMDB':
         # train: 25000, test: 25000， cls=2
-        dset = datasets.IMDB(root='/home/bd/data/zs' + '/data', split='train' if istrain else 'test')
+        dset = datasets.IMDB(root=TEXT_DATA_ROOT, split='train' if istrain else 'test')
     return dset
 
 
 def text_qa(dset_name, istrain=False):
     if dset_name == 'SQuAD1':
         # train: 87599， test: 10570
-        dset = datasets.SQuAD1(root='/home/bd/data/zs' + '/data',
+        dset = datasets.SQuAD1(root=TEXT_DATA_ROOT,
                                          split='train' if istrain else 'dev')
     elif dset_name == 'SQuAD2':
         # train: 130319, test: 11873
-        dset = datasets.SQuAD2(root='/home/bd/data/zs' + '/data',
+        dset = datasets.SQuAD2(root=TEXT_DATA_ROOT,
                                          split='train' if istrain else 'dev')
     return dset
 
@@ -155,7 +162,7 @@ def caption_collate_fn(data):
 class Language(data.Dataset):
 
     def __init__(self, name='AG_NEWS', train=True, transform=None, is_iid=False,
-                 client=-1, root='/home/bd/data/zs' + '/data/'):
+                 client=-1, root=None):
         dataset = enumerate(text_cls(name, istrain=train))
         self.targets = []
         self.data = []
@@ -168,8 +175,8 @@ class Language(data.Dataset):
         # print(f'targets, {set(self.targets)}, {len(self.targets)}')
 
         # if client > -1:
-        #     indices = self.iid('/home/bd/data/zs'+f'/data/{name}/client_iid.pkl')[client] if not is_iid else \
-        #         self.non_iid('/home/bd/data/zs'+f'/data/{name}/client_noniid.pkl')[client]
+        #     indices = self.iid(f'{TEXT_DATA_ROOT}/{name}/client_iid.pkl')[client] if not is_iid else \
+        #         self.non_iid(f'{TEXT_DATA_ROOT}/{name}/client_noniid.pkl')[client]
         #     indices = list(indices)
         #     # print(indices)
         #     indices = np.array(indices).astype(int)

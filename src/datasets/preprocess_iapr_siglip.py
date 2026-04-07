@@ -1,18 +1,16 @@
 """
 IAPR TC-12 SigLIP preprocessing script.
 
-This script preserves the exact split/schema/layout of the existing CLIP IAPR
-dataset under `/home/bd/data/zs/FedMMDP/preprocessed_iapr/domain_datasets` and
-only re-encodes image/text features with SigLIP.
+This script preserves the exact split/schema/layout of an existing CLIP IAPR
+dataset and only re-encodes image/text features with SigLIP.
 
 Input:
-  - /home/bd/data/zs/FedMMDP-base/data/iapr_tc12/train.json
-  - /home/bd/data/zs/FedMMDP-base/data/iapr_tc12/validation.json
-  - /home/bd/data/zs/FedMMDP/preprocessed_iapr/domain_datasets
+  - IAPR train/validation JSON files
+  - an existing CLIP-preprocessed IAPR domain dataset
 
 Output:
-  - /home/bd/data/zs/FedMMDP/preprocessed_iapr_siglip/domain_datasets/domain_dataset_{0-4}/train|test
-  - /home/bd/data/zs/FedMMDP/preprocessed_iapr_siglip/label2id.json
+  - a SigLIP-preprocessed IAPR domain dataset with the same split layout
+  - the corresponding `label2id.json`
 
 Saved sample fields are identical to the CLIP IAPR dataset:
   id, class_id, processed_img, cap_tokens, domain_id
@@ -22,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import pickle
 import shutil
 import sys
@@ -46,13 +45,15 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-CODE_BASE_DIR = Path("/home/bd/data/zs/FedMMDP-base")
-DATA_BASE_DIR = Path("/home/bd/data/zs/FedMMDP")
-TRAIN_JSON = DATA_BASE_DIR / "data/iapr_tc12/train.json"
-VAL_JSON = DATA_BASE_DIR / "data/iapr_tc12/validation.json"
-CLIP_ROOT = Path("/home/bd/data/zs/FedMMDP/preprocessed_iapr")
+CODE_BASE_DIR = Path(__file__).resolve().parents[2]
+DATA_BASE_DIR = Path(os.environ.get("FEDMMDP_PREPROCESS_ROOT", str(CODE_BASE_DIR)))
+TRAIN_JSON = Path(os.environ.get("FEDMMDP_IAPR_JSON_TRAIN", str(CODE_BASE_DIR / "data" / "iapr_tc12" / "train.json")))
+VAL_JSON = Path(os.environ.get("FEDMMDP_IAPR_JSON_VAL", str(CODE_BASE_DIR / "data" / "iapr_tc12" / "validation.json")))
+CLIP_ROOT = Path(os.environ.get("FEDMMDP_IAPR_CLIP_ROOT", str(CODE_BASE_DIR / "data" / "iapr")))
 CLIP_DOMAIN_ROOT = CLIP_ROOT / "domain_datasets"
-OUTPUT_ROOT = Path("/home/bd/data/zs/FedMMDP/preprocessed_iapr_siglip")
+OUTPUT_ROOT = Path(
+    os.environ.get("FEDMMDP_IAPR_SIGLIP_PREPROCESS_ROOT", str(CODE_BASE_DIR / "data" / "iapr_siglip"))
+)
 OUTPUT_DIR = OUTPUT_ROOT / "domain_datasets"
 
 NUM_DOMAINS = 5

@@ -574,9 +574,9 @@ class ClientTrainer:
                         fvec_global = global_model.txt_enc(inputs)
                         fvec_prev = prev_models(inputs)[0] if prev_models else None
                 # print(f'fvec: {fvec}, local_logits: {local_logits}, fvec_global: {fvec_global}, fvec_prev: {fvec_prev}')
-                # 分类损失
+                # classification loss
                 loss_cls = self.criterion(fvec, labels)
-                # MOON对比损失
+                # MOON contrastive loss
                 cos = nn.CosineSimilarity(dim=-1)
                 posi = cos(local_logits, fvec_global)
                 logits = posi.reshape(-1, 1)
@@ -788,7 +788,7 @@ class ClientTrainer:
         return self.losses.avg, self.test_top1.avg, self.test_top5.avg
         
     def predict_logits(self, dataloader):
-        """用公共对齐数据输出logits"""
+        """Generate logits on the public alignment dataset."""
         self.model.cuda()
         self.model.eval()
         self.model.is_train = False
@@ -826,7 +826,7 @@ class ClientTrainer:
 
             self.losses = AverageMeter()
             
-        """用聚合soft label对齐训练"""
+        """Train with aggregated soft labels for public-data distillation."""
         self.model.cuda()
         self.model.train()
         idx = 0

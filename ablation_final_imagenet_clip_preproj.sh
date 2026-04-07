@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/bd/data/zs/FedMMDP-base
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+cd "$PROJECT_ROOT"
+LOCAL_CONFIG="${LOCAL_CONFIG:-$PROJECT_ROOT/config/local_paths.sh}"
+if [[ -f "$LOCAL_CONFIG" ]]; then
+  # shellcheck disable=SC1090
+  source "$LOCAL_CONFIG"
+fi
 
 GPU_A="${GPU_A:-0}"
 GPU_B="${GPU_B:-1}"
@@ -10,7 +16,7 @@ COMM_ROUNDS="${COMM_ROUNDS:-20}"
 USE_PRETRAINED_PROJ=1
 DATASET=imagenet
 MODEL=clip
-DATA_ROOT=/home/bd/data/zs/FedMMDP/preprocessed_imagenet/domain_datasets
+DATA_ROOT="${DATA_ROOT:-${FEDMMDP_IMAGENET_ROOT:-data/imagenet/domain_datasets}}"
 FEATURE_DIM=1024
 
 launch_case() {

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from src.datasets.coco_transforms import caption_transform
 from src.datasets.vocab import Vocabulary
@@ -18,6 +19,21 @@ from glob import glob
 import pickle
 # from dataset.vocab import Vocabulary
 # from dataset.coco_transforms import imagenet_transform, caption_transform
+
+
+DEFAULT_FLICKR_ROOT = Path(
+    os.environ.get(
+        'FEDMMDP_FLICKR30K_ROOT',
+        str(Path(__file__).resolve().parents[2] / 'data' / 'flickr30k' / 'flickr30k-images'),
+    )
+)
+DEFAULT_PARTITION_ROOT = Path(
+    os.environ.get(
+        'FEDMMDP_FLICKR30K_PARTITION_ROOT',
+        str(Path(__file__).resolve().parents[2] / 'data_partition'),
+    )
+)
+LEGACY_FLICKR_ROOT = '/data/mmdata/Flick30k/flickr30k-images/'
 
 
 class F30kCaptionsCap(Dataset):
@@ -56,14 +72,15 @@ class F30kCaptionsCap(Dataset):
         else:
             self.target_transform = target_transform
 
-    def iid(self, root='/home/bd/data/zs'+'/data/mmdata/Flick30k/', num_users=20):
+    def iid(self, root=None, num_users=20):
         """
         Sample I.I.D. client data from MNIST dataset
         :param dataset:
         :param num_users:
         :return: dict of image index
         """
-        pkl_path = root + 'client_iid.pkl'
+        root = str(Path(root) if root else DEFAULT_FLICKR_ROOT)
+        pkl_path = os.path.join(root, 'client_iid.pkl')
         if os.path.exists(pkl_path):
             dict_users = pickle.load(open(pkl_path, 'rb'))
         else:
@@ -76,8 +93,9 @@ class F30kCaptionsCap(Dataset):
             pickle.dump(dict_users, open(pkl_path, 'wb'))
         return dict_users
 
-    def non_iid(self, root='./data_partition/', num_users=15):
-        pkl_path = root + 'client_noniid_flicker30k.pkl'
+    def non_iid(self, root=None, num_users=15):
+        root = str(Path(root) if root else DEFAULT_PARTITION_ROOT)
+        pkl_path = os.path.join(root, 'client_noniid_flicker30k.pkl')
         if os.path.exists(pkl_path):
             dict_users = pickle.load(open(pkl_path, 'rb'))
         else:
@@ -111,8 +129,9 @@ class F30kCaptionsCap(Dataset):
         data = self.data[index]
         caption = data[1]
 
-        path = data[0].replace('/data/mmdata/Flick30k/flickr30k-images/',
-                               '/home/bd/data/zs' + '/data/flickr30k/flickr30k-images/')
+        path = data[0]
+        if path.startswith(LEGACY_FLICKR_ROOT):
+            path = str(DEFAULT_FLICKR_ROOT / path[len(LEGACY_FLICKR_ROOT):].lstrip('/'))
         # print(f'path {path}')
 
         img = Image.open(path).convert('RGB')

@@ -22,6 +22,16 @@ from transformers import SiglipModel, SiglipProcessor
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 SRC_DIR = ROOT_DIR / "src"
+DEFAULT_DATA_DIR = ROOT_DIR / "data"
+DEFAULT_COCO_ROOT = Path(
+    os.environ.get("FEDMMDP_COCO_ROOT", str(DEFAULT_DATA_DIR / "COCO"))
+)
+DEFAULT_FLICKR_ROOT = Path(
+    os.environ.get("FEDMMDP_FLICKR30K_ROOT", str(DEFAULT_DATA_DIR / "flickr30k" / "flickr30k-images"))
+)
+LEGACY_FLICKR_ROOTS = (
+    "/data/mmdata/Flick30k/flickr30k-images/",
+)
 for candidate in (ROOT_DIR, SRC_DIR):
     candidate_str = str(candidate)
     if candidate_str not in sys.path:
@@ -72,14 +82,23 @@ class F30kCaptionsCap(Dataset):
 
     def __getitem__(self, index):
         image_path, caption = self.data[index][0], self.data[index][1]
-        image_path = image_path.replace(
-            "/data/mmdata/Flick30k/flickr30k-images/",
-            "/home/bd/data/zs/data/flickr30k/flickr30k-images/",
-        )
+        image_path = resolve_flickr_image_path(image_path)
         image = Image.open(image_path).convert("RGB")
         if self.transform is not None:
             image = self.transform(image)
         return image, caption
+
+
+def resolve_flickr_image_path(image_path: str) -> str:
+    candidate = Path(image_path)
+    if candidate.exists():
+        return str(candidate)
+    normalized = image_path.replace("\\", "/")
+    for legacy_root in LEGACY_FLICKR_ROOTS:
+        if normalized.startswith(legacy_root):
+            rel_path = normalized[len(legacy_root):].lstrip("/")
+            return str(DEFAULT_FLICKR_ROOT / rel_path)
+    return str(DEFAULT_FLICKR_ROOT / candidate.name)
 
 
 class MSCOCODataset(Dataset):
@@ -492,10 +511,10 @@ def parse_args():
                         choices=["linear", "mlp", "residual", "norm", "mlp+norm", "bottleneck", "attention"])
     parser.add_argument("--loss_mode", type=str, default="cl_rmg",
                         choices=["cl_rmg", "cl_only", "rmg_only", "max_margin", "clonly", "rmgonly", "maxmargin"])
-    parser.add_argument("--coco_json", type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_train2017.json")
-    parser.add_argument("--coco_img_dir", type=str, default="/home/bd/data/zs/data/COCO/train2017")
-    parser.add_argument("--coco_val_json", type=str, default="/home/bd/data/zs/data/COCO/annotations/captions_val2017.json")
-    parser.add_argument("--coco_val_img_dir", type=str, default="/home/bd/data/zs/data/COCO/val2017")
+    parser.add_argument("--coco_json", type=str, default=str(DEFAULT_COCO_ROOT / "annotations" / "captions_train2017.json"))
+    parser.add_argument("--coco_img_dir", type=str, default=str(DEFAULT_COCO_ROOT / "train2017"))
+    parser.add_argument("--coco_val_json", type=str, default=str(DEFAULT_COCO_ROOT / "annotations" / "captions_val2017.json"))
+    parser.add_argument("--coco_val_img_dir", type=str, default=str(DEFAULT_COCO_ROOT / "val2017"))
     parser.add_argument("--flickr_split", type=str, default="dataset_k_split.pkl")
     parser.add_argument("--flickr_eval_split", type=str, default="test")
     parser.add_argument("--num_workers", type=int, default=4)

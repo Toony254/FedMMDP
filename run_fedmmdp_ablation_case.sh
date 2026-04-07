@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/bd/data/zs/FedMMDP-base
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+cd "$PROJECT_ROOT"
+LOCAL_CONFIG="${LOCAL_CONFIG:-$PROJECT_ROOT/config/local_paths.sh}"
+if [[ -f "$LOCAL_CONFIG" ]]; then
+  # shellcheck disable=SC1090
+  source "$LOCAL_CONFIG"
+fi
 
-CONDA_BIN="${CONDA_BIN:-/mnt/data/software/anaconda/bin/conda}"
-ENV_NAME="${ENV_NAME:-zs_vita}"
+CONDA_BIN="${CONDA_BIN:-conda}"
+ENV_NAME="${ENV_NAME:-fedmmdp}"
 GPU="${GPU:-0}"
 SEED="${SEED:-3407}"
 DATASET="${DATASET:?DATASET is required}"
@@ -135,7 +141,9 @@ echo "[ABLA] gpu=$GPU dataset=$DATASET model=$MODEL proj=$PROJ_TAG ablation=$ABL
 echo "[ABLA] log_file=$LOG_FILE start_time=$(date '+%F %T')" | tee -a "$LOG_FILE"
 
 eval "$("$CONDA_BIN" shell.bash hook)"
-conda activate "$ENV_NAME"
+if [[ -n "$ENV_NAME" ]]; then
+  conda activate "$ENV_NAME"
+fi
 
 set +e
 CUDA_VISIBLE_DEVICES="$GPU" PYTHONUNBUFFERED=1 python -u src/main.py \

@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-cd /home/bd/data/zs/FedMMDP-base
+PROJECT_ROOT="${PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)}"
+cd "$PROJECT_ROOT"
+LOCAL_CONFIG="${LOCAL_CONFIG:-$PROJECT_ROOT/config/local_paths.sh}"
+if [[ -f "$LOCAL_CONFIG" ]]; then
+  # shellcheck disable=SC1090
+  source "$LOCAL_CONFIG"
+fi
 
-CONDA_BIN="${CONDA_BIN:-/mnt/data/software/anaconda/bin/conda}"
-ENV_NAME="${ENV_NAME:-zs_vita}"
+CONDA_BIN="${CONDA_BIN:-conda}"
+ENV_NAME="${ENV_NAME:-fedmmdp}"
 USE_PRETRAINED_PROJ="${USE_PRETRAINED_PROJ:-0}"
 PROJ_TAG=$([ "$USE_PRETRAINED_PROJ" -eq 1 ] && echo preproj || echo randproj)
 COMM_ROUNDS="${COMM_ROUNDS:-50}"
@@ -12,7 +18,7 @@ PUB_DATA_NUM="${PUB_DATA_NUM:-5000}"
 GPUS="${GPUS:-1,1,1,1,2,2,2,2,3,3,3}"
 
 DATASET="imagenet"
-DATA_ROOT="/home/bd/data/zs/FedMMDP/preprocessed_imagenet/domain_datasets"
+DATA_ROOT="${DATA_ROOT:-${FEDMMDP_IMAGENET_ROOT:-data/imagenet/domain_datasets}}"
 MODEL="clip"
 FEATURE_DIM="1024"
 FEDMMDP_NAME="${FEDMMDP_NAME:-FedMMDP-imagenet-clip-${PROJ_TAG}-noRMG}"
@@ -31,7 +37,9 @@ fi
 mkdir -p outputs
 
 eval "$("$CONDA_BIN" shell.bash hook)"
-conda activate "$ENV_NAME"
+if [[ -n "$ENV_NAME" ]]; then
+  conda activate "$ENV_NAME"
+fi
 
 IFS=',' read -r -a GPU_SLOTS <<< "${GPUS// /}"
 if (( ${#GPU_SLOTS[@]} < 11 )); then

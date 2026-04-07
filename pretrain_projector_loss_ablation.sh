@@ -3,6 +3,11 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
+LOCAL_CONFIG="${LOCAL_CONFIG:-$ROOT_DIR/config/local_paths.sh}"
+if [[ -f "$LOCAL_CONFIG" ]]; then
+  # shellcheck disable=SC1090
+  source "$LOCAL_CONFIG"
+fi
 
 MODEL="${1:-clip}"
 PROJECTOR="${PROJECTOR:-mlp+norm}"
@@ -15,7 +20,7 @@ BATCH_SIZE="${BATCH_SIZE:-32}"
 LR="${LR:-1e-4}"
 TEMPERATURE="${TEMPERATURE:-0.07}"
 MARGIN="${MARGIN:-0.2}"
-COCO_ROOT="${COCO_ROOT:-/home/bd/data/zs/data/COCO}"
+COCO_ROOT="${COCO_ROOT:-data/COCO}"
 FLICKR_SPLIT="${FLICKR_SPLIT:-dataset_k_split.pkl}"
 
 mkdir -p "$SAVE_PATH" "$LOG_DIR"
