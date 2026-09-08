@@ -1,6 +1,12 @@
-# FedMMDP
+# FedMMDP: A Federated Multimodal Domain Personalization Framework with Modality Alignment and Privacy Preservation
 
-FedMMDP is a research codebase for multimodal federated learning with modality-aligned initialization, privacy-preserving domain recognition, and centroid-guided personalization.
+This is the official research implementation accompanying **FedMMDP: A Federated Multimodal Domain Personalization Framework with Modality Alignment and Privacy Preservation**, accepted at **ACM Multimedia 2026 (MM '26)**.
+
+**Authors:** Shuai Zhang, Shengze Hu, Xiongtao Zhang, Jingxuan Zhou, Weidong Bao, and Ji Wang.
+
+**Paper:** [ACM Digital Library / DOI: 10.1145/3767308.3835427](https://doi.org/10.1145/3767308.3835427).
+
+FedMMDP studies multimodal federated learning with modality-aligned initialization, domain recognition from aggregated statistics, and centroid-guided personalization. See [Implementation Scope](#implementation-scope) for the aggregation backend provided by this codebase and [Citation](#citation) for the paper reference and BibTeX entry.
 
 ## Overview
 
@@ -9,14 +15,20 @@ The method targets heterogeneous federated settings with image-only, text-only, 
 ![FedMMDP framework](docs/framework.png)
 
 1. **Modality alignment**: a lightweight projector is pretrained on public multimodal data to reduce the image-text modality gap before federated optimization.
-2. **Secure domain recognition**: clients compute local sufficient statistics and the server updates centroids from aggregated statistics, without accessing raw client representations.
+2. **Domain recognition from sufficient statistics**: clients compute local cluster sums and counts, and the server updates centroids from their aggregate. The paper specifies secure aggregation; this repository provides a plaintext simulation of the aggregation interface.
 3. **Centroid-guided personalization**: the updated centroids are used as domain-aware guidance during local multimodal optimization.
 
 ## Main Contributions Implemented in This Repository
 
 - A modality-aligned initialization pipeline for multimodal federated learning.
-- A secure Lloyd-style centroid update procedure for domain discovery from aggregated client statistics.
+- A Lloyd-style centroid update procedure for domain discovery from aggregated client statistics.
 - A domain-aware personalized training objective for heterogeneous multimodal clients.
+
+## Implementation Scope
+
+The current [`SecureAggregator`](src/algorithms/secure_agg.py) is an **interface-compatible plaintext placeholder**. It receives individual client sums and counts and adds them to obtain global statistics. It does not implement cryptographic masking, key exchange, or protection of individual client statistics from the aggregation process. The code supports algorithm experiments with aggregated statistics; cryptographic privacy guarantees and secure-protocol overhead require a separate secure-aggregation backend and evaluation.
+
+The four main `baselines_*.sh` launchers disable RMG during federated optimization with `--fedmmdp_disable_rmg_loss 1`, matching the paper's use of RMG during projector pretraining. They default to 50 communication rounds, one local epoch per round, batch size 256, and learning rate `1e-5`. Direct command-line defaults and ablation launchers can use different settings; record the full launch configuration, seed, data partition, and projector checkpoint for each experiment.
 
 ## Repository Layout
 
@@ -128,3 +140,25 @@ bash pretrain_projector_loss_ablation.sh siglip
 ```
 
 The projector training scripts support multiple objective variants, including `cl_rmg`, `cl_only`, `rmg_only`, and `max_margin`.
+
+## Citation
+
+If you use FedMMDP or build on this implementation, please cite:
+
+Shuai Zhang, Shengze Hu, Xiongtao Zhang, Jingxuan Zhou, Weidong Bao, and Ji Wang. 2026. FedMMDP: A Federated Multimodal Domain Personalization Framework with Modality Alignment and Privacy Preservation. In *Proceedings of the 34th ACM International Conference on Multimedia (MM '26)*, November 10--14, 2026, Rio de Janeiro, Brazil. ACM, New York, NY, USA, 9 pages. https://doi.org/10.1145/3767308.3835427
+
+```bibtex
+@inproceedings{zhang2026fedmmdp,
+  title     = {{FedMMDP}: A Federated Multimodal Domain Personalization Framework with Modality Alignment and Privacy Preservation},
+  author    = {Zhang, Shuai and Hu, Shengze and Zhang, Xiongtao and Zhou, Jingxuan and Bao, Weidong and Wang, Ji},
+  booktitle = {Proceedings of the 34th ACM International Conference on Multimedia},
+  series    = {MM '26},
+  year      = {2026},
+  publisher = {Association for Computing Machinery},
+  address   = {New York, NY, USA},
+  location  = {Rio de Janeiro, Brazil},
+  numpages  = {9},
+  doi       = {10.1145/3767308.3835427},
+  url       = {https://doi.org/10.1145/3767308.3835427}
+}
+```
