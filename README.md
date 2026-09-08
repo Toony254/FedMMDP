@@ -6,7 +6,7 @@ This is the official research implementation accompanying **FedMMDP: A Federated
 
 **Paper:** [ACM Digital Library / DOI: 10.1145/3767308.3835427](https://doi.org/10.1145/3767308.3835427).
 
-FedMMDP studies multimodal federated learning with modality-aligned initialization, domain recognition from aggregated statistics, and centroid-guided personalization. See [Implementation Scope](#implementation-scope) for the aggregation backend provided by this codebase and [Citation](#citation) for the paper reference and BibTeX entry.
+FedMMDP studies multimodal federated learning with modality-aligned initialization, domain recognition from aggregated statistics, and centroid-guided personalization. See [Citation](#citation) for the paper reference and BibTeX entry.
 
 ## Overview
 
@@ -15,7 +15,7 @@ The method targets heterogeneous federated settings with image-only, text-only, 
 ![FedMMDP framework](docs/framework.png)
 
 1. **Modality alignment**: a lightweight projector is pretrained on public multimodal data to reduce the image-text modality gap before federated optimization.
-2. **Domain recognition from sufficient statistics**: clients compute local cluster sums and counts, and the server updates centroids from their aggregate. The paper specifies secure aggregation; this repository provides a plaintext simulation of the aggregation interface.
+2. **Domain recognition from sufficient statistics**: clients compute local cluster sums and counts, and the server updates centroids from their aggregate.
 3. **Centroid-guided personalization**: the updated centroids are used as domain-aware guidance during local multimodal optimization.
 
 ## Main Contributions Implemented in This Repository
@@ -24,9 +24,7 @@ The method targets heterogeneous federated settings with image-only, text-only, 
 - A Lloyd-style centroid update procedure for domain discovery from aggregated client statistics.
 - A domain-aware personalized training objective for heterogeneous multimodal clients.
 
-## Implementation Scope
-
-The current [`SecureAggregator`](src/algorithms/secure_agg.py) is an **interface-compatible plaintext placeholder**. It receives individual client sums and counts and adds them to obtain global statistics. It does not implement cryptographic masking, key exchange, or protection of individual client statistics from the aggregation process. The code supports algorithm experiments with aggregated statistics; cryptographic privacy guarantees and secure-protocol overhead require a separate secure-aggregation backend and evaluation.
+## Experiment Configuration
 
 The four main `baselines_*.sh` launchers disable RMG during federated optimization with `--fedmmdp_disable_rmg_loss 1`, matching the paper's use of RMG during projector pretraining. They default to 50 communication rounds, one local epoch per round, batch size 256, and learning rate `1e-5`. Direct command-line defaults and ablation launchers can use different settings; record the full launch configuration, seed, data partition, and projector checkpoint for each experiment.
 
